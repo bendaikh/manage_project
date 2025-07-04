@@ -96,7 +96,7 @@
                 <ListIcon class="h-4 w-4" />
                 <span>All Products</span>
               </a>
-              <a href="/products/add" class="flex items-center space-x-3 px-4 py-2 text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
+              <a href="#" @click="handleShowAddProduct" class="flex items-center space-x-3 px-4 py-2 text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
                 <PlusIcon class="h-4 w-4" />
                 <span>Add Product</span>
               </a>
@@ -168,8 +168,8 @@
     <!-- Main Content -->
     <div class="ml-64 pt-16">
       <main class="p-8">
-        <!-- Content will be loaded here -->
-        <slot></slot>
+        <ProductCreate v-if="showAddProduct" @back="handleBackFromProduct" />
+        <slot v-else></slot>
       </main>
     </div>
 
@@ -180,6 +180,7 @@
 
 <script setup>
 import { ref } from 'vue'
+import ProductCreate from './ProductCreate.vue'
 
 // Component state
 const isDashboardMenuOpen = ref(false)
@@ -187,6 +188,9 @@ const isOrdersMenuOpen = ref(false)
 const isProductsMenuOpen = ref(false)
 const isUsersMenuOpen = ref(false)
 const isProfileMenuOpen = ref(false)
+
+// New state for showing Add Product form
+const showAddProduct = ref(false)
 
 const toggleDashboardMenu = () => {
   isDashboardMenuOpen.value = !isDashboardMenuOpen.value
@@ -228,6 +232,15 @@ const signOut = async () => {
   } catch (error) {
     console.error('Logout failed', error)
   }
+}
+
+const handleShowAddProduct = (e) => {
+  e.preventDefault()
+  showAddProduct.value = true
+}
+
+const handleBackFromProduct = () => {
+  showAddProduct.value = false
 }
 </script>
 
