@@ -39,6 +39,18 @@
               </div>
               <ChevronDownIcon :class="['h-4 w-4 text-white transition-transform', isDashboardMenuOpen ? 'rotate-180' : '']" />
             </button>
+            
+            <!-- Dashboard Sub-menu -->
+            <div v-show="isDashboardMenuOpen" class="mt-1 ml-4 space-y-1">
+              <a href="/dashboard/overview" class="flex items-center space-x-3 px-4 py-2 text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
+                <ChartBarIcon class="h-4 w-4" />
+                <span>Overview</span>
+              </a>
+              <a href="/dashboard/analytics" class="flex items-center space-x-3 px-4 py-2 text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
+                <ChartPieIcon class="h-4 w-4" />
+                <span>Analytics</span>
+              </a>
+            </div>
           </div>
 
           <!-- Orders -->
@@ -50,6 +62,22 @@
               </div>
               <ChevronDownIcon :class="['h-4 w-4 text-white transition-transform', isOrdersMenuOpen ? 'rotate-180' : '']" />
             </button>
+            
+            <!-- Orders Sub-menu -->
+            <div v-show="isOrdersMenuOpen" class="mt-1 ml-4 space-y-1">
+              <a href="/orders/all" class="flex items-center space-x-3 px-4 py-2 text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
+                <ListIcon class="h-4 w-4" />
+                <span>All Orders</span>
+              </a>
+              <a href="/orders/confirmation" class="flex items-center space-x-3 px-4 py-2 text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
+                <CheckCircleIcon class="h-4 w-4" />
+                <span>Confirmation</span>
+              </a>
+              <a href="/orders/delivery" class="flex items-center space-x-3 px-4 py-2 text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
+                <TruckIcon class="h-4 w-4" />
+                <span>Delivery</span>
+              </a>
+            </div>
           </div>
 
           <!-- Products -->
@@ -61,6 +89,22 @@
               </div>
               <ChevronDownIcon :class="['h-4 w-4 text-white transition-transform', isProductsMenuOpen ? 'rotate-180' : '']" />
             </button>
+            
+            <!-- Products Sub-menu -->
+            <div v-show="isProductsMenuOpen" class="mt-1 ml-4 space-y-1">
+              <a href="/products/all" class="flex items-center space-x-3 px-4 py-2 text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
+                <ListIcon class="h-4 w-4" />
+                <span>All Products</span>
+              </a>
+              <a href="/products/add" class="flex items-center space-x-3 px-4 py-2 text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
+                <PlusIcon class="h-4 w-4" />
+                <span>Add Product</span>
+              </a>
+              <a href="/products/categories" class="flex items-center space-x-3 px-4 py-2 text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
+                <TagIcon class="h-4 w-4" />
+                <span>Categories</span>
+              </a>
+            </div>
           </div>
 
           <!-- Users -->
@@ -72,6 +116,26 @@
               </div>
               <ChevronDownIcon :class="['h-4 w-4 text-white transition-transform', isUsersMenuOpen ? 'rotate-180' : '']" />
             </button>
+            
+            <!-- Users Sub-menu -->
+            <div v-show="isUsersMenuOpen" class="mt-1 ml-4 space-y-1">
+              <a href="/users/add" class="flex items-center space-x-3 px-4 py-2 text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
+                <UserPlusIcon class="h-4 w-4" />
+                <span>Add User</span>
+              </a>
+              <a href="/users/add-seller" class="flex items-center space-x-3 px-4 py-2 text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
+                <SellerIcon class="h-4 w-4" />
+                <span>Add Seller</span>
+              </a>
+              <a href="/users/manage" class="flex items-center space-x-3 px-4 py-2 text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
+                <UsersIcon class="h-4 w-4" />
+                <span>Manage Users</span>
+              </a>
+              <a href="/users/manage-sellers" class="flex items-center space-x-3 px-4 py-2 text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
+                <UsersIcon class="h-4 w-4" />
+                <span>Manage Sellers</span>
+              </a>
+            </div>
           </div>
 
           <!-- Clients -->
@@ -234,6 +298,79 @@ const UserIcon = {
   `
 }
 
+const ChartBarIcon = {
+  template: `
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+    </svg>
+  `
+}
+
+const ChartPieIcon = {
+  template: `
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
+    </svg>
+  `
+}
+
+const ListIcon = {
+  template: `
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+    </svg>
+  `
+}
+
+const CheckCircleIcon = {
+  template: `
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4" />
+    </svg>
+  `
+}
+
+const TruckIcon = {
+  template: `
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 17l4 4m-4-4l-4 4m12-3a3 3 0 11-6 0 3 3 0 016 0z" />
+    </svg>
+  `
+}
+
+const PlusIcon = {
+  template: `
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+    </svg>
+  `
+}
+
+const TagIcon = {
+  template: `
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 7h.01M7 11h.01M7 15h.01M7 19h.01M11 7h.01M11 11h.01M11 15h.01M11 19h.01M15 7h.01M15 11h.01M15 15h.01M15 19h.01" />
+    </svg>
+  `
+}
+
+const UserPlusIcon = {
+  template: `
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+    </svg>
+  `
+}
+
+const SellerIcon = {
+  template: `
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+    </svg>
+  `
+}
+
 export default {
   components: {
     HomeIcon,
@@ -243,7 +380,16 @@ export default {
     ClockIcon,
     CogIcon,
     ChevronDownIcon,
-    UserIcon
+    UserIcon,
+    ChartBarIcon,
+    ChartPieIcon,
+    ListIcon,
+    CheckCircleIcon,
+    TruckIcon,
+    PlusIcon,
+    TagIcon,
+    UserPlusIcon,
+    SellerIcon
   }
 }
 </script>
