@@ -10,15 +10,14 @@ class DashboardController extends Controller
     {
         $user = auth()->user();
         
-        switch ($user->role) {
-            case 'admin':
-                return redirect()->route('dashboard.admin');
-            case 'manager':
-                return redirect()->route('dashboard.manager');
-            case 'agent':
-                return redirect()->route('dashboard.agent');
-            default:
-                return redirect()->route('dashboard.agent');
+        if ($user->hasRole('superadmin')) {
+            return view('dashboard.superadmin');
+        } elseif ($user->hasRole('admin')) {
+            return view('dashboard.admin');
+        } elseif ($user->hasRole('manager')) {
+            return view('dashboard.manager');
+        } else {
+            return view('dashboard.agent');
         }
     }
 

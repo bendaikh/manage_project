@@ -13,6 +13,16 @@
 
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
+
+        <!-- User Permissions -->
+        <script>
+            window.Laravel = {
+                user: @json([
+                    'permissions' => auth()->check() ? auth()->user()->roles->flatMap->permissions->pluck('name')->unique() : [],
+                    'roles' => auth()->check() ? auth()->user()->roles->pluck('name') : []
+                ])
+            };
+        </script>
     </head>
     <body class="font-sans antialiased">
         <div class="min-h-screen bg-gray-100">
@@ -29,7 +39,9 @@
 
             <!-- Page Content -->
             <main>
-                {{ $slot }}
+                <div id="app">
+                    {{ $slot }}
+                </div>
             </main>
         </div>
     </body>
