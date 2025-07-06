@@ -1,0 +1,122 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use Barryvdh\DomPDF\Facade\Pdf;
+use App\Models\Order;
+use App\Models\DeliveryInvoice;
+use Illuminate\Support\Facades\Storage;
+
+class PdfController extends Controller
+{
+    public function deliveryNote(Request $request)
+    {
+        $ids = explode(',', $request->query('ids', ''));
+        $orders = Order::with(['product', 'orderStatus'])->whereIn('id', $ids)->get();
+        if ($orders->isEmpty()) {
+            abort(404, 'Orders not found');
+        }
+        $totalPrice = $orders->sum('price');
+        $shippingTotal = count($orders) * 1500;
+        $grandTotal = $totalPrice - $shippingTotal;
+        
+        $pdf = Pdf::loadView('pdf.delivery-note', compact('orders', 'totalPrice', 'shippingTotal', 'grandTotal'))
+            ->setPaper('a4', 'portrait')
+            ->setOptions([
+                'isHtml5ParserEnabled' => true,
+                'isRemoteEnabled' => true,
+                'defaultFont' => 'DejaVu Sans',
+                'dpi' => 150,
+            ]);
+        return $pdf->download('delivery-note.pdf');
+    }
+
+    public function invoices(Request $request)
+    {
+        $ids = explode(',', $request->query('ids', ''));
+        $orders = Order::with(['product', 'orderStatus'])->whereIn('id', $ids)->get();
+        if ($orders->isEmpty()) {
+            abort(404, 'Orders not found');
+        }
+        
+        $pdf = Pdf::loadView('pdf.invoices', compact('orders'))
+            ->setPaper('a4', 'portrait')
+            ->setOptions([
+                'isHtml5ParserEnabled' => true,
+                'isRemoteEnabled' => true,
+                'defaultFont' => 'DejaVu Sans',
+                'dpi' => 150,
+            ]);
+        return $pdf->download('invoices.pdf');
+    }
+
+    public function deliveryInvoice(Request $request)
+    {
+        $today = now()->toDateString();
+        $orders = Order::with(['product', 'orderStatus'])
+            ->whereHas('orderStatus', function ($query) {
+                $query->where('name', 'Delivered');
+            })
+            ->whereDate('updated_at', $today)
+            ->orderBy('updated_at', 'desc')
+            ->get();
+        if ($orders->isEmpty()) {
+            abort(404, 'No delivered orders found for today');
+        }
+        $totalAmount = $orders->sum('price');
+        $totalOrders = $orders->count();
+        $filename = 'delivery-invoice-' . $today . '.pdf';
+        $pdfPath = 'invoices/' . $filename;
+        
+        // Configure PDF options for better encoding support
+        $pdf = Pdf::loadView('pdf.delivery-invoice', compact('orders', 'totalAmount', 'totalOrders', 'today'))
+            ->setPaper('a4', 'portrait')
+            ->setOptions([
+                'isHtml5ParserEnabled' => true,
+                'isRemoteEnabled' => true,
+                'defaultFont' => 'DejaVu Sans',
+                'enable_php' => true,
+                'chroot' => public_path(),
+                'dpi' => 150,
+                'defaultPaperSize' => 'a4',
+                'defaultPaperOrientation' => 'portrait',
+            ]);
+        
+        try {
+            // Ensure the invoices directory exists
+            Storage::makeDirectory('invoices');
+            
+            // Save PDF to storage/app/invoices
+            $saved = Storage::put($pdfPath, $pdf->output());
+            
+            if (!$saved) {
+                throw new \Exception('Failed to save PDF file to storage');
+            }
+            
+            // Verify the file was actually saved
+            if (!Storage::exists($pdfPath)) {
+                throw new \Exception('PDF file was not found after saving');
+            }
+            
+            // Save or update invoice record
+            DeliveryInvoice::updateOrCreate(
+                ['invoice_date' => $today],
+                [
+                    'order_count' => $totalOrders,
+                    'total_amount' => $totalAmount,
+                    'pdf_path' => $pdfPath,
+                ]
+            );
+            
+            return response()->make($pdf->output(), 200, [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            ]);
+            
+        } catch (\Exception $e) {
+            \Log::error('Failed to generate delivery invoice: ' . $e->getMessage());
+            abort(500, 'Failed to generate delivery invoice. Please try again.');
+        }
+    }
+} 
