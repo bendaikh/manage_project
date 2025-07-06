@@ -38,4 +38,61 @@ class ProductController extends Controller
 
         return response()->json(['message' => 'Product created successfully', 'product' => $product], 201);
     }
+
+    public function index(Request $request)
+    {
+        $query = Product::query();
+
+        if ($request->filled('category')) {
+            $query->where('category', $request->category);
+        }
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%$search%")
+                  ->orWhere('sku', 'like', "%$search%")
+                  ->orWhere('category', 'like', "%$search%")
+                  ->orWhere('supplier', 'like', "%$search%")
+                  ->orWhere('description', 'like', "%$search%");
+            });
+        }
+
+        switch ($request->input('sort')) {
+            case 'name_desc':
+                $query->orderBy('name', 'desc');
+                break;
+            case 'price_asc':
+                $query->orderBy('selling_price', 'asc');
+                break;
+            case 'price_desc':
+                $query->orderBy('selling_price', 'desc');
+                break;
+            case 'stock_asc':
+                $query->orderBy('stock_quantity', 'asc');
+                break;
+            case 'stock_desc':
+                $query->orderBy('stock_quantity', 'desc');
+                break;
+            default:
+                $query->orderBy('name', 'asc');
+        }
+
+        $products = $query->get();
+        $categories = Product::select('category')->distinct()->pluck('category')->filter()->values();
+        $summary = [
+            'total' => Product::count(),
+            'inStock' => Product::where('status', 'In Stock')->count(),
+            'lowStock' => Product::where('status', 'Low Stock')->count(),
+            'outOfStock' => Product::where('status', 'Out of Stock')->count(),
+        ];
+
+        return response()->json([
+            'products' => $products,
+            'categories' => $categories,
+            'summary' => $summary,
+        ]);
+    }
 } 

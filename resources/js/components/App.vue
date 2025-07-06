@@ -42,14 +42,14 @@
             
             <!-- Dashboard Sub-menu -->
             <div v-show="isDashboardMenuOpen" class="mt-1 ml-4 space-y-1">
-              <a href="/dashboard/overview" class="flex items-center space-x-3 px-4 py-2 text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
+              <button type="button" @click="handleShowOverview" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
                 <ChartBarIcon class="h-4 w-4" />
                 <span>Overview</span>
-              </a>
-              <a href="/dashboard/analytics" class="flex items-center space-x-3 px-4 py-2 text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
+              </button>
+              <button type="button" @click="handleShowAnalytics" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
                 <ChartPieIcon class="h-4 w-4" />
                 <span>Analytics</span>
-              </a>
+              </button>
             </div>
           </div>
 
@@ -65,18 +65,26 @@
             
             <!-- Orders Sub-menu -->
             <div v-show="isOrdersMenuOpen" class="mt-1 ml-4 space-y-1">
-              <a href="/orders/all" class="flex items-center space-x-3 px-4 py-2 text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
+              <button type="button" @click="handleShowAddOrder" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
+                <PlusIcon class="h-4 w-4" />
+                <span>Create Order</span>
+              </button>
+              <button type="button" @click="handleShowOrderList" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
                 <ListIcon class="h-4 w-4" />
                 <span>All Orders</span>
-              </a>
-              <a href="/orders/confirmation" class="flex items-center space-x-3 px-4 py-2 text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
+              </button>
+              <button type="button" @click="handleShowConfirmationOrders" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
                 <CheckCircleIcon class="h-4 w-4" />
                 <span>Confirmation</span>
-              </a>
-              <a href="/orders/delivery" class="flex items-center space-x-3 px-4 py-2 text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
+              </button>
+              <button type="button" @click="handleShowDeliveryOrders" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
                 <TruckIcon class="h-4 w-4" />
                 <span>Delivery</span>
-              </a>
+              </button>
+              <button type="button" @click="handleShowInvoices" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
+                <DocumentTextIcon class="h-4 w-4" />
+                <span>Invoices</span>
+              </button>
             </div>
           </div>
 
@@ -92,18 +100,18 @@
             
             <!-- Products Sub-menu -->
             <div v-show="isProductsMenuOpen" class="mt-1 ml-4 space-y-1">
-              <a href="/products/all" class="flex items-center space-x-3 px-4 py-2 text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
+              <button type="button" @click="handleShowProductList" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
                 <ListIcon class="h-4 w-4" />
                 <span>All Products</span>
-              </a>
-              <a href="#" @click="handleShowAddProduct" class="flex items-center space-x-3 px-4 py-2 text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
+              </button>
+              <button type="button" @click="handleShowAddProduct" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
                 <PlusIcon class="h-4 w-4" />
                 <span>Add Product</span>
-              </a>
-              <a href="/products/categories" class="flex items-center space-x-3 px-4 py-2 text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
+              </button>
+              <button type="button" @click="handleShowCategories" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
                 <TagIcon class="h-4 w-4" />
                 <span>Categories</span>
-              </a>
+              </button>
             </div>
           </div>
 
@@ -119,22 +127,26 @@
             
             <!-- Users Sub-menu -->
             <div v-show="isUsersMenuOpen" class="mt-1 ml-4 space-y-1">
-              <a href="/users/add" class="flex items-center space-x-3 px-4 py-2 text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
+              <button type="button" @click="handleShowAddUser" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
                 <UserPlusIcon class="h-4 w-4" />
                 <span>Add User</span>
-              </a>
-              <a href="/users/add-seller" class="flex items-center space-x-3 px-4 py-2 text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
-                <SellerIcon class="h-4 w-4" />
-                <span>Add Seller</span>
-              </a>
-              <a href="/users/manage" class="flex items-center space-x-3 px-4 py-2 text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
+              </button>
+              <button type="button" @click="handleShowAgentsList" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
                 <UsersIcon class="h-4 w-4" />
-                <span>Manage Users</span>
-              </a>
-              <a href="/users/manage-sellers" class="flex items-center space-x-3 px-4 py-2 text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
+                <span>Agents</span>
+              </button>
+              <button type="button" @click="handleShowManagersList" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
                 <UsersIcon class="h-4 w-4" />
-                <span>Manage Sellers</span>
-              </a>
+                <span>Managers</span>
+              </button>
+              <button type="button" @click="handleShowAdminsList" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
+                <UsersIcon class="h-4 w-4" />
+                <span>Admins</span>
+              </button>
+              <button type="button" @click="handleShowSellersList" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
+                <UsersIcon class="h-4 w-4" />
+                <span>Sellers</span>
+              </button>
             </div>
           </div>
 
@@ -169,6 +181,20 @@
     <div class="ml-64 pt-16">
       <main class="p-8">
         <ProductCreate v-if="showAddProduct" @back="handleBackFromProduct" />
+        <OrderCreate v-else-if="showAddOrder" @back="handleBackFromOrder" />
+        <ProductList v-else-if="showProductList" @add-product="handleShowAddProduct" />
+        <OrderList v-else-if="showOrderList" @create-order="handleShowAddOrder" />
+        <OrderList v-else-if="showConfirmationOrders" confirmation @create-order="handleShowAddOrder" />
+        <OrderList v-else-if="showDeliveryOrders" delivery @create-order="handleShowAddOrder" />
+        <InvoicesList v-else-if="showInvoices" />
+        <DashboardOverview v-else-if="showOverview" />
+        <DashboardAnalytics v-else-if="showAnalytics" />
+        <AddUser v-else-if="showAddUser" @back="handleBackFromAddUser" />
+        <UserList v-else-if="showAgentsList" role="agent" />
+        <UserList v-else-if="showManagersList" role="manager" />
+        <UserList v-else-if="showAdminsList" role="admin" />
+        <UserList v-else-if="showSellersList" role="seller" />
+        <CategoryList v-else-if="showCategories" />
         <slot v-else></slot>
       </main>
     </div>
@@ -181,6 +207,15 @@
 <script setup>
 import { ref } from 'vue'
 import ProductCreate from './ProductCreate.vue'
+import ProductList from './ProductList.vue'
+import OrderCreate from './OrderCreate.vue'
+import OrderList from './OrderList.vue'
+import DashboardOverview from './DashboardOverview.vue'
+import DashboardAnalytics from './DashboardAnalytics.vue'
+import AddUser from './AddUser.vue'
+import UserList from './UserList.vue'
+import CategoryList from './CategoryList.vue'
+import InvoicesList from './InvoicesList.vue'
 
 // Component state
 const isDashboardMenuOpen = ref(false)
@@ -189,8 +224,22 @@ const isProductsMenuOpen = ref(false)
 const isUsersMenuOpen = ref(false)
 const isProfileMenuOpen = ref(false)
 
-// New state for showing Add Product form
+// New state for showing Add Product form or Product List
 const showAddProduct = ref(false)
+const showProductList = ref(false)
+const showAddOrder = ref(false)
+const showOrderList = ref(false)
+const showOverview = ref(true)
+const showAnalytics = ref(false)
+const showConfirmationOrders = ref(false)
+const showDeliveryOrders = ref(false)
+const showAddUser = ref(false)
+const showAgentsList = ref(false)
+const showManagersList = ref(false)
+const showAdminsList = ref(false)
+const showSellersList = ref(false)
+const showCategories = ref(false)
+const showInvoices = ref(false)
 
 const toggleDashboardMenu = () => {
   isDashboardMenuOpen.value = !isDashboardMenuOpen.value
@@ -234,13 +283,110 @@ const signOut = async () => {
   }
 }
 
+const clearViews = () => {
+  showAddProduct.value = false
+  showProductList.value = false
+  showAddOrder.value = false
+  showOrderList.value = false
+  showOverview.value = false
+  showAnalytics.value = false
+  showConfirmationOrders.value = false
+  showDeliveryOrders.value = false
+  showAddUser.value = false
+  showAgentsList.value = false
+  showManagersList.value = false
+  showAdminsList.value = false
+  showSellersList.value = false
+  showCategories.value = false
+  showInvoices.value = false
+}
+
 const handleShowAddProduct = (e) => {
-  e.preventDefault()
+  if (e) e.preventDefault()
+  clearViews()
   showAddProduct.value = true
+}
+
+const handleShowProductList = (e) => {
+  if (e) e.preventDefault()
+  clearViews()
+  showProductList.value = true
 }
 
 const handleBackFromProduct = () => {
   showAddProduct.value = false
+  showProductList.value = true
+}
+
+const handleShowAddOrder = (e) => {
+  if (e) e.preventDefault()
+  clearViews()
+  showAddOrder.value = true
+}
+
+const handleBackFromOrder = () => {
+  showAddOrder.value = false
+  showProductList.value = true
+}
+
+const handleShowOrderList = (e) => {
+  if (e) e.preventDefault()
+  showOrderList.value = true
+  showAddOrder.value = false
+  showAddProduct.value = false
+  showProductList.value = false
+}
+
+const handleShowConfirmationOrders = (e) => {
+  if (e) e.preventDefault()
+  clearViews()
+  showConfirmationOrders.value = true
+}
+
+const handleShowDeliveryOrders = (e) => {
+  if (e) e.preventDefault()
+  clearViews()
+  showDeliveryOrders.value = true
+}
+
+const handleShowInvoices = (e) => {
+  if (e) e.preventDefault()
+  clearViews()
+  showInvoices.value = true
+}
+
+const handleShowOverview = (e) => {
+  if (e) e.preventDefault()
+  clearViews()
+  showOverview.value = true
+}
+
+const handleShowAnalytics = (e) => {
+  if (e) e.preventDefault()
+  clearViews()
+  showAnalytics.value = true
+}
+
+const handleShowAddUser = (e) => {
+  if (e) e.preventDefault()
+  clearViews()
+  showAddUser.value = true
+}
+
+const handleBackFromAddUser = () => {
+  showAddUser.value = false
+  showOverview.value = true
+}
+
+const handleShowAgentsList = (e)=>{ if(e) e.preventDefault(); clearViews(); showAgentsList.value=true }
+const handleShowManagersList = (e)=>{ if(e) e.preventDefault(); clearViews(); showManagersList.value=true }
+const handleShowAdminsList = (e)=>{ if(e) e.preventDefault(); clearViews(); showAdminsList.value=true }
+const handleShowSellersList = (e)=>{ if(e) e.preventDefault(); clearViews(); showSellersList.value=true }
+
+const handleShowCategories = (e) => {
+  if (e) e.preventDefault()
+  clearViews()
+  showCategories.value = true
 }
 </script>
 

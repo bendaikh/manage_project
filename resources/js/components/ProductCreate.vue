@@ -24,7 +24,10 @@
         </div>
         <div class="mb-4">
           <label class="block text-sm font-medium mb-1">Category</label>
-          <input v-model="form.category" type="text" class="w-full border rounded px-3 py-2 focus:outline-none focus:ring focus:border-blue-300" />
+          <select v-model="form.category" class="w-full border rounded px-3 py-2 focus:outline-none focus:ring focus:border-blue-300">
+            <option value="">Select a category</option>
+            <option v-for="cat in categories" :key="cat.id" :value="cat.name">{{ cat.name }}</option>
+          </select>
         </div>
         <div class="mb-4">
           <label class="block text-sm font-medium mb-1">Supplier</label>
@@ -106,7 +109,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 
 const form = ref({
   name: '',
@@ -125,6 +128,16 @@ const form = ref({
 
 const error = ref('')
 const success = ref(false)
+const categories = ref([])
+
+const fetchCategories = async () => {
+  const res = await fetch('/categories', { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
+  if (!res.ok) return
+  const data = await res.json()
+  categories.value = data.categories || []
+}
+
+onMounted(fetchCategories)
 
 const submitForm = async () => {
   error.value = ''

@@ -6,6 +6,10 @@ use App\Http\Controllers\RoleController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\OrderController;
+use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\PdfController;
+use App\Http\Controllers\DeliveryInvoiceController;
 use Illuminate\Support\Facades\Route;
 
 // Redirect root to login if not authenticated
@@ -52,5 +56,30 @@ Route::middleware('auth')->group(function () {
 });
 
 Route::post('/products', [ProductController::class, 'store']);
+Route::get('/products/list', [ProductController::class, 'index']);
+
+Route::post('/orders', [OrderController::class, 'store']);
+Route::get('/orders/list', [OrderController::class, 'index']);
+
+Route::put('/orders/{id}', [OrderController::class, 'update']);
+
+// API endpoint to fetch order statuses for frontend dropdowns
+Route::get('/order-statuses/list', function () {
+    return \App\Models\OrderStatus::all();
+});
+
+// Dashboard overview data
+Route::get('/dashboard/overview-data', [\App\Http\Controllers\DashboardController::class, 'overviewData']);
+Route::get('/dashboard/analytics-data', [\App\Http\Controllers\DashboardController::class, 'analyticsData']);
+
+Route::get('/categories', [\App\Http\Controllers\CategoryController::class, 'index']);
+Route::post('/categories', [\App\Http\Controllers\CategoryController::class, 'store']);
+
+Route::get('/orders/delivery-note', [PdfController::class, 'deliveryNote']);
+Route::get('/orders/invoices', [PdfController::class, 'invoices']);
+Route::get('/orders/delivery-invoice', [PdfController::class, 'deliveryInvoice']);
+
+Route::get('/delivery-invoices', [DeliveryInvoiceController::class, 'index']);
+Route::get('/delivery-invoices/{id}/download', [DeliveryInvoiceController::class, 'download']);
 
 require __DIR__.'/auth.php';
