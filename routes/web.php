@@ -10,6 +10,8 @@ use App\Http\Controllers\OrderController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\PdfController;
 use App\Http\Controllers\DeliveryInvoiceController;
+use App\Http\Controllers\OrderImportController;
+use App\Http\Controllers\SettingsController;
 use Illuminate\Support\Facades\Route;
 
 // Redirect root to login if not authenticated
@@ -62,6 +64,12 @@ Route::post('/orders', [OrderController::class, 'store']);
 Route::get('/orders/list', [OrderController::class, 'index']);
 
 Route::put('/orders/{id}', [OrderController::class, 'update']);
+Route::patch('/orders/{id}/status', [OrderController::class, 'updateStatus']);
+
+// Order Import Routes
+Route::post('/orders/import', [OrderImportController::class, 'import']);
+Route::get('/orders/import/template', [OrderImportController::class, 'downloadTemplate']);
+Route::get('/orders/import/stats', [OrderImportController::class, 'getImportStats']);
 
 // API endpoint to fetch order statuses for frontend dropdowns
 Route::get('/order-statuses/list', function () {
@@ -81,5 +89,13 @@ Route::get('/orders/delivery-invoice', [PdfController::class, 'deliveryInvoice']
 
 Route::get('/delivery-invoices', [DeliveryInvoiceController::class, 'index']);
 Route::get('/delivery-invoices/{id}/download', [DeliveryInvoiceController::class, 'download']);
+
+// Settings Routes
+Route::middleware(['auth', 'verified', 'role:superadmin'])->group(function () {
+    Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
+    Route::post('/settings/update', [SettingsController::class, 'update'])->name('settings.update');
+    Route::get('/settings/get', [SettingsController::class, 'getSettings'])->name('settings.get');
+    Route::delete('/settings/logo', [SettingsController::class, 'deleteLogo'])->name('settings.deleteLogo');
+});
 
 require __DIR__.'/auth.php';

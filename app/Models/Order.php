@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Setting;
 
 class Order extends Model
 {
@@ -31,5 +32,22 @@ class Order extends Model
     public function orderStatus()
     {
         return $this->belongsTo(OrderStatus::class);
+    }
+
+    /**
+     * Calculate total price including delivery cost
+     */
+    public function getTotalPriceAttribute()
+    {
+        $deliveryPrice = Setting::getDeliveryPrice();
+        return $this->price + $deliveryPrice;
+    }
+
+    /**
+     * Get delivery price from settings
+     */
+    public function getDeliveryPriceAttribute()
+    {
+        return Setting::getDeliveryPrice();
     }
 } 

@@ -54,16 +54,33 @@ class PdfController extends Controller
     public function deliveryInvoice(Request $request)
     {
         $today = now()->toDateString();
-        $orders = Order::with(['product', 'orderStatus'])
+        $ids = array_filter(explode(',', $request->query('ids', '')));
+
+        $ordersQuery = Order::with(['product', 'orderStatus'])
             ->whereHas('orderStatus', function ($query) {
-                $query->where('name', 'Delivered');
-            })
-            ->whereDate('updated_at', $today)
-            ->orderBy('updated_at', 'desc')
-            ->get();
+                $query->whereIn('name', ['Confirmed', 'Delivered']);
+            });
+
+        if ($ids) {
+            $ordersQuery->whereIn('id', $ids);
+        } else {
+            $ordersQuery->whereDate('updated_at', $today);
+        }
+
+        $orders = $ordersQuery->orderBy('updated_at', 'desc')->get();
         if ($orders->isEmpty()) {
             abort(404, 'No delivered orders found for today');
         }
+
+        // Update order status to "Shipped"
+        $shippedStatus = \App\Models\OrderStatus::where('name', 'Shipped')->first();
+        if ($shippedStatus) {
+            foreach ($orders as $order) {
+                $order->order_status_id = $shippedStatus->id;
+                $order->save();
+            }
+        }
+
         $totalAmount = $orders->sum('price');
         $totalOrders = $orders->count();
         $filename = 'delivery-invoice-' . $today . '.pdf';

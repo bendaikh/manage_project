@@ -104,15 +104,29 @@
 </head>
 <body>
     <div class="header">
-        <div class="invoice-title">DELIVERY INVOICE</div>
+        @if(\App\Models\Setting::getLogoUrl())
+            <div style="text-align: center; margin-bottom: 15px;">
+                <img src="{{ \App\Models\Setting::getLogoUrl() }}" alt="Logo" style="max-height: 50px; max-width: 200px;">
+            </div>
+        @endif
+        <div class="invoice-title">{{ \App\Models\Setting::getValue('app_name', 'DELIVERY INVOICE') }}</div>
         <div class="invoice-date">Generated on: {{ date('d/m/Y H:i') }}</div>
         <div class="invoice-date">Delivery Date: {{ date('d/m/Y', strtotime($today)) }}</div>
+        <div class="invoice-date">Country: {{ \App\Models\Setting::getCountry() }}</div>
     </div>
 
     <div class="summary">
         <div class="summary-row">
             <span class="summary-label">Total Orders Delivered:</span>
             <span class="summary-value">{{ $totalOrders }}</span>
+        </div>
+        <div class="summary-row">
+            <span class="summary-label">Delivery Price per Order:</span>
+            <span class="summary-value">{{ number_format(\App\Models\Setting::getDeliveryPrice(), 0, ',', ' ') }} FCFA</span>
+        </div>
+        <div class="summary-row">
+            <span class="summary-label">Total Delivery Cost:</span>
+            <span class="summary-value">{{ number_format($totalOrders * \App\Models\Setting::getDeliveryPrice(), 0, ',', ' ') }} FCFA</span>
         </div>
         <div class="summary-row">
             <span class="summary-label">Total Amount:</span>
