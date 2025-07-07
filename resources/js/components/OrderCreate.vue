@@ -4,6 +4,20 @@
       <div class="bg-violet-800 rounded-t-lg -mt-8 mb-8 px-6 py-3">
         <h2 class="text-white text-lg font-bold">Create New Order</h2>
       </div>
+      
+      <!-- Import Button -->
+      <div class="mb-6 flex justify-end">
+        <button 
+          @click="showImportModal = true"
+          class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 font-semibold flex items-center gap-2"
+        >
+          <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+          </svg>
+          Import Sheet Orders
+        </button>
+      </div>
+      
       <form @submit.prevent="submitForm" class="space-y-4">
         <div>
           <label class="block text-sm font-medium mb-1">Seller</label>
@@ -60,14 +74,23 @@
       <div v-if="error" class="text-red-600 mt-4">{{ error }}</div>
       <div v-if="success" class="text-green-600 mt-4">Order created successfully!</div>
     </div>
+    
+    <!-- Import Modal -->
+    <OrderImportModal 
+      :show="showImportModal" 
+      @close="showImportModal = false"
+      @orders-imported="handleOrdersImported"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import OrderImportModal from './OrderImportModal.vue'
 
 const products = ref([])
 const sellers = ref([])
+const showImportModal = ref(false)
 const form = ref({
   seller: '',
   product_id: '',
@@ -129,6 +152,13 @@ const submitForm = async () => {
   } catch (e) {
     error.value = 'Failed to create order.'
   }
+}
+
+const handleOrdersImported = (count) => {
+  success.value = true
+  error.value = ''
+  // You could also refresh the orders list if needed
+  console.log(`${count} orders imported successfully`)
 }
 
 onMounted(() => { fetchProducts(); fetchSellers(); })

@@ -1,10 +1,20 @@
 <template>
   <div class="min-h-screen bg-white">
     <!-- Top Navigation -->
-    <div class="fixed top-0 left-0 right-0 h-16 bg-white border-b border-gray-200 z-50">
-      <div class="flex items-center justify-end h-full px-4">
-        <!-- Right section -->
-        <div class="flex items-center space-x-4">
+    <div class="fixed top-0 left-0 right-0 bg-white border-b border-gray-200 z-50" style="height: 60px;">
+      <div class="flex items-center h-full">
+        <!-- Left section - Logo (positioned above sidebar area) -->
+        <div class="navbar-logo sidebar-logo" style="width: 256px; height: 60px; padding: 0; margin: 0; display: flex; align-items: center; justify-content: center; background-color: white; border-right: 1px solid #e5e7eb;">
+          <div v-if="appLogo" class="w-full" style="width: 100%; padding: 0 8px; margin: 0;">
+            <img :src="appLogo" alt="Application Logo" class="w-full h-auto block" style="width: 100%; height: auto; object-fit: contain; display: block;">
+          </div>
+          <div v-else class="w-full text-center text-gray-800 text-xl font-bold" style="width: 100%; padding: 0 8px; margin: 0;">
+            {{ appName }}
+          </div>
+        </div>
+        
+        <!-- Right section - Profile (in remaining navbar space) -->
+        <div class="flex-1 flex items-center justify-end pr-4">
           <!-- Profile Icon -->
           <div class="relative">
             <button @click="toggleProfileMenu" class="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-50">
@@ -26,7 +36,7 @@
     </div>
 
     <!-- Sidebar -->
-    <div class="fixed inset-y-0 left-0 w-64 bg-blue-900 pt-16">
+    <div class="fixed inset-y-0 left-0 w-64 bg-blue-900" style="padding-top: 60px;">
       <!-- Navigation -->
       <nav class="px-3 py-4">
         <div class="space-y-1">
@@ -168,17 +178,17 @@
 
           <!-- Settings -->
           <div>
-            <a href="/settings" class="flex items-center space-x-3 px-4 py-3 text-white rounded-lg hover:bg-blue-800">
+            <button type="button" @click="handleShowSettings" class="w-full flex items-center space-x-3 px-4 py-3 text-left text-white rounded-lg hover:bg-blue-800">
               <CogIcon class="h-5 w-5 text-white" />
               <span>Settings</span>
-            </a>
+            </button>
           </div>
         </div>
       </nav>
     </div>
 
     <!-- Main Content -->
-    <div class="ml-64 pt-16">
+    <div class="ml-64" style="padding-top: 60px;">
       <main class="p-8">
         <ProductCreate v-if="showAddProduct" @back="handleBackFromProduct" />
         <OrderCreate v-else-if="showAddOrder" @back="handleBackFromOrder" />
@@ -195,6 +205,7 @@
         <UserList v-else-if="showAdminsList" role="admin" />
         <UserList v-else-if="showSellersList" role="seller" />
         <CategoryList v-else-if="showCategories" />
+        <SettingsForm v-else-if="showSettings" />
         <slot v-else></slot>
       </main>
     </div>
@@ -216,6 +227,7 @@ import AddUser from './AddUser.vue'
 import UserList from './UserList.vue'
 import CategoryList from './CategoryList.vue'
 import InvoicesList from './InvoicesList.vue'
+import SettingsForm from './SettingsForm.vue'
 
 // Component state
 const isDashboardMenuOpen = ref(false)
@@ -223,6 +235,11 @@ const isOrdersMenuOpen = ref(false)
 const isProductsMenuOpen = ref(false)
 const isUsersMenuOpen = ref(false)
 const isProfileMenuOpen = ref(false)
+
+// App settings
+const appLogo = ref(null)
+const appName = ref('Laravel App')
+const appDescription = ref('')
 
 // New state for showing Add Product form or Product List
 const showAddProduct = ref(false)
@@ -240,6 +257,7 @@ const showAdminsList = ref(false)
 const showSellersList = ref(false)
 const showCategories = ref(false)
 const showInvoices = ref(false)
+const showSettings = ref(false)
 
 const toggleDashboardMenu = () => {
   isDashboardMenuOpen.value = !isDashboardMenuOpen.value
@@ -299,6 +317,7 @@ const clearViews = () => {
   showSellersList.value = false
   showCategories.value = false
   showInvoices.value = false
+  showSettings.value = false
 }
 
 const handleShowAddProduct = (e) => {
@@ -388,6 +407,30 @@ const handleShowCategories = (e) => {
   clearViews()
   showCategories.value = true
 }
+
+const handleShowSettings = (e) => {
+  if (e) e.preventDefault()
+  clearViews()
+  showSettings.value = true
+}
+
+// Fetch app settings
+const fetchAppSettings = async () => {
+  try {
+    const response = await fetch('/settings/get')
+    if (response.ok) {
+      const settings = await response.json()
+      appLogo.value = settings.app_logo
+      appName.value = settings.app_name || 'Laravel App'
+      appDescription.value = settings.app_description || ''
+    }
+  } catch (error) {
+    console.error('Failed to fetch app settings:', error)
+  }
+}
+
+// Fetch settings on component mount
+fetchAppSettings()
 </script>
 
 <script>

@@ -101,11 +101,9 @@
             </td>
             <td class="px-3 py-2">{{ order.agent || 'Mme' }}</td>
             <td class="px-3 py-2">
-              <span v-if="order.status === 'Confirmed'" class="bg-green-100 text-green-700 px-2 py-1 rounded text-xs">Confirmed</span>
-              <span v-else-if="order.status === 'Delivered'" class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs">Delivered</span>
-              <span v-else-if="order.status === 'Cancelled'" class="bg-red-100 text-red-700 px-2 py-1 rounded text-xs">Cancelled</span>
-              <span v-else-if="order.status === 'Postponed'" class="bg-yellow-100 text-yellow-700 px-2 py-1 rounded text-xs">Postponed</span>
-              <span v-else class="bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs">{{ order.status || 'Pending' }}</span>
+              <button @click="openStatusModal(order)" :class="getStatusClass(order.status) + ' px-2 py-1 rounded text-xs focus:outline-none'">
+                {{ order.status || 'Pending' }}
+              </button>
             </td>
             <td class="px-3 py-2">
               <div class="text-xs text-gray-600">Created: {{ formatDate(order.created_at) }}</div>
@@ -139,6 +137,22 @@
     </div>
     <OrderDetailsModal v-if="showDetails" :order="selectedOrder" @close="closeDetails" @edit="openEdit" />
     <OrderEdit v-if="showEdit" :order="editOrder" :products="productsList" @cancel="closeEdit" @updated="handleUpdated" />
+    <!-- Status Modal inline -->
+    <div v-if="showStatusModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" @click.self="closeStatusModal">
+      <div class="bg-white rounded-lg shadow-lg p-6 w-80 max-h-[90vh] overflow-y-auto">
+        <h3 class="text-lg font-semibold mb-4">Change Status</h3>
+        <div class="grid grid-cols-2 gap-2">
+          <button v-for="st in availableStatuses" :key="st" @click="updateOrderStatus(st)" :class="getStatusClass(st)+' text-sm px-3 py-2 rounded text-center'">
+            {{ st }}
+          </button>
+        </div>
+        <button class="mt-4 w-full text-center px-4 py-2 bg-gray-200 rounded" @click="closeStatusModal">Cancel</button>
+      </div>
+    </div>
+    <!-- Toast inline -->
+    <div v-if="toastMessage" :class="'toast px-4 py-2 rounded text-white '+(toastType==='success'?'bg-green-600':'bg-red-600')">
+      {{ toastMessage }}
+    </div>
   </div>
 </template>
 
@@ -167,6 +181,11 @@ const productsList = ref([])
 const checked = ref([])
 const selectedIds = computed(() => new Set(checked.value))
 const allSelected = computed(() => orders.value.length && checked.value.length === orders.value.length)
+const availableStatuses = ref([])
+const showStatusModal = ref(false)
+const statusTargetOrder = ref(null)
+const toastMessage = ref('')
+const toastType = ref('success')
 
 const fetchOrders = async () => {
   let url = '/orders/list?'
@@ -177,9 +196,9 @@ const fetchOrders = async () => {
   if (filters.value.zone) url += `zone=${encodeURIComponent(filters.value.zone)}&`
   if (filters.value.dateRange) url += `dateRange=${encodeURIComponent(filters.value.dateRange)}&`
   if (props.confirmation) {
-    url += `exclude_status=Confirmed,Delivered&`
+    url += `status=New Order,Pending,Unreachable&`
   } else if (props.delivery) {
-    url += `status=Confirmed,Delivered&`
+    url += `exclude_status=New Order,Pending,Unreachable&`
   }
   const res = await fetch(url)
   const data = await res.json()
@@ -240,8 +259,81 @@ const downloadInvoices = () => {
 }
 
 const generateDeliveryInvoice = () => {
-  window.open('/orders/delivery-invoice', '_blank')
+  if (!selectedIds.value.size) {
+    alert('Please select at least one order first');
+    return
+  }
+  const idsParam = Array.from(selectedIds.value).join(',')
+  window.open(`/orders/delivery-invoice?ids=${idsParam}`, '_blank')
 }
 
-onMounted(fetchOrders)
-</script> 
+const getStatusClass = (status) => {
+  switch (status) {
+    case 'Confirmed': return 'bg-green-100 text-green-700'
+    case 'Delivered': return 'bg-blue-100 text-blue-700'
+    case 'Cancelled': return 'bg-red-100 text-red-700'
+    case 'Postponed': return 'bg-yellow-100 text-yellow-700'
+    case 'Shipped': return 'bg-purple-100 text-purple-700'
+    case 'Processing': return 'bg-blue-100 text-blue-700'
+    case 'Pending': return 'bg-yellow-100 text-yellow-700'
+    case 'New Order': return 'bg-gray-100 text-gray-700'
+    default: return 'bg-gray-100 text-gray-700'
+  }
+}
+
+const openStatusModal = (order) => {
+  statusTargetOrder.value = order
+  showStatusModal.value = true
+}
+
+const closeStatusModal = () => {
+  showStatusModal.value = false
+  statusTargetOrder.value = null
+}
+
+const fetchStatuses = async () => {
+  const res = await fetch('/order-statuses/list')
+  const data = await res.json()
+  availableStatuses.value = data.map(s => s.name)
+}
+
+const updateOrderStatus = async (statusName) => {
+  if (!statusTargetOrder.value) return
+  try {
+    const csrf = document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+    const res = await fetch(`/orders/${statusTargetOrder.value.id}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf },
+      body: JSON.stringify({ status: statusName })
+    })
+    if (!res.ok) throw new Error(await res.text())
+    const data = await res.json()
+    // Update local orders array
+    const idx = orders.value.findIndex(o => o.id === statusTargetOrder.value.id)
+    if (idx !== -1) {
+      orders.value[idx].status = statusName
+    }
+    toastType.value = 'success'
+    toastMessage.value = 'Status updated successfully'
+  } catch (err) {
+    toastType.value = 'error'
+    toastMessage.value = 'Failed to update status'
+    console.error(err)
+  } finally {
+    closeStatusModal()
+    // auto clear toast after 3s
+    setTimeout(() => { toastMessage.value = '' }, 3000)
+  }
+}
+
+onMounted(() => { fetchOrders(); fetchStatuses() })
+</script>
+
+<style scoped>
+.toast {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 1000;
+}
+</style> 

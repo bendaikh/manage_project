@@ -144,4 +144,17 @@ class OrderController extends Controller
         $order->status = $order->orderStatus?->name;
         return response()->json(['message' => 'Order updated successfully', 'order' => $order], 200);
     }
+
+    public function updateStatus(Request $request, $id)
+    {
+        $order = Order::findOrFail($id);
+        $request->validate([ 'status' => 'required|string' ]);
+        $statusModel = \App\Models\OrderStatus::where('name', $request->status)->first();
+        if (!$statusModel) {
+            return response()->json(['message' => 'Invalid status'], 422);
+        }
+        $order->order_status_id = $statusModel->id;
+        $order->save();
+        return response()->json(['message' => 'Status updated', 'order' => $order]);
+    }
 } 

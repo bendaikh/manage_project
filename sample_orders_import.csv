@@ -1,0 +1,5 @@
+product_sku,seller_username,client_name,client_phone,client_address,quantity,price,zone,delivery_method,notes
+TEST001,deeww,John Smith,+1234567890,"123 Main St, City, State 12345",2,25.50,North Zone,Standard,Customer requested express delivery
+TEST001,deeww,Sarah Johnson,+1987654321,"456 Oak Ave, Downtown, State 67890",1,35.00,South Zone,Express,Gift wrapping requested
+TEST001,deeww,Michael Brown,+1122334455,"789 Pine Rd, Suburbs, State 54321",3,22.75,East Zone,Standard,Leave at front door if not home
+TEST001,deeww,Emma Davis,+1555666777,"321 Elm St, Uptown, State 98765",1,30.00,West Zone,Express,Fragile - handle with care 

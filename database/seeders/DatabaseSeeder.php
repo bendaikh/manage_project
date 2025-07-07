@@ -18,8 +18,8 @@ class DatabaseSeeder extends Seeder
         $this->call([
             RolesAndPermissionsSeeder::class,
             UserSeeder::class,
+            OrderStatusSeeder::class,
+            SettingsSeeder::class,
         ]);
-
-        $this->call(OrderStatusSeeder::class);
     }
 }
