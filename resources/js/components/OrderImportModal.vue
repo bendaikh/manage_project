@@ -20,7 +20,7 @@
           <ul class="text-sm text-blue-800 space-y-1">
             <li>• Upload an Excel (.xlsx, .xls) or CSV file</li>
             <li>• File should include headers: product_sku, seller_username, client_name, client_phone, client_address, quantity, price</li>
-            <li>• Optional fields: zone, delivery_method, notes</li>
+            <li>• Optional fields: notes</li>
             <li>• Maximum file size: 10MB</li>
             <li>• Invalid rows will be skipped and reported</li>
           </ul>
