@@ -3,17 +3,24 @@
     <!-- Top Navigation -->
     <div class="fixed top-0 left-0 right-0 bg-white border-b border-gray-200 z-50" style="height: 60px;">
       <div class="flex items-center h-full">
-        <!-- Left section - Logo (positioned above sidebar area) -->
-        <div class="navbar-logo sidebar-logo" style="width: 256px; height: 60px; padding: 0; margin: 0; display: flex; align-items: center; justify-content: center; background-color: white; border-right: 1px solid #e5e7eb;">
-          <div v-if="appLogo" class="w-full" style="width: 100%; padding: 0 8px; margin: 0;">
-            <img :src="appLogo" alt="Application Logo" class="w-full h-auto block" style="width: 100%; height: auto; object-fit: contain; display: block;">
+        <!-- Mobile Menu Button -->
+        <button @click="toggleMobileMenu" class="lg:hidden ml-4 p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100">
+          <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+        
+        <!-- Left section - Logo (responsive) -->
+        <div class="navbar-logo sidebar-logo lg:w-64 w-auto flex-1 lg:flex-none" style="height: 60px; padding: 0 8px; margin: 0; display: flex; align-items: center; justify-content: center; background-color: white; border-right: 1px solid #e5e7eb;">
+          <div v-if="appLogo" class="w-full max-w-[200px] lg:max-w-none">
+            <img :src="appLogo" alt="Application Logo" class="w-full h-auto block object-contain">
           </div>
-          <div v-else class="w-full text-center text-gray-800 text-xl font-bold" style="width: 100%; padding: 0 8px; margin: 0;">
+          <div v-else class="w-full text-center text-gray-800 text-lg lg:text-xl font-bold truncate">
             {{ appName }}
           </div>
         </div>
         
-        <!-- Right section - Profile (in remaining navbar space) -->
+        <!-- Right section - Profile (responsive) -->
         <div class="flex-1 flex items-center justify-end pr-4">
           <!-- Profile Icon -->
           <div class="relative">
@@ -24,7 +31,7 @@
             </button>
             
             <!-- Profile Dropdown -->
-            <div v-show="isProfileMenuOpen" class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2">
+            <div v-show="isProfileMenuOpen" class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
               <a href="/profile" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Profile</a>
               <a href="/settings" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Settings</a>
               <hr class="my-2">
@@ -35,10 +42,15 @@
       </div>
     </div>
 
+    <!-- Mobile Menu Overlay -->
+    <div v-if="isMobileMenuOpen" class="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden" @click="closeMobileMenu"></div>
+    
     <!-- Sidebar -->
-    <div class="fixed inset-y-0 left-0 w-64 bg-blue-900" style="padding-top: 60px;">
+    <div :class="['fixed inset-y-0 left-0 bg-blue-900 transition-transform duration-300 ease-in-out z-50', 
+                   isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0', 
+                   'w-64 lg:w-64']" style="padding-top: 60px;">
       <!-- Navigation -->
-      <nav class="px-3 py-4">
+      <nav class="px-3 py-4 h-full overflow-y-auto">
         <div class="space-y-1">
           <!-- Dashboard -->
           <div>
@@ -188,8 +200,8 @@
     </div>
 
     <!-- Main Content -->
-    <div class="ml-64" style="padding-top: 60px;">
-      <main class="p-8">
+    <div class="lg:ml-64" style="padding-top: 60px;">
+      <main class="p-4 lg:p-8">
         <ProductCreate v-if="showAddProduct" @back="handleBackFromProduct" />
         <OrderCreate v-else-if="showAddOrder" @back="handleBackFromOrder" />
         <ProductList v-else-if="showProductList" @add-product="handleShowAddProduct" />
@@ -235,6 +247,7 @@ const isOrdersMenuOpen = ref(false)
 const isProductsMenuOpen = ref(false)
 const isUsersMenuOpen = ref(false)
 const isProfileMenuOpen = ref(false)
+const isMobileMenuOpen = ref(false)
 
 // App settings
 const appLogo = ref(null)
@@ -281,6 +294,14 @@ const toggleProfileMenu = () => {
 
 const closeProfileMenu = () => {
   isProfileMenuOpen.value = false
+}
+
+const toggleMobileMenu = () => {
+  isMobileMenuOpen.value = !isMobileMenuOpen.value
+}
+
+const closeMobileMenu = () => {
+  isMobileMenuOpen.value = false
 }
 
 const signOut = async () => {
