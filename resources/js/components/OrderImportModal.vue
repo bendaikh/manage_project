@@ -1,13 +1,13 @@
 <template>
-  <div v-if="show" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-    <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
+  <div v-if="show" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 p-4">
+    <div class="relative top-4 lg:top-20 mx-auto p-4 lg:p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white">
       <div class="mt-3">
         <!-- Header -->
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-lg font-medium text-gray-900">
             Import Orders from Spreadsheet
           </h3>
-          <button @click="closeModal" class="text-gray-400 hover:text-gray-600">
+          <button @click="closeModal" class="text-gray-400 hover:text-gray-600 p-1">
             <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -31,7 +31,7 @@
           <label class="block text-sm font-medium text-gray-700 mb-2">
             Select File
           </label>
-          <div class="flex items-center space-x-4">
+          <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
             <input
               type="file"
               ref="fileInput"
@@ -41,7 +41,7 @@
             />
             <button
               @click="downloadTemplate"
-              class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
+              class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm whitespace-nowrap"
             >
               Download Template
             </button>
@@ -121,17 +121,17 @@
         </div>
 
         <!-- Actions -->
-        <div class="flex justify-end space-x-3">
+        <div class="flex flex-col sm:flex-row justify-end gap-3">
           <button
             @click="closeModal"
-            class="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
+            class="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 text-sm lg:text-base"
           >
             Close
           </button>
           <button
             @click="importOrders"
             :disabled="!selectedFile || isImporting"
-            class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm lg:text-base"
           >
             {{ isImporting ? 'Importing...' : 'Import Orders' }}
           </button>
