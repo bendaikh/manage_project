@@ -107,8 +107,7 @@ class OrdersImport extends StringValueBinder implements ToModel, WithHeadingRow,
                 'client_address' => trim($row['client_address']),
                 'price' => $price,
                 'order_status_id' => $this->defaultOrderStatus->id,
-                'zone' => $row['zone'] ?? null,
-                'delivery_method' => $row['delivery_method'] ?? 'Standard',
+                'zone' => null,
                 'notes' => $row['notes'] ?? null,
             ]);
 
@@ -135,8 +134,6 @@ class OrdersImport extends StringValueBinder implements ToModel, WithHeadingRow,
             'client_name',
             'client_phone',
             'client_address',
-            'zone',
-            'delivery_method',
             'notes'
         ];
 
@@ -159,8 +156,6 @@ class OrdersImport extends StringValueBinder implements ToModel, WithHeadingRow,
             'client_address' => 'required|string',
             'quantity' => 'required|numeric|min:1',
             'price' => 'required|numeric|min:0',
-            'zone' => 'nullable|string',
-            'delivery_method' => 'nullable|string',
             'notes' => 'nullable|string',
         ];
     }

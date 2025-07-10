@@ -77,8 +77,6 @@ class OrderImportController extends Controller
                 'client_address',
                 'quantity',
                 'price',
-                'zone',
-                'delivery_method',
                 'notes'
             ]);
 
@@ -91,8 +89,6 @@ class OrderImportController extends Controller
                 '123 Main St, City, Country',
                 '2',
                 '5000',
-                'Zone A',
-                'Standard',
                 'Sample order notes'
             ]);
 
@@ -104,8 +100,6 @@ class OrderImportController extends Controller
                 '456 Oak Ave, Town, Country',
                 '1',
                 '3000',
-                'Zone B',
-                'Express',
                 'Another sample order'
             ]);
 

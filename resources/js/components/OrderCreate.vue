@@ -35,7 +35,7 @@
         </div>
         <div>
           <label class="block text-sm font-medium mb-1">Quantity</label>
-          <input v-model.number="form.quantity" type="number" min="1" class="w-full border rounded px-3 py-2" />
+          <input v-model.number="form.quantity" @input="onQuantityChange" type="number" min="1" class="w-full border rounded px-3 py-2" />
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
@@ -45,8 +45,8 @@
           <div>
             <label class="block text-sm font-medium mb-1">Price</label>
             <div class="flex items-center">
-              <span class="text-gray-400 mr-1">$</span>
-              <input v-model="form.price" type="number" min="0" step="0.01" class="w-full border rounded px-3 py-2" readonly />
+              <span class="text-gray-400 mr-1">FCFA</span>
+              <input v-model="form.price" @input="onPriceChange" type="number" min="0" step="0.01" class="w-full border rounded px-3 py-2" />
             </div>
           </div>
         </div>
@@ -104,6 +104,8 @@ const form = ref({
 })
 const error = ref('')
 const success = ref(false)
+const unitPrice = ref(0)
+const priceManuallyModified = ref(false)
 
 const fetchProducts = async () => {
   const res = await fetch('/products/list')
@@ -120,11 +122,40 @@ const fetchSellers = async () => {
 
 const onProductChange = () => {
   const selected = products.value.find(p => p.id === form.value.product_id)
-  form.value.price = selected ? selected.selling_price : 0
+  if (selected) {
+    unitPrice.value = selected.selling_price
+    // Only update price if it hasn't been manually modified
+    if (!priceManuallyModified.value) {
+      form.value.price = unitPrice.value * form.value.quantity
+    }
+  } else {
+    unitPrice.value = 0
+    if (!priceManuallyModified.value) {
+      form.value.price = 0
+    }
+  }
+}
+
+const onQuantityChange = () => {
+  // Always update price based on current unit price when quantity changes
+  if (unitPrice.value > 0) {
+    form.value.price = unitPrice.value * form.value.quantity
+  }
+}
+
+const onPriceChange = () => {
+  // When user manually changes price, calculate the new unit price
+  if (form.value.quantity > 0) {
+    unitPrice.value = form.value.price / form.value.quantity
+  }
+  // Mark price as manually modified when user changes it
+  priceManuallyModified.value = true
 }
 
 const resetForm = () => {
   form.value = { seller: '', product_id: '', quantity: 1, client_name: '', price: 0, client_address: '', zone: '', client_phone: '', comment: '' }
+  unitPrice.value = 0
+  priceManuallyModified.value = false
 }
 
 const submitForm = async () => {
