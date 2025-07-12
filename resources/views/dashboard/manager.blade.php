@@ -32,6 +32,20 @@
                     </div>
                 </div>
 
+                <!-- Accounting Management Card -->
+                @if(auth()->user()->hasPermission('view_accounting'))
+                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                    <div class="p-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Accounting Management</h3>
+                        <p class="text-gray-600 mb-4">Manage incomes, expenses, and financial transactions.</p>
+                        <a href="{{ route('accounting.index') }}" 
+                           class="inline-flex items-center px-4 py-2 bg-green-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-green-700">
+                            View Accounting
+                        </a>
+                    </div>
+                </div>
+                @endif
+
                 <!-- Reports Card -->
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                     <div class="p-6">
