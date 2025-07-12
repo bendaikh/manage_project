@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,
             OrderStatusSeeder::class,
             SettingsSeeder::class,
+            AccountingSeeder::class,
         ]);
     }
 }

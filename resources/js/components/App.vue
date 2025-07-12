@@ -137,6 +137,82 @@
             </div>
           </div>
 
+          <!-- Accounting -->
+          <div v-if="hasAccountingPermission">
+            <button @click="toggleAccountingMenu" class="w-full flex items-center justify-between px-4 py-3 text-white rounded-lg hover:bg-blue-800">
+              <div class="flex items-center space-x-3">
+                <CalculatorIcon class="h-5 w-5 text-white" />
+                <span>Accounting</span>
+              </div>
+              <ChevronDownIcon :class="['h-4 w-4 text-white transition-transform', isAccountingMenuOpen ? 'rotate-180' : '']" />
+            </button>
+            
+            <!-- Accounting Sub-menu -->
+            <div v-show="isAccountingMenuOpen" class="mt-1 ml-4 space-y-1">
+              <!-- Incomes Submenu -->
+              <div>
+                <button @click="toggleIncomesMenu" class="w-full flex items-center justify-between px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
+                  <div class="flex items-center space-x-3">
+                    <CurrencyDollarIcon class="h-4 w-4" />
+                    <span>Incomes</span>
+                  </div>
+                  <ChevronDownIcon :class="['h-3 w-3 text-blue-200 transition-transform', isIncomesMenuOpen ? 'rotate-180' : '']" />
+                </button>
+                
+                <!-- Incomes Sub-submenu -->
+                <div v-show="isIncomesMenuOpen" class="mt-1 ml-4 space-y-1">
+                  <button type="button" @click="handleShowIncomes" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-100 rounded-lg hover:bg-blue-800 hover:text-white">
+                    <ChartBarIcon class="h-3 w-3" />
+                    <span>Overview</span>
+                  </button>
+                  <button type="button" @click="handleShowIncomeCategories" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-100 rounded-lg hover:bg-blue-800 hover:text-white">
+                    <TagIcon class="h-3 w-3" />
+                    <span>Income Categories</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Expenses Submenu -->
+              <div>
+                <button @click="toggleExpensesMenu" class="w-full flex items-center justify-between px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
+                  <div class="flex items-center space-x-3">
+                    <CreditCardIcon class="h-4 w-4" />
+                    <span>Expenses</span>
+                  </div>
+                  <ChevronDownIcon :class="['h-3 w-3 text-blue-200 transition-transform', isExpensesMenuOpen ? 'rotate-180' : '']" />
+                </button>
+                
+                <!-- Expenses Sub-submenu -->
+                <div v-show="isExpensesMenuOpen" class="mt-1 ml-4 space-y-1">
+                  <button type="button" @click="handleShowExpenses" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-100 rounded-lg hover:bg-blue-800 hover:text-white">
+                    <ChartBarIcon class="h-3 w-3" />
+                    <span>Overview</span>
+                  </button>
+                  <button type="button" @click="handleShowExpenseCategories" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-100 rounded-lg hover:bg-blue-800 hover:text-white">
+                    <TagIcon class="h-3 w-3" />
+                    <span>Expense Categories</span>
+                  </button>
+                  <button type="button" @click="handleShowRefunds" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-100 rounded-lg hover:bg-blue-800 hover:text-white">
+                    <ArrowUturnLeftIcon class="h-3 w-3" />
+                    <span>Refunds</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Transfers (Regular subitem) -->
+              <button type="button" @click="handleShowTransfers" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
+                <ArrowsRightLeftIcon class="h-4 w-4" />
+                <span>Transfers</span>
+              </button>
+
+              <!-- Accounts (Regular subitem) -->
+              <button type="button" @click="handleShowAccounts" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
+                <BanknotesIcon class="h-4 w-4" />
+                <span>Accounts</span>
+              </button>
+            </div>
+          </div>
+
           <!-- Users -->
           <div>
             <button @click="toggleUsersMenu" class="w-full flex items-center justify-between px-4 py-3 text-white rounded-lg hover:bg-blue-800">
@@ -217,6 +293,13 @@
         <UserList v-else-if="showAdminsList" role="admin" />
         <UserList v-else-if="showSellersList" role="seller" />
         <CategoryList v-else-if="showCategories" />
+        <IncomeCategoriesList v-else-if="showIncomeCategories" />
+        <IncomesList v-else-if="showIncomes" />
+        <ExpenseCategoriesList v-else-if="showExpenseCategories" />
+        <ExpensesList v-else-if="showExpenses" />
+        <RefundsList v-else-if="showRefunds" />
+        <TransfersList v-else-if="showTransfers" />
+        <AccountsList v-else-if="showAccounts" />
         <SettingsForm v-else-if="showSettings" />
         <slot v-else></slot>
       </main>
@@ -228,7 +311,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import ProductCreate from './ProductCreate.vue'
 import ProductList from './ProductList.vue'
 import OrderCreate from './OrderCreate.vue'
@@ -240,12 +323,22 @@ import UserList from './UserList.vue'
 import CategoryList from './CategoryList.vue'
 import InvoicesList from './InvoicesList.vue'
 import SettingsForm from './SettingsForm.vue'
+import IncomeCategoriesList from './IncomeCategoriesList.vue'
+import IncomesList from './IncomesList.vue'
+import AccountsList from './AccountsList.vue'
+import ExpenseCategoriesList from './ExpenseCategoriesList.vue'
+import ExpensesList from './ExpensesList.vue'
+import RefundsList from './RefundsList.vue'
+import TransfersList from './TransfersList.vue'
 
 // Component state
 const isDashboardMenuOpen = ref(false)
 const isOrdersMenuOpen = ref(false)
 const isProductsMenuOpen = ref(false)
 const isUsersMenuOpen = ref(false)
+const isAccountingMenuOpen = ref(false)
+const isIncomesMenuOpen = ref(false)
+const isExpensesMenuOpen = ref(false)
 const isProfileMenuOpen = ref(false)
 const isMobileMenuOpen = ref(false)
 
@@ -271,6 +364,13 @@ const showSellersList = ref(false)
 const showCategories = ref(false)
 const showInvoices = ref(false)
 const showSettings = ref(false)
+const showIncomeCategories = ref(false)
+const showIncomes = ref(false)
+const showAccounts = ref(false)
+const showExpenseCategories = ref(false)
+const showExpenses = ref(false)
+const showRefunds = ref(false)
+const showTransfers = ref(false)
 
 const toggleDashboardMenu = () => {
   isDashboardMenuOpen.value = !isDashboardMenuOpen.value
@@ -286,6 +386,18 @@ const toggleProductsMenu = () => {
 
 const toggleUsersMenu = () => {
   isUsersMenuOpen.value = !isUsersMenuOpen.value
+}
+
+const toggleAccountingMenu = () => {
+  isAccountingMenuOpen.value = !isAccountingMenuOpen.value
+}
+
+const toggleIncomesMenu = () => {
+  isIncomesMenuOpen.value = !isIncomesMenuOpen.value
+}
+
+const toggleExpensesMenu = () => {
+  isExpensesMenuOpen.value = !isExpensesMenuOpen.value
 }
 
 const toggleProfileMenu = () => {
@@ -339,6 +451,12 @@ const clearViews = () => {
   showCategories.value = false
   showInvoices.value = false
   showSettings.value = false
+  showIncomeCategories.value = false
+  showIncomes.value = false
+  showAccounts.value = false
+  showExpenseCategories.value = false
+  showExpenses.value = false
+  showRefunds.value = false
 }
 
 const handleShowAddProduct = (e) => {
@@ -429,6 +547,48 @@ const handleShowCategories = (e) => {
   showCategories.value = true
 }
 
+const handleShowIncomeCategories = (e) => {
+  if (e) e.preventDefault()
+  clearViews()
+  showIncomeCategories.value = true
+}
+
+const handleShowIncomes = (e) => {
+  if (e) e.preventDefault()
+  clearViews()
+  showIncomes.value = true
+}
+
+const handleShowAccounts = (e) => {
+  if (e) e.preventDefault()
+  clearViews()
+  showAccounts.value = true
+}
+
+const handleShowExpenseCategories = (e) => {
+  if (e) e.preventDefault()
+  clearViews()
+  showExpenseCategories.value = true
+}
+
+const handleShowExpenses = (e) => {
+  if (e) e.preventDefault()
+  clearViews()
+  showExpenses.value = true
+}
+
+const handleShowRefunds = (e) => {
+  if (e) e.preventDefault()
+  clearViews()
+  showRefunds.value = true
+}
+
+const handleShowTransfers = (e) => {
+  if (e) e.preventDefault()
+  clearViews()
+  showTransfers.value = true
+}
+
 const handleShowSettings = (e) => {
   if (e) e.preventDefault()
   clearViews()
@@ -449,6 +609,14 @@ const fetchAppSettings = async () => {
     console.error('Failed to fetch app settings:', error)
   }
 }
+
+// Check if user has accounting permission
+const hasAccountingPermission = computed(() => {
+  // For now, return true to show the accounting section
+  // In a real app, this would check the user's permissions from the backend
+  return true
+  // return window.Laravel?.user?.permissions?.includes('view_accounting') || false
+})
 
 // Fetch settings on component mount
 fetchAppSettings()
@@ -501,6 +669,54 @@ const CogIcon = {
     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+    </svg>
+  `
+}
+
+const CalculatorIcon = {
+  template: `
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15.75 15.75V18a2.25 2.25 0 01-2.25 2.25h-3A2.25 2.25 0 018.25 18v-.75m6-6V9a2.25 2.25 0 00-2.25-2.25h-3A2.25 2.25 0 008.25 9v.75m6 6h-3m3 0h-3m-9-3h9M9 9h.008M9 12h.008M9 15h.008M9 18h.008M9 21h.008M12 9h.008M12 12h.008M12 15h.008M12 18h.008M12 21h.008M15 9h.008M15 12h.008M15 15h.008M15 18h.008M15 21h.008M18 9h.008M18 12h.008M18 15h.008M18 18h.008M18 21h.008" />
+    </svg>
+  `
+}
+
+const CurrencyDollarIcon = {
+  template: `
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.314-.488-1.314-1.314 0-.726.589-1.314 1.314-1.314.725 0 1.314.588 1.314 1.314 0 .826-.589 1.314-1.314 1.314z" />
+    </svg>
+  `
+}
+
+const CreditCardIcon = {
+  template: `
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
+    </svg>
+  `
+}
+
+const ArrowUturnLeftIcon = {
+  template: `
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
+    </svg>
+  `
+}
+
+const ArrowsRightLeftIcon = {
+  template: `
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+    </svg>
+  `
+}
+
+const BanknotesIcon = {
+  template: `
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z" />
     </svg>
   `
 }
@@ -612,7 +828,13 @@ export default {
     PlusIcon,
     TagIcon,
     UserPlusIcon,
-    SellerIcon
+    SellerIcon,
+    CalculatorIcon,
+    CurrencyDollarIcon,
+    CreditCardIcon,
+    ArrowUturnLeftIcon,
+    ArrowsRightLeftIcon,
+    BanknotesIcon
   }
 }
 </script>

@@ -16,6 +16,12 @@
                         {{ __('Dashboard') }}
                     </x-nav-link>
                     
+                    @if(auth()->user()->hasPermission('view_accounting'))
+                        <x-nav-link :href="route('accounting.index')" :active="request()->routeIs('accounting.*')">
+                            {{ __('Accounting') }}
+                        </x-nav-link>
+                    @endif
+                    
                     @if(auth()->user()->hasRole('superadmin'))
                         <x-nav-link :href="route('settings.index')" :active="request()->routeIs('settings.*')">
                             {{ __('Settings') }}
@@ -76,6 +82,12 @@
             <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                 {{ __('Dashboard') }}
             </x-responsive-nav-link>
+            
+            @if(auth()->user()->hasPermission('view_accounting'))
+                <x-responsive-nav-link :href="route('accounting.index')" :active="request()->routeIs('accounting.*')">
+                    {{ __('Accounting') }}
+                </x-responsive-nav-link>
+            @endif
             
             @if(auth()->user()->hasRole('superadmin'))
                 <x-responsive-nav-link :href="route('settings.index')" :active="request()->routeIs('settings.*')">

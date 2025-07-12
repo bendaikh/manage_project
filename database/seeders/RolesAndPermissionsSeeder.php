@@ -25,6 +25,15 @@ class RolesAndPermissionsSeeder extends Seeder
             ['name' => 'manage_orders', 'description' => 'Can manage orders'],
             ['name' => 'view_products', 'description' => 'Can view products'],
             ['name' => 'manage_products', 'description' => 'Can manage products'],
+            // Accounting permissions
+            ['name' => 'view_accounting', 'description' => 'Can view accounting section'],
+            ['name' => 'manage_incomes', 'description' => 'Can manage incomes'],
+            ['name' => 'manage_expenses', 'description' => 'Can manage expenses'],
+            ['name' => 'manage_refunds', 'description' => 'Can manage refunds'],
+            ['name' => 'manage_transfers', 'description' => 'Can manage transfers'],
+            ['name' => 'manage_accounts', 'description' => 'Can manage accounts'],
+            ['name' => 'manage_income_categories', 'description' => 'Can manage income categories'],
+            ['name' => 'manage_expense_categories', 'description' => 'Can manage expense categories'],
         ];
 
         foreach ($permissions as $permission) {
@@ -69,14 +78,34 @@ class RolesAndPermissionsSeeder extends Seeder
             Permission::whereNotIn('name', ['manage_roles', 'manage_permissions'])->get()
         );
 
-        // Manager gets view permissions and manage_orders
+        // Manager gets view permissions, manage_orders, and accounting permissions
         $managerRole->permissions()->attach(
-            Permission::whereIn('name', ['view_dashboard', 'view_orders', 'manage_orders', 'view_products'])->get()
+            Permission::whereIn('name', [
+                'view_dashboard', 
+                'view_orders', 
+                'manage_orders', 
+                'view_products',
+                'view_accounting',
+                'manage_incomes',
+                'manage_expenses',
+                'manage_refunds',
+                'manage_transfers',
+                'manage_accounts',
+                'manage_income_categories',
+                'manage_expense_categories'
+            ])->get()
         );
 
-        // Agent gets only view permissions
+        // Agent gets only view permissions and basic accounting
         $agentRole->permissions()->attach(
-            Permission::whereIn('name', ['view_dashboard', 'view_orders', 'view_products'])->get()
+            Permission::whereIn('name', [
+                'view_dashboard', 
+                'view_orders', 
+                'view_products',
+                'view_accounting',
+                'manage_incomes',
+                'manage_expenses'
+            ])->get()
         );
 
         // Create superadmin user
