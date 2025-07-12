@@ -91,6 +91,8 @@ Route::get('/dashboard/analytics-data', [\App\Http\Controllers\DashboardControll
 
 Route::get('/categories', [\App\Http\Controllers\CategoryController::class, 'index']);
 Route::post('/categories', [\App\Http\Controllers\CategoryController::class, 'store']);
+Route::put('/categories/{category}', [\App\Http\Controllers\CategoryController::class, 'update']);
+Route::delete('/categories/{category}', [\App\Http\Controllers\CategoryController::class, 'destroy']);
 
 Route::get('/orders/delivery-note', [PdfController::class, 'deliveryNote']);
 Route::get('/orders/invoices', [PdfController::class, 'invoices']);
