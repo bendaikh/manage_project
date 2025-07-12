@@ -279,8 +279,9 @@
     <div class="lg:ml-64" style="padding-top: 60px;">
       <main class="p-4 lg:p-8">
         <ProductCreate v-if="showAddProduct" @back="handleBackFromProduct" />
+        <ProductEdit v-else-if="showEditProduct" :product-id="editingProduct?.id" @back="handleBackFromEditProduct" @product-updated="handleProductUpdated" />
         <OrderCreate v-else-if="showAddOrder" @back="handleBackFromOrder" />
-        <ProductList v-else-if="showProductList" @add-product="handleShowAddProduct" />
+        <ProductList v-else-if="showProductList" @add-product="handleShowAddProduct" @edit-product="handleShowEditProduct" />
         <OrderList v-else-if="showOrderList" @create-order="handleShowAddOrder" />
         <OrderList v-else-if="showConfirmationOrders" confirmation @create-order="handleShowAddOrder" />
         <OrderList v-else-if="showDeliveryOrders" delivery @create-order="handleShowAddOrder" />
@@ -314,6 +315,7 @@
 import { ref, computed } from 'vue'
 import ProductCreate from './ProductCreate.vue'
 import ProductList from './ProductList.vue'
+import ProductEdit from './ProductEdit.vue'
 import OrderCreate from './OrderCreate.vue'
 import OrderList from './OrderList.vue'
 import DashboardOverview from './DashboardOverview.vue'
@@ -350,6 +352,8 @@ const appDescription = ref('')
 // New state for showing Add Product form or Product List
 const showAddProduct = ref(false)
 const showProductList = ref(false)
+const showEditProduct = ref(false)
+const editingProduct = ref(null)
 const showAddOrder = ref(false)
 const showOrderList = ref(false)
 const showOverview = ref(true)
@@ -437,6 +441,8 @@ const signOut = async () => {
 const clearViews = () => {
   showAddProduct.value = false
   showProductList.value = false
+  showEditProduct.value = false
+  editingProduct.value = null
   showAddOrder.value = false
   showOrderList.value = false
   showOverview.value = false
@@ -474,6 +480,24 @@ const handleShowProductList = (e) => {
 const handleBackFromProduct = () => {
   showAddProduct.value = false
   showProductList.value = true
+}
+
+const handleShowEditProduct = (product) => {
+  editingProduct.value = product
+  showProductList.value = false
+  showEditProduct.value = true
+}
+
+const handleBackFromEditProduct = () => {
+  showEditProduct.value = false
+  editingProduct.value = null
+  showProductList.value = true
+}
+
+const handleProductUpdated = () => {
+  // Product was updated, we can show a success message or refresh the list
+  // For now, just go back to the product list
+  handleBackFromEditProduct()
 }
 
 const handleShowAddOrder = (e) => {
