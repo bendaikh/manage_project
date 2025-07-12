@@ -95,4 +95,51 @@ class ProductController extends Controller
             'summary' => $summary,
         ]);
     }
+
+    public function show(Product $product)
+    {
+        return response()->json($product);
+    }
+
+    public function edit(Product $product)
+    {
+        return response()->json($product);
+    }
+
+    public function update(Request $request, Product $product)
+    {
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|max:255',
+            'sku' => 'nullable|string|max:255',
+            'category' => 'nullable|string|max:255',
+            'supplier' => 'nullable|string|max:255',
+            'purchase_price' => 'required|numeric|min:0',
+            'selling_price' => 'required|numeric|min:0',
+            'stock_quantity' => 'required|integer|min:0',
+            'status' => 'required|string|max:255',
+            'image_url' => 'nullable|url|max:1024',
+            'video_url' => 'nullable|url|max:1024',
+            'video_duration' => 'nullable|string|max:255',
+            'description' => 'nullable|string|max:2000',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['message' => $validator->errors()->first()], 422);
+        }
+
+        $data = $validator->validated();
+        $product->update($data);
+
+        return response()->json(['message' => 'Product updated successfully', 'product' => $product]);
+    }
+
+    public function destroy(Product $product)
+    {
+        try {
+            $product->delete();
+            return response()->json(['message' => 'Product deleted successfully']);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Failed to delete product'], 500);
+        }
+    }
 } 

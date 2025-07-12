@@ -64,6 +64,10 @@ Route::middleware('auth')->group(function () {
 
 Route::post('/products', [ProductController::class, 'store']);
 Route::get('/products/list', [ProductController::class, 'index']);
+Route::get('/products/{product}', [ProductController::class, 'show']);
+Route::get('/products/{product}/edit', [ProductController::class, 'edit']);
+Route::put('/products/{product}', [ProductController::class, 'update']);
+Route::delete('/products/{product}', [ProductController::class, 'destroy']);
 
 Route::post('/orders', [OrderController::class, 'store']);
 Route::get('/orders/list', [OrderController::class, 'index']);
