@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use App\Models\Role;
 use App\Models\User;
+use App\Models\Role;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -14,31 +14,57 @@ class UserSeeder extends Seeder
      */
     public function run(): void
     {
-        // Create admin user
-        $admin = User::create([
-            'name' => 'Admin User',
-            'username' => 'adminuser',
-            'email' => 'admin@example.com',
-            'password' => Hash::make('password'),
-        ]);
-        $admin->roles()->attach(Role::where('name', 'admin')->first());
+        // Get roles
+        $superadminRole = Role::where('name', 'superadmin')->first();
+        $adminRole = Role::where('name', 'admin')->first();
+        $managerRole = Role::where('name', 'manager')->first();
+        $agentRole = Role::where('name', 'agent')->first();
 
-        // Create manager user
-        $manager = User::create([
-            'name' => 'Manager User',
-            'username' => 'manageruser',
-            'email' => 'manager@example.com',
-            'password' => Hash::make('password'),
-        ]);
-        $manager->roles()->attach(Role::where('name', 'manager')->first());
+        // Create test users for each role
+        $users = [
+            [
+                'name' => 'Super Admin',
+                'username' => 'superadmin',
+                'email' => 'superadmin@example.com',
+                'password' => Hash::make('password'),
+                'role' => $superadminRole
+            ],
+            [
+                'name' => 'Admin User',
+                'username' => 'admin',
+                'email' => 'admin@example.com',
+                'password' => Hash::make('password'),
+                'role' => $adminRole
+            ],
+            [
+                'name' => 'Manager User',
+                'username' => 'manager',
+                'email' => 'manager@example.com',
+                'password' => Hash::make('password'),
+                'role' => $managerRole
+            ],
+            [
+                'name' => 'Agent User',
+                'username' => 'agent',
+                'email' => 'agent@example.com',
+                'password' => Hash::make('password'),
+                'role' => $agentRole
+            ]
+        ];
 
-        // Create agent user
-        $agent = User::create([
-            'name' => 'Agent User',
-            'username' => 'agentuser',
-            'email' => 'agent@example.com',
-            'password' => Hash::make('password'),
-        ]);
-        $agent->roles()->attach(Role::where('name', 'agent')->first());
+        foreach ($users as $userData) {
+            $role = $userData['role'];
+            unset($userData['role']);
+            
+            $user = User::updateOrCreate(
+                ['email' => $userData['email']],
+                $userData
+            );
+            
+            // Assign role if not already assigned
+            if (!$user->hasRole($role->name)) {
+                $user->roles()->attach($role);
+            }
+        }
     }
 }

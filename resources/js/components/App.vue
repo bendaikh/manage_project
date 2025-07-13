@@ -76,7 +76,7 @@
           </div>
 
           <!-- Orders -->
-          <div>
+          <div v-if="hasOrdersPermission">
             <button @click="toggleOrdersMenu" class="w-full flex items-center justify-between px-4 py-3 text-white rounded-lg hover:bg-blue-800">
               <div class="flex items-center space-x-3">
                 <ShoppingCartIcon class="h-5 w-5 text-white" />
@@ -111,7 +111,7 @@
           </div>
 
           <!-- Products -->
-          <div>
+          <div v-if="hasProductsPermission">
             <button @click="toggleProductsMenu" class="w-full flex items-center justify-between px-4 py-3 text-white rounded-lg hover:bg-blue-800">
               <div class="flex items-center space-x-3">
                 <BoxIcon class="h-5 w-5 text-white" />
@@ -214,7 +214,7 @@
           </div>
 
           <!-- Users -->
-          <div>
+          <div v-if="hasUsersPermission">
             <button @click="toggleUsersMenu" class="w-full flex items-center justify-between px-4 py-3 text-white rounded-lg hover:bg-blue-800">
               <div class="flex items-center space-x-3">
                 <UserIcon class="h-5 w-5 text-white" />
@@ -249,7 +249,7 @@
           </div>
 
           <!-- Clients -->
-          <div>
+          <div v-if="hasClientsPermission">
             <a href="/clients" class="flex items-center space-x-3 px-4 py-3 text-white rounded-lg hover:bg-blue-800">
               <UsersIcon class="h-5 w-5 text-white" />
               <span>Clients</span>
@@ -257,7 +257,7 @@
           </div>
 
           <!-- History -->
-          <div>
+          <div v-if="hasHistoryPermission">
             <a href="/history" class="flex items-center space-x-3 px-4 py-3 text-white rounded-lg hover:bg-blue-800">
               <ClockIcon class="h-5 w-5 text-white" />
               <span>History</span>
@@ -265,11 +265,26 @@
           </div>
 
           <!-- Settings -->
-          <div>
-            <button type="button" @click="handleShowSettings" class="w-full flex items-center space-x-3 px-4 py-3 text-left text-white rounded-lg hover:bg-blue-800">
-              <CogIcon class="h-5 w-5 text-white" />
-              <span>Settings</span>
+          <div v-if="hasSettingsPermission">
+            <button @click="toggleSettingsMenu" class="w-full flex items-center justify-between px-4 py-3 text-white rounded-lg hover:bg-blue-800">
+              <div class="flex items-center space-x-3">
+                <CogIcon class="h-5 w-5 text-white" />
+                <span>Settings</span>
+              </div>
+              <ChevronDownIcon :class="['h-4 w-4 text-white transition-transform', isSettingsMenuOpen ? 'rotate-180' : '']" />
             </button>
+            
+            <!-- Settings Sub-menu -->
+            <div v-show="isSettingsMenuOpen" class="mt-1 ml-4 space-y-1">
+              <button type="button" @click="handleShowGeneralSettings" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
+                <CogIcon class="h-4 w-4" />
+                <span>General Settings</span>
+              </button>
+              <button type="button" @click="handleShowAccessRights" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
+                <ShieldCheckIcon class="h-4 w-4" />
+                <span>Access Rights</span>
+              </button>
+            </div>
           </div>
         </div>
       </nav>
@@ -302,6 +317,7 @@
         <TransfersList v-else-if="showTransfers" />
         <AccountsList v-else-if="showAccounts" />
         <SettingsForm v-else-if="showSettings" />
+        <AccessRights v-else-if="showAccessRights" />
         <slot v-else></slot>
       </main>
     </div>
@@ -332,6 +348,7 @@ import ExpenseCategoriesList from './ExpenseCategoriesList.vue'
 import ExpensesList from './ExpensesList.vue'
 import RefundsList from './RefundsList.vue'
 import TransfersList from './TransfersList.vue'
+import AccessRights from './AccessRights.vue'
 
 // Component state
 const isDashboardMenuOpen = ref(false)
@@ -343,6 +360,7 @@ const isIncomesMenuOpen = ref(false)
 const isExpensesMenuOpen = ref(false)
 const isProfileMenuOpen = ref(false)
 const isMobileMenuOpen = ref(false)
+const isSettingsMenuOpen = ref(false)
 
 // App settings
 const appLogo = ref(null)
@@ -375,6 +393,8 @@ const showExpenseCategories = ref(false)
 const showExpenses = ref(false)
 const showRefunds = ref(false)
 const showTransfers = ref(false)
+const showGeneralSettings = ref(false)
+const showAccessRights = ref(false)
 
 const toggleDashboardMenu = () => {
   isDashboardMenuOpen.value = !isDashboardMenuOpen.value
@@ -406,6 +426,10 @@ const toggleExpensesMenu = () => {
 
 const toggleProfileMenu = () => {
   isProfileMenuOpen.value = !isProfileMenuOpen.value
+}
+
+const toggleSettingsMenu = () => {
+  isSettingsMenuOpen.value = !isSettingsMenuOpen.value
 }
 
 const closeProfileMenu = () => {
@@ -463,6 +487,8 @@ const clearViews = () => {
   showExpenseCategories.value = false
   showExpenses.value = false
   showRefunds.value = false
+  showGeneralSettings.value = false
+  showAccessRights.value = false
 }
 
 const handleShowAddProduct = (e) => {
@@ -613,10 +639,16 @@ const handleShowTransfers = (e) => {
   showTransfers.value = true
 }
 
-const handleShowSettings = (e) => {
+const handleShowGeneralSettings = (e) => {
   if (e) e.preventDefault()
   clearViews()
   showSettings.value = true
+}
+
+const handleShowAccessRights = (e) => {
+  if (e) e.preventDefault()
+  clearViews()
+  showAccessRights.value = true
 }
 
 // Fetch app settings
@@ -634,12 +666,35 @@ const fetchAppSettings = async () => {
   }
 }
 
-// Check if user has accounting permission
+// Check if user has various permissions
+const hasOrdersPermission = computed(() => {
+  return window.Laravel?.user?.permissions?.includes('view_orders') || false
+})
+
+const hasProductsPermission = computed(() => {
+  return window.Laravel?.user?.permissions?.includes('view_products') || false
+})
+
+const hasUsersPermission = computed(() => {
+  return window.Laravel?.user?.permissions?.includes('manage_users') || false
+})
+
+const hasSettingsPermission = computed(() => {
+  return window.Laravel?.user?.permissions?.includes('manage_roles') || false
+})
+
 const hasAccountingPermission = computed(() => {
-  // For now, return true to show the accounting section
-  // In a real app, this would check the user's permissions from the backend
-  return true
-  // return window.Laravel?.user?.permissions?.includes('view_accounting') || false
+  return window.Laravel?.user?.permissions?.includes('view_accounting') || false
+})
+
+const hasClientsPermission = computed(() => {
+  // For now, return false since there's no clients permission defined
+  return false
+})
+
+const hasHistoryPermission = computed(() => {
+  // For now, return false since there's no history permission defined
+  return false
 })
 
 // Fetch settings on component mount
@@ -693,6 +748,14 @@ const CogIcon = {
     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+    </svg>
+  `
+}
+
+const ShieldCheckIcon = {
+  template: `
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
     </svg>
   `
 }
@@ -858,7 +921,8 @@ export default {
     CreditCardIcon,
     ArrowUturnLeftIcon,
     ArrowsRightLeftIcon,
-    BanknotesIcon
+    BanknotesIcon,
+    ShieldCheckIcon
   }
 }
 </script>

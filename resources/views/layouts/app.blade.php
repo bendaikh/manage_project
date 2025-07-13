@@ -19,20 +19,12 @@
                     'name' => Auth::user()->name,
                     'email' => Auth::user()->email,
                     'avatar' => Auth::user()->avatar ?? null,
+                    'permissions' => auth()->check() ? auth()->user()->roles->flatMap->permissions->pluck('name')->unique() : [],
+                    'roles' => auth()->check() ? auth()->user()->roles->pluck('name') : []
                 ],
             ]) !!};
         </script>
         @vite(['resources/css/app.css', 'resources/js/app.js'])
-
-        <!-- User Permissions -->
-        <script>
-            window.Laravel = {
-                user: @json([
-                    'permissions' => auth()->check() ? auth()->user()->roles->flatMap->permissions->pluck('name')->unique() : [],
-                    'roles' => auth()->check() ? auth()->user()->roles->pluck('name') : []
-                ])
-            };
-        </script>
     </head>
     <body class="font-sans antialiased">
         <div id="app">

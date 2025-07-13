@@ -210,3 +210,34 @@ Route::get('/test-agent', function() {
 });
 
 require __DIR__.'/auth.php';
+
+// Ensure orders resource routes are defined for orders.index and others
+Route::resource('orders', App\Http\Controllers\OrderController::class);
+
+// Ensure products resource routes are defined for products.index and others
+Route::resource('products', App\Http\Controllers\ProductController::class);
+
+// Ensure accounting index route is defined for accounting.index
+Route::get('/accounting', [App\Http\Controllers\AccountingController::class, 'index'])->name('accounting.index');
+
+// Reports Routes
+Route::middleware(['auth', 'verified'])->prefix('reports')->name('reports.')->group(function () {
+    Route::get('/', function () {
+        return view('reports.index');
+    })->name('index');
+});
+
+// Agent-specific routes
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/orders/process', function () {
+        return view('orders.process');
+    })->name('orders.process');
+    
+    Route::get('/support/tickets', function () {
+        return view('support.tickets');
+    })->name('support.tickets');
+    
+    Route::get('/products/catalog', function () {
+        return view('products.catalog');
+    })->name('products.catalog');
+});
