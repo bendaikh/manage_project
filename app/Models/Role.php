@@ -30,4 +30,12 @@ class Role extends Model
     {
         return $this->belongsToMany(Permission::class);
     }
+
+    /**
+     * Get the users count for this role.
+     */
+    public function getUsersCountAttribute()
+    {
+        return $this->users()->count();
+    }
 }

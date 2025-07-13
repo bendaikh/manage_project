@@ -20,6 +20,16 @@ class RoleController extends Controller
     public function index()
     {
         $roles = Role::with('permissions')->get();
+        
+        // If it's an API request, return JSON
+        if (request()->expectsJson() || request()->isJson()) {
+            // Add users count to each role
+            $roles->each(function ($role) {
+                $role->users_count = $role->users()->count();
+            });
+            return response()->json($roles);
+        }
+        
         return view('roles.index', compact('roles'));
     }
 
@@ -50,6 +60,11 @@ class RoleController extends Controller
         ]);
 
         $role->permissions()->attach($validated['permissions']);
+
+        // If it's an API request, return JSON
+        if (request()->expectsJson() || request()->isJson()) {
+            return response()->json(['message' => 'Role created successfully', 'role' => $role->load('permissions')], 201);
+        }
 
         return redirect()->route('roles.index')
             ->with('success', 'Role created successfully.');
@@ -91,6 +106,11 @@ class RoleController extends Controller
 
         $role->permissions()->sync($validated['permissions']);
 
+        // If it's an API request, return JSON
+        if (request()->expectsJson() || request()->isJson()) {
+            return response()->json(['message' => 'Role updated successfully', 'role' => $role->load('permissions')]);
+        }
+
         return redirect()->route('roles.index')
             ->with('success', 'Role updated successfully.');
     }
@@ -101,10 +121,17 @@ class RoleController extends Controller
     public function destroy(Role $role)
     {
         if ($role->name === 'superadmin') {
+            if (request()->expectsJson() || request()->isJson()) {
+                return response()->json(['message' => 'Cannot delete the superadmin role.'], 422);
+            }
             return back()->with('error', 'Cannot delete the superadmin role.');
         }
 
         $role->delete();
+
+        if (request()->expectsJson() || request()->isJson()) {
+            return response()->json(['message' => 'Role deleted successfully']);
+        }
 
         return redirect()->route('roles.index')
             ->with('success', 'Role deleted successfully.');

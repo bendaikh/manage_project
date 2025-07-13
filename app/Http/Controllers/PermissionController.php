@@ -19,6 +19,12 @@ class PermissionController extends Controller
     public function index()
     {
         $permissions = Permission::all();
+        
+        // If it's an API request, return JSON
+        if (request()->expectsJson() || request()->isJson()) {
+            return response()->json($permissions);
+        }
+        
         return view('permissions.index', compact('permissions'));
     }
 
