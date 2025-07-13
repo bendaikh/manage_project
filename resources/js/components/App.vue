@@ -324,6 +324,9 @@
 
     <!-- Click outside handler for profile menu -->
     <div v-if="isProfileMenuOpen" class="fixed inset-0 z-40" @click="closeProfileMenu"></div>
+    
+    <!-- AI Chatbot Component -->
+    <AiChatbot />
   </div>
 </template>
 
@@ -349,6 +352,7 @@ import ExpensesList from './ExpensesList.vue'
 import RefundsList from './RefundsList.vue'
 import TransfersList from './TransfersList.vue'
 import AccessRights from './AccessRights.vue'
+import AiChatbot from './AiChatbot.vue'
 
 // Component state
 const isDashboardMenuOpen = ref(false)

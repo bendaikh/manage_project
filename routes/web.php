@@ -17,6 +17,7 @@ use App\Http\Controllers\IncomesController;
 use App\Http\Controllers\ExpensesController;
 use App\Http\Controllers\TransfersController;
 use App\Http\Controllers\AccountController;
+use App\Http\Controllers\AiChatController;
 use Illuminate\Support\Facades\Route;
 
 // Redirect root to login if not authenticated
@@ -171,6 +172,9 @@ Route::middleware(['auth', 'verified'])->prefix('accounting')->name('accounting.
 
 // API route for getting users by role (outside accounting prefix)
 Route::get('/api/users/by-role/{roleName}', [\App\Http\Controllers\UserTransferController::class, 'getUsersByRole'])->middleware('auth');
+
+// AI Chat API Route
+Route::post('/api/ai-chat', [AiChatController::class, 'chat'])->middleware(['auth', 'verified']);
 
 // Test route to check database
 Route::get('/test-db', function() {
