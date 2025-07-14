@@ -50,6 +50,16 @@ class AiChatController extends Controller
         } catch (\Exception $e) {
             Log::error('AI Chat Error: ' . $e->getMessage());
             
+            // In development, show the actual error
+            if (config('app.debug')) {
+                return response()->json([
+                    'error' => 'An error occurred while processing your request',
+                    'debug' => $e->getMessage(),
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine()
+                ], 500);
+            }
+            
             return response()->json([
                 'error' => 'An error occurred while processing your request'
             ], 500);
@@ -267,7 +277,7 @@ Response:";
             'Authorization' => 'Bearer ' . $apiKey,
             'Content-Type' => 'application/json',
         ])->post('https://api.openai.com/v1/chat/completions', [
-            'model' => 'gpt-4',
+            'model' => 'gpt-3.5-turbo',
             'messages' => [
                 [
                     'role' => 'system',
