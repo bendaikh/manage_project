@@ -18,6 +18,7 @@ use App\Http\Controllers\ExpensesController;
 use App\Http\Controllers\TransfersController;
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\AiChatController;
+use App\Http\Controllers\OrderAssignmentController;
 use Illuminate\Support\Facades\Route;
 
 // Redirect root to login if not authenticated
@@ -244,4 +245,30 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/products/catalog', function () {
         return view('products.catalog');
     })->name('products.catalog');
+});
+
+// Order Assignment Routes
+Route::middleware(['auth', 'verified'])->prefix('api/order-assignments')->group(function () {
+    // Get available agents (for superadmin)
+    Route::get('/agents', [OrderAssignmentController::class, 'getAgents']);
+    
+    // Assign orders to agents (superadmin only)
+    Route::post('/assign', [OrderAssignmentController::class, 'assignOrders'])
+        ->middleware('permission:manage_orders');
+    
+    // Remove assignment from orders (superadmin only)
+    Route::post('/remove', [OrderAssignmentController::class, 'removeAssignment'])
+        ->middleware('permission:manage_orders');
+    
+    // Get assignment statistics (superadmin only)
+    Route::get('/stats', [OrderAssignmentController::class, 'getAssignmentStats'])
+        ->middleware('permission:manage_orders');
+    
+    // Get all orders with assignments (superadmin only)
+    Route::get('/all-orders', [OrderAssignmentController::class, 'getAllOrdersWithAssignments'])
+        ->middleware('permission:manage_orders');
+    
+    // Get my assigned orders (for agents)
+    Route::get('/my-orders', [OrderAssignmentController::class, 'getMyAssignedOrders'])
+        ->middleware('permission:view_orders');
 });

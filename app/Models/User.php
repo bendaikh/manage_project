@@ -168,4 +168,36 @@ class User extends Authenticatable
 
         $this->roles()->sync($roleIds);
     }
+
+    /**
+     * Get orders assigned to this user (agent).
+     */
+    public function assignedOrders()
+    {
+        return $this->hasManyThrough(Order::class, OrderAssignment::class, 'assigned_to', 'id', 'id', 'order_id');
+    }
+
+    /**
+     * Get order assignments made by this user (admin).
+     */
+    public function orderAssignments()
+    {
+        return $this->hasMany(OrderAssignment::class, 'assigned_by');
+    }
+
+    /**
+     * Check if user is an agent (has agent role).
+     */
+    public function isAgent(): bool
+    {
+        return $this->hasRole('agent');
+    }
+
+    /**
+     * Check if user is a superadmin.
+     */
+    public function isSuperadmin(): bool
+    {
+        return $this->hasRole('superadmin');
+    }
 }

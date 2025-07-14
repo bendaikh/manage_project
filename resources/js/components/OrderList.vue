@@ -45,6 +45,13 @@
     <div v-if="selectedIds.size" class="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-blue-50 border border-blue-200 rounded p-3 mb-3 gap-3">
       <div class="text-sm lg:text-base">{{ selectedIds.size }} selected</div>
       <div class="flex flex-col sm:flex-row gap-2">
+        <!-- Assignment button for superadmin -->
+        <button v-if="isSuperadmin" @click="openAssignmentModal" class="px-3 lg:px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 text-sm flex items-center gap-1">
+          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+          </svg>
+          Assign to Agent
+        </button>
         <button @click="downloadDeliveryNote" class="px-3 lg:px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm">Download Delivery Note</button>
         <button @click="downloadInvoices" class="px-3 lg:px-4 py-2 bg-violet-600 text-white rounded hover:bg-violet-700 text-sm">Download Invoices</button>
       </div>
@@ -101,7 +108,13 @@
               <div class="text-xs text-gray-500 truncate">{{ order.client_address }}</div>
               <div class="text-xs text-gray-400">{{ order.client_phone }}</div>
             </td>
-            <td class="px-2 lg:px-3 py-2 hidden lg:table-cell">{{ order.agent || 'Mme' }}</td>
+            <td class="px-2 lg:px-3 py-2 hidden lg:table-cell">
+              <div class="text-sm">{{ order.agent || 'Mme' }}</div>
+              <!-- Show assigned agent if available -->
+              <div v-if="order.assignment && order.assignment.assigned_to" class="text-xs text-purple-600">
+                Assigned to: {{ order.assignment.assigned_to.name }}
+              </div>
+            </td>
             <td class="px-2 lg:px-3 py-2">
               <button @click="openStatusModal(order)" :class="getStatusClass(order.status) + ' px-2 py-1 rounded text-xs focus:outline-none'">
                 {{ order.status || 'Pending' }}
@@ -139,6 +152,51 @@
     </div>
     <OrderDetailsModal v-if="showDetails" :order="selectedOrder" @close="closeDetails" @edit="openEdit" />
     <OrderEdit v-if="showEdit" :order="editOrder" :products="productsList" @cancel="closeEdit" @updated="handleUpdated" />
+    
+    <!-- Assignment Modal -->
+    <div v-if="showAssignmentModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" @click.self="closeAssignmentModal">
+      <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-lg font-semibold">Assign Orders to Agent</h3>
+          <button @click="closeAssignmentModal" class="text-gray-400 hover:text-gray-600">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+        
+        <div class="mb-4">
+          <p class="text-sm text-gray-600 mb-2">
+            Assigning <strong>{{ selectedIds.size }}</strong> order(s) to an agent
+          </p>
+        </div>
+        
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-2">Select Agent</label>
+          <select v-model="assignmentForm.agentId" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="">Choose an agent...</option>
+            <option v-for="agent in availableAgents" :key="agent.id" :value="agent.id">
+              {{ agent.name }} ({{ agent.email }})
+            </option>
+          </select>
+        </div>
+        
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-2">Notes (Optional)</label>
+          <textarea v-model="assignmentForm.notes" rows="3" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Add any notes about this assignment..."></textarea>
+        </div>
+        
+        <div class="flex justify-end space-x-3">
+          <button @click="closeAssignmentModal" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">
+            Cancel
+          </button>
+          <button @click="assignOrders" :disabled="!assignmentForm.agentId || isAssigning" class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:opacity-50">
+            {{ isAssigning ? 'Assigning...' : 'Assign Orders' }}
+          </button>
+        </div>
+      </div>
+    </div>
+    
     <!-- Status Modal inline -->
     <div v-if="showStatusModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" @click.self="closeStatusModal">
       <div class="bg-white rounded-lg shadow-lg p-4 lg:p-6 w-full max-w-sm max-h-[90vh] overflow-y-auto">
@@ -189,6 +247,21 @@ const statusTargetOrder = ref(null)
 const toastMessage = ref('')
 const toastType = ref('success')
 
+// Assignment related refs
+const showAssignmentModal = ref(false)
+const availableAgents = ref([])
+const isAssigning = ref(false)
+const assignmentForm = ref({
+  agentId: '',
+  notes: ''
+})
+
+// Check if user is superadmin
+const isSuperadmin = computed(() => {
+  const roles = window.Laravel?.user?.roles || []
+  return roles.includes('superadmin') || roles.some(role => typeof role === 'object' && role.name === 'superadmin')
+})
+
 const fetchOrders = async () => {
   let url = '/orders/list?'
   if (filters.value.search) url += `search=${encodeURIComponent(filters.value.search)}&`
@@ -207,6 +280,81 @@ const fetchOrders = async () => {
   orders.value = data.orders
   sellers.value = data.sellers
   zones.value = data.zones
+}
+
+const fetchAvailableAgents = async () => {
+  try {
+    const response = await fetch('/api/order-assignments/agents')
+    if (response.ok) {
+      availableAgents.value = await response.json()
+    }
+  } catch (error) {
+    console.error('Failed to fetch agents:', error)
+  }
+}
+
+const openAssignmentModal = async () => {
+  if (selectedIds.value.size === 0) {
+    toastType.value = 'error'
+    toastMessage.value = 'Please select at least one order to assign'
+    setTimeout(() => { toastMessage.value = '' }, 3000)
+    return
+  }
+  
+  await fetchAvailableAgents()
+  showAssignmentModal.value = true
+}
+
+const closeAssignmentModal = () => {
+  showAssignmentModal.value = false
+  assignmentForm.value = { agentId: '', notes: '' }
+}
+
+const assignOrders = async () => {
+  if (!assignmentForm.value.agentId) {
+    toastType.value = 'error'
+    toastMessage.value = 'Please select an agent'
+    setTimeout(() => { toastMessage.value = '' }, 3000)
+    return
+  }
+  
+  isAssigning.value = true
+  try {
+    const csrf = document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+    const response = await fetch('/api/order-assignments/assign', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-CSRF-TOKEN': csrf
+      },
+      body: JSON.stringify({
+        order_ids: Array.from(selectedIds.value),
+        agent_id: assignmentForm.value.agentId,
+        notes: assignmentForm.value.notes
+      })
+    })
+    
+    if (response.ok) {
+      const result = await response.json()
+      toastType.value = 'success'
+      toastMessage.value = result.message
+      closeAssignmentModal()
+      checked.value = [] // Clear selection
+      await fetchOrders() // Refresh orders to show assignments
+    } else {
+      const error = await response.json()
+      toastType.value = 'error'
+      toastMessage.value = error.message || 'Failed to assign orders'
+    }
+  } catch (error) {
+    console.error('Failed to assign orders:', error)
+    toastType.value = 'error'
+    toastMessage.value = 'Failed to assign orders'
+  } finally {
+    isAssigning.value = false
+    setTimeout(() => { toastMessage.value = '' }, 3000)
+  }
 }
 
 const clearFilters = () => {

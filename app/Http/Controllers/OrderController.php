@@ -8,6 +8,33 @@ use App\Models\Order;
 
 class OrderController extends Controller
 {
+    /**
+     * Apply date range filter to the query
+     */
+    private function applyDateRangeFilter($query, $dateRange)
+    {
+        switch ($dateRange) {
+            case 'Today':
+                $query->whereDate('created_at', today());
+                break;
+            case 'Yesterday':
+                $query->whereDate('created_at', today()->subDay());
+                break;
+            case 'This Month':
+                $query->whereMonth('created_at', now()->month)
+                      ->whereYear('created_at', now()->year);
+                break;
+            case 'Last Month':
+                $query->whereMonth('created_at', now()->subMonth()->month)
+                      ->whereYear('created_at', now()->subMonth()->year);
+                break;
+            // Add more date ranges as needed
+        }
+    }
+
+    /**
+     * Store a newly created resource in storage.
+     */
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -41,66 +68,77 @@ class OrderController extends Controller
 
     public function index(Request $request)
     {
-        $query = \App\Models\Order::with(['product', 'orderStatus']);
+        $query = Order::with(['product', 'orderStatus', 'assignment.assignedTo', 'assignment.assignedBy']);
 
+        // Apply filters
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('id', 'like', "%$search%")
-                  ->orWhere('seller', 'like', "%$search%")
-                  ->orWhere('client_name', 'like', "%$search%")
-                  ->orWhere('client_phone', 'like', "%$search%")
-                  ->orWhere('client_address', 'like', "%$search%")
-                  ->orWhere('comment', 'like', "%$search%")
-                  ->orWhereHas('product', function ($p) use ($search) {
-                      $p->where('name', 'like', "%$search%")
-                        ->orWhere('sku', 'like', "%$search%") ;
+            $query->where(function($q) use ($search) {
+                $q->where('id', 'like', "%{$search}%")
+                  ->orWhere('client_name', 'like', "%{$search}%")
+                  ->orWhere('client_phone', 'like', "%{$search}%")
+                  ->orWhere('client_address', 'like', "%{$search}%")
+                  ->orWhereHas('product', function($pq) use ($search) {
+                      $pq->where('name', 'like', "%{$search}%");
                   });
             });
         }
+
         if ($request->filled('seller')) {
             $query->where('seller', $request->seller);
         }
-        if ($request->filled('order_status_id')) {
-            $query->where('order_status_id', $request->order_status_id);
+
+        if ($request->filled('status')) {
+            $query->whereHas('orderStatus', function($q) use ($request) {
+                $q->where('name', $request->status);
+            });
         }
+
         if ($request->filled('agent')) {
             $query->where('agent', $request->agent);
         }
+
         if ($request->filled('zone')) {
             $query->where('zone', $request->zone);
         }
+
+        // Date range filtering
+        if ($request->filled('dateRange')) {
+            $this->applyDateRangeFilter($query, $request->dateRange);
+        }
+
+        // Status filtering for specific pages
         if ($request->filled('status')) {
-            $statusNames = explode(',', $request->status);
-            $query->whereHas('orderStatus', function ($q) use ($statusNames) {
-                $q->whereIn('name', $statusNames);
+            $statuses = explode(',', $request->status);
+            $query->whereHas('orderStatus', function($q) use ($statuses) {
+                $q->whereIn('name', $statuses);
             });
         }
-        // Add support for exclude_status
+
         if ($request->filled('exclude_status')) {
             $excludeStatuses = explode(',', $request->exclude_status);
-            $query->whereHas('orderStatus', function ($q) use ($excludeStatuses) {
+            $query->whereHas('orderStatus', function($q) use ($excludeStatuses) {
                 $q->whereNotIn('name', $excludeStatuses);
             });
         }
-        // Date range filter (not implemented in form, but placeholder)
-        // ...
 
-        $ordersCollection = $query->orderByDesc('created_at')->get();
+        // Check if user is an agent and show only assigned orders
+        if (auth()->user()->isAgent()) {
+            $query->whereHas('assignment', function($q) {
+                $q->where('assigned_to', auth()->id());
+            });
+        }
 
-        // Add 'status' attribute as the status name to keep existing frontend working
-        $orders = $ordersCollection->map(function ($order) {
-            $order->status = $order->orderStatus?->name;
-            return $order;
-        });
+        $orders = $query->orderBy('created_at', 'desc')->get();
 
-        $sellers = \App\Models\Order::select('seller')->distinct()->pluck('seller')->filter()->values();
-        $zones = \App\Models\Order::select('zone')->distinct()->pluck('zone')->filter()->values();
+        // Get unique values for filters
+        $sellers = Order::distinct()->pluck('seller')->filter()->values();
+        $zones = Order::distinct()->pluck('zone')->filter()->values();
 
         return response()->json([
             'orders' => $orders,
             'sellers' => $sellers,
-            'zones' => $zones,
+            'zones' => $zones
         ]);
     }
 
