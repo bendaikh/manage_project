@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use App\Models\Setting;
 
 class Order extends Model
@@ -32,6 +33,22 @@ class Order extends Model
     public function orderStatus()
     {
         return $this->belongsTo(OrderStatus::class);
+    }
+
+    /**
+     * Get the assignment for this order.
+     */
+    public function assignment(): HasOne
+    {
+        return $this->hasOne(OrderAssignment::class);
+    }
+
+    /**
+     * Get the assigned agent for this order.
+     */
+    public function assignedAgent()
+    {
+        return $this->hasOneThrough(User::class, OrderAssignment::class, 'order_id', 'id', 'id', 'assigned_to');
     }
 
     /**

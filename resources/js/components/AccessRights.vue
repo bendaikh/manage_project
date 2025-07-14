@@ -46,10 +46,23 @@
               </td>
               <td class="px-6 py-4">
                 <div class="text-sm text-gray-900">
-                  <div class="flex flex-wrap gap-1">
-                    <span v-for="permission in role.permissions" :key="permission.id" 
+                  <div class="flex flex-wrap gap-1 items-center">
+                    <!-- Show first 3 permissions -->
+                    <span v-for="permission in role.permissions.slice(0, 3)" :key="permission.id" 
                           class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                       {{ permission.name }}
+                    </span>
+                    
+                    <!-- Show "+" icon if there are more permissions -->
+                    <button v-if="role.permissions.length > 3" 
+                            @click="showPermissionsPopup(role)"
+                            class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-800 text-xs font-medium transition-colors">
+                      +{{ role.permissions.length - 3 }}
+                    </button>
+                    
+                    <!-- Show message if no permissions -->
+                    <span v-if="role.permissions.length === 0" class="text-gray-500 text-xs">
+                      No permissions
                     </span>
                   </div>
                 </div>
@@ -75,6 +88,51 @@
             </tr>
           </tbody>
         </table>
+      </div>
+    </div>
+
+    <!-- Permissions Popup Modal -->
+    <div v-if="showPermissionsModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+      <div class="relative top-20 mx-auto p-5 border w-[800px] max-w-full shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-medium text-gray-900">
+              Permissions for {{ selectedRole?.name }}
+            </h3>
+            <button @click="closePermissionsModal" class="text-gray-400 hover:text-gray-600">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+            </button>
+          </div>
+          
+          <div class="max-h-96 overflow-y-auto">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div v-for="permission in selectedRole?.permissions" :key="permission.id" 
+                   class="flex items-center p-3 bg-gray-50 rounded-lg">
+                <div class="flex-1">
+                  <div class="text-sm font-medium text-gray-900">{{ permission.name }}</div>
+                  <div class="text-xs text-gray-500">{{ permission.description || 'No description' }}</div>
+                </div>
+                <div class="ml-2">
+                  <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    ✓ Allowed
+                  </span>
+                </div>
+              </div>
+            </div>
+            
+            <div v-if="selectedRole?.permissions.length === 0" class="text-center py-8 text-gray-500">
+              No permissions assigned to this role.
+            </div>
+          </div>
+          
+          <div class="mt-4 pt-4 border-t border-gray-200">
+            <div class="text-sm text-gray-600">
+              Total permissions: {{ selectedRole?.permissions.length || 0 }}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -171,7 +229,9 @@ import { ref, onMounted } from 'vue'
 const roles = ref([])
 const permissions = ref([])
 const showEditModal = ref(false)
+const showPermissionsModal = ref(false)
 const editingRole = ref(null)
+const selectedRole = ref(null)
 const isLoading = ref(false)
 const message = ref('')
 const messageType = ref('success')
@@ -217,6 +277,16 @@ const fetchPermissions = async () => {
   }
 }
 
+const showPermissionsPopup = (role) => {
+  selectedRole.value = role;
+  showPermissionsModal.value = true;
+}
+
+const closePermissionsModal = () => {
+  showPermissionsModal.value = false;
+  selectedRole.value = null;
+}
+
 const editRole = (role) => {
   editingRole.value = role;
   form.value = {
@@ -259,8 +329,6 @@ const deleteRole = async (role) => {
     showMessage('Failed to delete role', 'error')
   }
 }
-
-
 
 const updateRole = async () => {
   isLoading.value = true

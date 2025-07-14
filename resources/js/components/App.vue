@@ -87,23 +87,23 @@
             
             <!-- Orders Sub-menu -->
             <div v-show="isOrdersMenuOpen" class="mt-1 ml-4 space-y-1">
-              <button type="button" @click="handleShowAddOrder" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
+              <button v-if="hasCreateOrdersPermission" type="button" @click="handleShowAddOrder" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
                 <PlusIcon class="h-4 w-4" />
                 <span>Create Order</span>
               </button>
-              <button type="button" @click="handleShowOrderList" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
+              <button v-if="hasOrdersPermission" type="button" @click="handleShowOrderList" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
                 <ListIcon class="h-4 w-4" />
                 <span>All Orders</span>
               </button>
-              <button type="button" @click="handleShowConfirmationOrders" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
+              <button v-if="hasViewConfirmationOrdersPermission" type="button" @click="handleShowConfirmationOrders" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
                 <CheckCircleIcon class="h-4 w-4" />
                 <span>Confirmation</span>
               </button>
-              <button type="button" @click="handleShowDeliveryOrders" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
+              <button v-if="hasViewDeliveryOrdersPermission" type="button" @click="handleShowDeliveryOrders" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
                 <TruckIcon class="h-4 w-4" />
                 <span>Delivery</span>
               </button>
-              <button type="button" @click="handleShowInvoices" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
+              <button v-if="hasInvoicesPermission" type="button" @click="handleShowInvoices" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
                 <DocumentTextIcon class="h-4 w-4" />
                 <span>Invoices</span>
               </button>
@@ -122,15 +122,15 @@
             
             <!-- Products Sub-menu -->
             <div v-show="isProductsMenuOpen" class="mt-1 ml-4 space-y-1">
-              <button type="button" @click="handleShowProductList" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
+              <button v-if="hasProductsPermission" type="button" @click="handleShowProductList" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
                 <ListIcon class="h-4 w-4" />
                 <span>All Products</span>
               </button>
-              <button type="button" @click="handleShowAddProduct" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
+              <button v-if="hasCreateProductsPermission" type="button" @click="handleShowAddProduct" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
                 <PlusIcon class="h-4 w-4" />
                 <span>Add Product</span>
               </button>
-              <button type="button" @click="handleShowCategories" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
+              <button v-if="hasCategoriesPermission" type="button" @click="handleShowCategories" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
                 <TagIcon class="h-4 w-4" />
                 <span>Categories</span>
               </button>
@@ -150,7 +150,7 @@
             <!-- Accounting Sub-menu -->
             <div v-show="isAccountingMenuOpen" class="mt-1 ml-4 space-y-1">
               <!-- Incomes Submenu -->
-              <div>
+              <div v-if="hasIncomesPermission">
                 <button @click="toggleIncomesMenu" class="w-full flex items-center justify-between px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
                   <div class="flex items-center space-x-3">
                     <CurrencyDollarIcon class="h-4 w-4" />
@@ -161,11 +161,11 @@
                 
                 <!-- Incomes Sub-submenu -->
                 <div v-show="isIncomesMenuOpen" class="mt-1 ml-4 space-y-1">
-                  <button type="button" @click="handleShowIncomes" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-100 rounded-lg hover:bg-blue-800 hover:text-white">
+                  <button v-if="hasIncomesPermission" type="button" @click="handleShowIncomes" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-100 rounded-lg hover:bg-blue-800 hover:text-white">
                     <ChartBarIcon class="h-3 w-3" />
                     <span>Overview</span>
                   </button>
-                  <button type="button" @click="handleShowIncomeCategories" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-100 rounded-lg hover:bg-blue-800 hover:text-white">
+                  <button v-if="hasIncomeCategoriesPermission" type="button" @click="handleShowIncomeCategories" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-100 rounded-lg hover:bg-blue-800 hover:text-white">
                     <TagIcon class="h-3 w-3" />
                     <span>Income Categories</span>
                   </button>
@@ -173,7 +173,7 @@
               </div>
 
               <!-- Expenses Submenu -->
-              <div>
+              <div v-if="hasExpensesPermission">
                 <button @click="toggleExpensesMenu" class="w-full flex items-center justify-between px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
                   <div class="flex items-center space-x-3">
                     <CreditCardIcon class="h-4 w-4" />
@@ -184,15 +184,15 @@
                 
                 <!-- Expenses Sub-submenu -->
                 <div v-show="isExpensesMenuOpen" class="mt-1 ml-4 space-y-1">
-                  <button type="button" @click="handleShowExpenses" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-100 rounded-lg hover:bg-blue-800 hover:text-white">
+                  <button v-if="hasExpensesPermission" type="button" @click="handleShowExpenses" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-100 rounded-lg hover:bg-blue-800 hover:text-white">
                     <ChartBarIcon class="h-3 w-3" />
                     <span>Overview</span>
                   </button>
-                  <button type="button" @click="handleShowExpenseCategories" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-100 rounded-lg hover:bg-blue-800 hover:text-white">
+                  <button v-if="hasExpenseCategoriesPermission" type="button" @click="handleShowExpenseCategories" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-100 rounded-lg hover:bg-blue-800 hover:text-white">
                     <TagIcon class="h-3 w-3" />
                     <span>Expense Categories</span>
                   </button>
-                  <button type="button" @click="handleShowRefunds" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-100 rounded-lg hover:bg-blue-800 hover:text-white">
+                  <button v-if="hasRefundsPermission" type="button" @click="handleShowRefunds" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-100 rounded-lg hover:bg-blue-800 hover:text-white">
                     <ArrowUturnLeftIcon class="h-3 w-3" />
                     <span>Refunds</span>
                   </button>
@@ -200,13 +200,13 @@
               </div>
 
               <!-- Transfers (Regular subitem) -->
-              <button type="button" @click="handleShowTransfers" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
+              <button v-if="hasTransfersPermission" type="button" @click="handleShowTransfers" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
                 <ArrowsRightLeftIcon class="h-4 w-4" />
                 <span>Transfers</span>
               </button>
 
               <!-- Accounts (Regular subitem) -->
-              <button type="button" @click="handleShowAccounts" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
+              <button v-if="hasAccountsPermission" type="button" @click="handleShowAccounts" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
                 <BanknotesIcon class="h-4 w-4" />
                 <span>Accounts</span>
               </button>
@@ -225,23 +225,23 @@
             
             <!-- Users Sub-menu -->
             <div v-show="isUsersMenuOpen" class="mt-1 ml-4 space-y-1">
-              <button type="button" @click="handleShowAddUser" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
+              <button v-if="hasCreateUsersPermission" type="button" @click="handleShowAddUser" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
                 <UserPlusIcon class="h-4 w-4" />
                 <span>Add User</span>
               </button>
-              <button type="button" @click="handleShowAgentsList" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
+              <button v-if="hasUsersPermission" type="button" @click="handleShowAgentsList" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
                 <UsersIcon class="h-4 w-4" />
                 <span>Agents</span>
               </button>
-              <button type="button" @click="handleShowManagersList" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
+              <button v-if="hasUsersPermission" type="button" @click="handleShowManagersList" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
                 <UsersIcon class="h-4 w-4" />
                 <span>Managers</span>
               </button>
-              <button type="button" @click="handleShowAdminsList" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
+              <button v-if="hasUsersPermission" type="button" @click="handleShowAdminsList" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
                 <UsersIcon class="h-4 w-4" />
                 <span>Admins</span>
               </button>
-              <button type="button" @click="handleShowSellersList" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
+              <button v-if="hasUsersPermission" type="button" @click="handleShowSellersList" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
                 <UsersIcon class="h-4 w-4" />
                 <span>Sellers</span>
               </button>
@@ -670,36 +670,158 @@ const fetchAppSettings = async () => {
   }
 }
 
-// Check if user has various permissions
-const hasOrdersPermission = computed(() => {
-  return window.Laravel?.user?.permissions?.includes('view_orders') || false
-})
+// Helper function to check permissions
+const hasPermission = (permission) => {
+  return window.Laravel?.user?.permissions?.includes(permission) || false
+}
 
-const hasProductsPermission = computed(() => {
-  return window.Laravel?.user?.permissions?.includes('view_products') || false
-})
+// Dashboard permissions
+const hasDashboardPermission = computed(() => hasPermission('view_dashboard'))
+const hasDashboardOverviewPermission = computed(() => hasPermission('view_dashboard_overview'))
+const hasDashboardAnalyticsPermission = computed(() => hasPermission('view_dashboard_analytics'))
 
-const hasUsersPermission = computed(() => {
-  return window.Laravel?.user?.permissions?.includes('manage_users') || false
-})
+// User management permissions
+const hasUsersPermission = computed(() => hasPermission('view_users'))
+const hasCreateUsersPermission = computed(() => hasPermission('create_users'))
+const hasEditUsersPermission = computed(() => hasPermission('edit_users'))
+const hasDeleteUsersPermission = computed(() => hasPermission('delete_users'))
+const hasManageUsersPermission = computed(() => hasPermission('manage_users'))
 
-const hasSettingsPermission = computed(() => {
-  return window.Laravel?.user?.permissions?.includes('manage_roles') || false
-})
+// Role and permission management
+const hasRolesPermission = computed(() => hasPermission('view_roles'))
+const hasCreateRolesPermission = computed(() => hasPermission('create_roles'))
+const hasEditRolesPermission = computed(() => hasPermission('edit_roles'))
+const hasDeleteRolesPermission = computed(() => hasPermission('delete_roles'))
+const hasManageRolesPermission = computed(() => hasPermission('manage_roles'))
 
-const hasAccountingPermission = computed(() => {
-  return window.Laravel?.user?.permissions?.includes('view_accounting') || false
-})
+const hasPermissionsPermission = computed(() => hasPermission('view_permissions'))
+const hasCreatePermissionsPermission = computed(() => hasPermission('create_permissions'))
+const hasEditPermissionsPermission = computed(() => hasPermission('edit_permissions'))
+const hasDeletePermissionsPermission = computed(() => hasPermission('delete_permissions'))
+const hasManagePermissionsPermission = computed(() => hasPermission('manage_permissions'))
 
-const hasClientsPermission = computed(() => {
-  // For now, return false since there's no clients permission defined
-  return false
-})
+// Order permissions (granular)
+const hasOrdersPermission = computed(() => hasPermission('view_orders'))
+const hasCreateOrdersPermission = computed(() => hasPermission('create_orders'))
+const hasEditOrdersPermission = computed(() => hasPermission('edit_orders'))
+const hasDeleteOrdersPermission = computed(() => hasPermission('delete_orders'))
+const hasViewOrderDetailsPermission = computed(() => hasPermission('view_order_details'))
+const hasUpdateOrderStatusPermission = computed(() => hasPermission('update_order_status'))
+const hasViewConfirmationOrdersPermission = computed(() => hasPermission('view_confirmation_orders'))
+const hasConfirmOrdersPermission = computed(() => hasPermission('confirm_orders'))
+const hasViewDeliveryOrdersPermission = computed(() => hasPermission('view_delivery_orders'))
+const hasProcessDeliveryOrdersPermission = computed(() => hasPermission('process_delivery_orders'))
+const hasImportOrdersPermission = computed(() => hasPermission('import_orders'))
+const hasExportOrdersPermission = computed(() => hasPermission('export_orders'))
+const hasManageOrdersPermission = computed(() => hasPermission('manage_orders'))
 
-const hasHistoryPermission = computed(() => {
-  // For now, return false since there's no history permission defined
-  return false
-})
+// Product permissions (granular)
+const hasProductsPermission = computed(() => hasPermission('view_products'))
+const hasCreateProductsPermission = computed(() => hasPermission('create_products'))
+const hasEditProductsPermission = computed(() => hasPermission('edit_products'))
+const hasDeleteProductsPermission = computed(() => hasPermission('delete_products'))
+const hasViewProductDetailsPermission = computed(() => hasPermission('view_product_details'))
+const hasViewProductCatalogPermission = computed(() => hasPermission('view_product_catalog'))
+const hasManageProductsPermission = computed(() => hasPermission('manage_products'))
+
+// Category permissions
+const hasCategoriesPermission = computed(() => hasPermission('view_categories'))
+const hasCreateCategoriesPermission = computed(() => hasPermission('create_categories'))
+const hasEditCategoriesPermission = computed(() => hasPermission('edit_categories'))
+const hasDeleteCategoriesPermission = computed(() => hasPermission('delete_categories'))
+const hasManageCategoriesPermission = computed(() => hasPermission('manage_categories'))
+
+// Invoice and PDF permissions
+const hasInvoicesPermission = computed(() => hasPermission('view_invoices'))
+const hasCreateInvoicesPermission = computed(() => hasPermission('create_invoices'))
+const hasDownloadInvoicesPermission = computed(() => hasPermission('download_invoices'))
+const hasDeliveryNotesPermission = computed(() => hasPermission('view_delivery_notes'))
+const hasCreateDeliveryNotesPermission = computed(() => hasPermission('create_delivery_notes'))
+const hasDownloadDeliveryNotesPermission = computed(() => hasPermission('download_delivery_notes'))
+const hasDeliveryInvoicesPermission = computed(() => hasPermission('view_delivery_invoices'))
+const hasCreateDeliveryInvoicesPermission = computed(() => hasPermission('create_delivery_invoices'))
+const hasDownloadDeliveryInvoicesPermission = computed(() => hasPermission('download_delivery_invoices'))
+
+// Accounting permissions (granular)
+const hasAccountingPermission = computed(() => hasPermission('view_accounting'))
+const hasAccountingOverviewPermission = computed(() => hasPermission('view_accounting_overview'))
+
+// Income permissions
+const hasIncomesPermission = computed(() => hasPermission('view_incomes'))
+const hasCreateIncomesPermission = computed(() => hasPermission('create_incomes'))
+const hasEditIncomesPermission = computed(() => hasPermission('edit_incomes'))
+const hasDeleteIncomesPermission = computed(() => hasPermission('delete_incomes'))
+const hasManageIncomesPermission = computed(() => hasPermission('manage_incomes'))
+
+// Income category permissions
+const hasIncomeCategoriesPermission = computed(() => hasPermission('view_income_categories'))
+const hasCreateIncomeCategoriesPermission = computed(() => hasPermission('create_income_categories'))
+const hasEditIncomeCategoriesPermission = computed(() => hasPermission('edit_income_categories'))
+const hasDeleteIncomeCategoriesPermission = computed(() => hasPermission('delete_income_categories'))
+const hasManageIncomeCategoriesPermission = computed(() => hasPermission('manage_income_categories'))
+
+// Expense permissions
+const hasExpensesPermission = computed(() => hasPermission('view_expenses'))
+const hasCreateExpensesPermission = computed(() => hasPermission('create_expenses'))
+const hasEditExpensesPermission = computed(() => hasPermission('edit_expenses'))
+const hasDeleteExpensesPermission = computed(() => hasPermission('delete_expenses'))
+const hasManageExpensesPermission = computed(() => hasPermission('manage_expenses'))
+
+// Expense category permissions
+const hasExpenseCategoriesPermission = computed(() => hasPermission('view_expense_categories'))
+const hasCreateExpenseCategoriesPermission = computed(() => hasPermission('create_expense_categories'))
+const hasEditExpenseCategoriesPermission = computed(() => hasPermission('edit_expense_categories'))
+const hasDeleteExpenseCategoriesPermission = computed(() => hasPermission('delete_expense_categories'))
+const hasManageExpenseCategoriesPermission = computed(() => hasPermission('manage_expense_categories'))
+
+// Refund permissions
+const hasRefundsPermission = computed(() => hasPermission('view_refunds'))
+const hasCreateRefundsPermission = computed(() => hasPermission('create_refunds'))
+const hasEditRefundsPermission = computed(() => hasPermission('edit_refunds'))
+const hasDeleteRefundsPermission = computed(() => hasPermission('delete_refunds'))
+const hasManageRefundsPermission = computed(() => hasPermission('manage_refunds'))
+
+// Transfer permissions
+const hasTransfersPermission = computed(() => hasPermission('view_transfers'))
+const hasCreateTransfersPermission = computed(() => hasPermission('create_transfers'))
+const hasEditTransfersPermission = computed(() => hasPermission('edit_transfers'))
+const hasDeleteTransfersPermission = computed(() => hasPermission('delete_transfers'))
+const hasManageTransfersPermission = computed(() => hasPermission('manage_transfers'))
+
+// User transfer permissions
+const hasUserTransfersPermission = computed(() => hasPermission('view_user_transfers'))
+const hasCreateUserTransfersPermission = computed(() => hasPermission('create_user_transfers'))
+const hasEditUserTransfersPermission = computed(() => hasPermission('edit_user_transfers'))
+const hasDeleteUserTransfersPermission = computed(() => hasPermission('delete_user_transfers'))
+const hasManageUserTransfersPermission = computed(() => hasPermission('manage_user_transfers'))
+
+// Account permissions
+const hasAccountsPermission = computed(() => hasPermission('view_accounts'))
+const hasCreateAccountsPermission = computed(() => hasPermission('create_accounts'))
+const hasEditAccountsPermission = computed(() => hasPermission('edit_accounts'))
+const hasDeleteAccountsPermission = computed(() => hasPermission('delete_accounts'))
+const hasManageAccountsPermission = computed(() => hasPermission('manage_accounts'))
+
+// Settings permissions
+const hasSettingsPermission = computed(() => hasPermission('view_settings'))
+const hasEditSettingsPermission = computed(() => hasPermission('edit_settings'))
+const hasManageSettingsPermission = computed(() => hasPermission('manage_settings'))
+
+// Reports permissions
+const hasReportsPermission = computed(() => hasPermission('view_reports'))
+const hasGenerateReportsPermission = computed(() => hasPermission('generate_reports'))
+const hasExportReportsPermission = computed(() => hasPermission('export_reports'))
+const hasManageReportsPermission = computed(() => hasPermission('manage_reports'))
+
+// Support permissions
+const hasSupportTicketsPermission = computed(() => hasPermission('view_support_tickets'))
+const hasCreateSupportTicketsPermission = computed(() => hasPermission('create_support_tickets'))
+const hasRespondToTicketsPermission = computed(() => hasPermission('respond_to_tickets'))
+const hasManageSupportTicketsPermission = computed(() => hasPermission('manage_support_tickets'))
+
+// Legacy permissions for backward compatibility
+const hasClientsPermission = computed(() => false)
+const hasHistoryPermission = computed(() => false)
 
 // Fetch settings on component mount
 fetchAppSettings()
