@@ -25,6 +25,8 @@ class Order extends Model
         'order_status_id',
     ];
 
+    protected $appends = ['status'];
+
     public function product()
     {
         return $this->belongsTo(Product::class);
@@ -49,6 +51,14 @@ class Order extends Model
     public function assignedAgent()
     {
         return $this->hasOneThrough(User::class, OrderAssignment::class, 'order_id', 'id', 'id', 'assigned_to');
+    }
+
+    /**
+     * Get the status name from the orderStatus relationship
+     */
+    public function getStatusAttribute()
+    {
+        return $this->orderStatus?->name ?? 'New Order';
     }
 
     /**

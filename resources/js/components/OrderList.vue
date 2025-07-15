@@ -117,7 +117,7 @@
             </td>
             <td class="px-2 lg:px-3 py-2">
               <button @click="openStatusModal(order)" :class="getStatusClass(order.status) + ' px-2 py-1 rounded text-xs focus:outline-none'">
-                {{ order.status || 'Pending' }}
+                {{ order.status }}
               </button>
             </td>
             <td class="px-2 lg:px-3 py-2 hidden lg:table-cell">
@@ -228,7 +228,7 @@ const props = defineProps({
 
 const orders = ref([])
 const sellers = ref([])
-const statuses = ref(['Confirmed', 'Delivered', 'Cancelled', 'Postponed', 'Pending'])
+const statuses = ref(['Confirmed', 'Delivered', 'Cancelled', 'Postponed', 'New Order'])
 const agents = ref(['Mme'])
 const zones = ref([])
 const dateRanges = ['Today', 'Yesterday', 'This Month', 'Last Month', 'Custom Date']
@@ -271,9 +271,14 @@ const fetchOrders = async () => {
   if (filters.value.zone) url += `zone=${encodeURIComponent(filters.value.zone)}&`
   if (filters.value.dateRange) url += `dateRange=${encodeURIComponent(filters.value.dateRange)}&`
   if (props.confirmation) {
-    url += `status=New Order,Pending,Unreachable&`
+    // Show only assigned orders that still have "New Order" status (not yet confirmed)
+    url += `assigned_only=1&status=New Order&`
   } else if (props.delivery) {
-    url += `exclude_status=New Order,Pending,Unreachable&`
+    // Show orders with Processing status (confirmed orders that moved to delivery)
+    url += `status=Processing&`
+  } else {
+    // Default "All Orders" view - show only unassigned orders (New Order status)
+    url += `unassigned_only=1&`
   }
   const res = await fetch(url)
   const data = await res.json()
@@ -425,7 +430,6 @@ const getStatusClass = (status) => {
     case 'Postponed': return 'bg-yellow-100 text-yellow-700'
     case 'Shipped': return 'bg-purple-100 text-purple-700'
     case 'Processing': return 'bg-blue-100 text-blue-700'
-    case 'Pending': return 'bg-yellow-100 text-yellow-700'
     case 'New Order': return 'bg-gray-100 text-gray-700'
     default: return 'bg-gray-100 text-gray-700'
   }
@@ -458,13 +462,12 @@ const updateOrderStatus = async (statusName) => {
     })
     if (!res.ok) throw new Error(await res.text())
     const data = await res.json()
-    // Update local orders array
-    const idx = orders.value.findIndex(o => o.id === statusTargetOrder.value.id)
-    if (idx !== -1) {
-      orders.value[idx].status = statusName
-    }
+    
     toastType.value = 'success'
-    toastMessage.value = 'Status updated successfully'
+    toastMessage.value = data.message || 'Status updated successfully'
+    
+    // Refresh orders to show the updated list (orders may move between sections)
+    await fetchOrders()
   } catch (err) {
     toastType.value = 'error'
     toastMessage.value = 'Failed to update status'
