@@ -45,6 +45,13 @@ class OrderAssignmentController extends Controller
 
         foreach ($request->order_ids as $orderId) {
             try {
+                // Get the order
+                $order = Order::find($orderId);
+                if (!$order) {
+                    $errors[] = "Order #{$orderId} not found";
+                    continue;
+                }
+
                 // Check if order is already assigned
                 $existingAssignment = OrderAssignment::where('order_id', $orderId)->first();
                 
@@ -65,6 +72,9 @@ class OrderAssignmentController extends Controller
                         'notes' => $request->notes
                     ]);
                 }
+
+                // Note: Order status remains "New Order" when assigned to agent
+                // Status will be changed to "Confirmed" when agent actually confirms the order
                 
                 $assignedCount++;
             } catch (\Exception $e) {

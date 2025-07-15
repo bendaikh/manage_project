@@ -61,7 +61,6 @@ class OrderController extends Controller
         }
 
         $order = Order::create($data);
-        $order->status = $order->orderStatus?->name;
 
         return response()->json(['message' => 'Order created successfully', 'order' => $order], 201);
     }
@@ -129,6 +128,15 @@ class OrderController extends Controller
             });
         }
 
+        // Filter by assignment status
+        if ($request->filled('assigned_only')) {
+            // Show only orders that are assigned to agents (regardless of status)
+            $query->whereHas('assignment');
+        } elseif ($request->filled('unassigned_only')) {
+            // Show only orders that are NOT assigned to agents
+            $query->whereDoesntHave('assignment');
+        }
+
         $orders = $query->orderBy('created_at', 'desc')->get();
 
         // Get unique values for filters
@@ -179,7 +187,6 @@ class OrderController extends Controller
         }
 
         $order->update($data);
-        $order->status = $order->orderStatus?->name;
         return response()->json(['message' => 'Order updated successfully', 'order' => $order], 200);
     }
 
@@ -187,6 +194,19 @@ class OrderController extends Controller
     {
         $order = Order::findOrFail($id);
         $request->validate([ 'status' => 'required|string' ]);
+        
+        // If the status is being changed to "Confirmed", automatically convert to "Processing"
+        if ($request->status === 'Confirmed') {
+            $processingStatus = \App\Models\OrderStatus::where('name', 'Processing')->first();
+            if (!$processingStatus) {
+                return response()->json(['message' => 'Processing status not found'], 422);
+            }
+            $order->order_status_id = $processingStatus->id;
+            $order->save();
+            return response()->json(['message' => 'Order confirmed and moved to delivery processing', 'order' => $order]);
+        }
+        
+        // For other status changes, proceed normally
         $statusModel = \App\Models\OrderStatus::where('name', $request->status)->first();
         if (!$statusModel) {
             return response()->json(['message' => 'Invalid status'], 422);
