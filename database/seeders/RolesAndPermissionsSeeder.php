@@ -57,6 +57,8 @@ class RolesAndPermissionsSeeder extends Seeder
             ['name' => 'import_orders', 'description' => 'Can import orders from files'],
             ['name' => 'export_orders', 'description' => 'Can export orders to files'],
             ['name' => 'manage_orders', 'description' => 'Can manage orders (full access)'],
+            // Assign to agent permission
+            ['name' => 'assign_orders_to_agents', 'description' => 'Can assign orders to agents'],
             
             // Product permissions (granular)
             ['name' => 'view_products', 'description' => 'Can view products list'],
@@ -164,7 +166,7 @@ class RolesAndPermissionsSeeder extends Seeder
         ];
 
         foreach ($permissions as $permission) {
-            Permission::create($permission);
+            Permission::updateOrCreate(['name' => $permission['name']], $permission);
         }
 
         // Create roles
@@ -196,7 +198,7 @@ class RolesAndPermissionsSeeder extends Seeder
         ];
 
         foreach ($roles as $role) {
-            Role::create($role);
+            Role::updateOrCreate(['name' => $role['name']], $role);
         }
 
         // Assign permissions to roles
@@ -208,10 +210,10 @@ class RolesAndPermissionsSeeder extends Seeder
         $salesAgentRole = Role::where('name', 'sales_agent')->first();
 
         // Superadmin gets all permissions
-        $superadminRole->permissions()->attach(Permission::all());
+        $superadminRole->permissions()->syncWithoutDetaching(Permission::all());
 
         // Admin gets all except role and permission management
-        $adminRole->permissions()->attach(
+        $adminRole->permissions()->syncWithoutDetaching(
             Permission::whereNotIn('name', [
                 'manage_roles', 'create_roles', 'edit_roles', 'delete_roles',
                 'manage_permissions', 'create_permissions', 'edit_permissions', 'delete_permissions'
@@ -219,7 +221,7 @@ class RolesAndPermissionsSeeder extends Seeder
         );
 
         // Manager gets comprehensive business permissions
-        $managerRole->permissions()->attach(
+        $managerRole->permissions()->syncWithoutDetaching(
             Permission::whereIn('name', [
                 // Dashboard
                 'view_dashboard', 'view_dashboard_overview', 'view_dashboard_analytics',
@@ -261,7 +263,7 @@ class RolesAndPermissionsSeeder extends Seeder
         );
 
         // Agent gets basic permissions
-        $agentRole->permissions()->attach(
+        $agentRole->permissions()->syncWithoutDetaching(
             Permission::whereIn('name', [
                 // Dashboard
                 'view_dashboard', 'view_dashboard_overview',
@@ -289,7 +291,7 @@ class RolesAndPermissionsSeeder extends Seeder
         );
 
         // Accountant gets financial permissions
-        $accountantRole->permissions()->attach(
+        $accountantRole->permissions()->syncWithoutDetaching(
             Permission::whereIn('name', [
                 // Dashboard
                 'view_dashboard', 'view_dashboard_overview', 'view_dashboard_analytics',
@@ -317,7 +319,7 @@ class RolesAndPermissionsSeeder extends Seeder
         );
 
         // Sales Agent gets order and product permissions
-        $salesAgentRole->permissions()->attach(
+        $salesAgentRole->permissions()->syncWithoutDetaching(
             Permission::whereIn('name', [
                 // Dashboard
                 'view_dashboard', 'view_dashboard_overview',
@@ -348,14 +350,16 @@ class RolesAndPermissionsSeeder extends Seeder
         );
 
         // Create superadmin user
-        $superadmin = User::create([
-            'name' => 'Super Admin',
-            'username' => 'superadmin',
-            'email' => 'superadmin@example.com',
-            'password' => Hash::make('password'),
-        ]);
+        $superadmin = User::updateOrCreate(
+            ['username' => 'superadmin'],
+            [
+                'name' => 'Super Admin',
+                'email' => 'superadmin@example.com',
+                'password' => Hash::make('password'),
+            ]
+        );
 
         // Assign superadmin role
-        $superadmin->roles()->attach($superadminRole);
+        $superadmin->roles()->syncWithoutDetaching($superadminRole);
     }
 }
