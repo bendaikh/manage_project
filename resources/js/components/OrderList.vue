@@ -53,7 +53,34 @@
           Assign to Agent
         </button>
         <button @click="downloadDeliveryNote" class="px-3 lg:px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm">Download Delivery Note</button>
-        <button @click="downloadInvoices" class="px-3 lg:px-4 py-2 bg-violet-600 text-white rounded hover:bg-violet-700 text-sm">Download Invoices</button>
+        <button 
+          @click="downloadInvoices" 
+          :disabled="!canDownloadInvoices"
+          :class="[
+            'px-3 lg:px-4 py-2 rounded text-sm relative',
+            canDownloadInvoices 
+              ? 'bg-violet-600 text-white hover:bg-violet-700' 
+              : 'bg-gray-400 text-gray-200 cursor-not-allowed'
+          ]"
+          :title="!canDownloadInvoices ? 'Download delivery notes first before downloading invoices' : ''"
+        >
+          Download Invoices
+          <span v-if="!canDownloadInvoices" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">!</span>
+        </button>
+        <button 
+          @click="markAsShipped" 
+          :disabled="!canMarkAsShipped"
+          :class="[
+            'px-3 lg:px-4 py-2 rounded text-sm relative',
+            canMarkAsShipped 
+              ? 'bg-blue-600 text-white hover:bg-blue-700' 
+              : 'bg-gray-400 text-gray-200 cursor-not-allowed'
+          ]"
+          :title="!canMarkAsShipped ? 'Download both delivery notes and invoices first' : 'Mark orders as shipped'"
+        >
+          Mark as Shipped
+          <span v-if="!canMarkAsShipped" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">!</span>
+        </button>
       </div>
     </div>
     
@@ -151,7 +178,13 @@
       </table>
     </div>
     <OrderDetailsModal v-if="showDetails" :order="selectedOrder" @close="closeDetails" @edit="openEdit" />
-    <OrderEdit v-if="showEdit" :order="editOrder" :products="productsList" @cancel="closeEdit" @updated="handleUpdated" />
+    
+    <!-- Order Edit Modal -->
+    <div v-if="showEdit" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" @click.self="closeEdit">
+      <div class="bg-white rounded-lg shadow-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+        <OrderEdit :order="editOrder" :products="productsList" @cancel="closeEdit" @updated="handleUpdated" />
+      </div>
+    </div>
     
     <!-- Assignment Modal -->
     <div v-if="showAssignmentModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" @click.self="closeAssignmentModal">
@@ -241,6 +274,31 @@ const productsList = ref([])
 const checked = ref([])
 const selectedIds = computed(() => new Set(checked.value))
 const allSelected = computed(() => orders.value.length && checked.value.length === orders.value.length)
+
+// Check if selected orders have delivery notes downloaded
+const canDownloadInvoices = computed(() => {
+  if (selectedIds.value.size === 0) return false
+  
+  // Check if all selected orders have had their delivery notes downloaded
+  return Array.from(selectedIds.value).every(orderId => 
+    deliveryNotesDownloaded.value.has(orderId)
+  )
+})
+
+// Check if orders are ready to be marked as shipped (both delivery notes and invoices downloaded)
+const canMarkAsShipped = computed(() => {
+  if (selectedIds.value.size === 0) return false
+  
+  // Check if all selected orders have had both delivery notes and invoices downloaded
+  // AND are in Processing, Confirmed, or Delivered status (not already Shipped)
+  return Array.from(selectedIds.value).every(orderId => {
+    const order = orders.value.find(o => o.id === orderId)
+    return order && 
+           (order.status === 'Processing' || order.status === 'Confirmed' || order.status === 'Delivered') &&
+           deliveryNotesDownloaded.value.has(orderId) && 
+           invoicesDownloaded.value.has(orderId)
+  })
+})
 const availableStatuses = ref([])
 const showStatusModal = ref(false)
 const statusTargetOrder = ref(null)
@@ -255,6 +313,10 @@ const assignmentForm = ref({
   agentId: '',
   notes: ''
 })
+
+// Delivery note tracking for invoice download restriction
+const deliveryNotesDownloaded = ref(new Set())
+const invoicesDownloaded = ref(new Set())
 
 // Check if user is superadmin
 const isSuperadmin = computed(() => {
@@ -271,11 +333,11 @@ const fetchOrders = async () => {
   if (filters.value.zone) url += `zone=${encodeURIComponent(filters.value.zone)}&`
   if (filters.value.dateRange) url += `dateRange=${encodeURIComponent(filters.value.dateRange)}&`
   if (props.confirmation) {
-    // Show only assigned orders that still have "New Order" status (not yet confirmed)
-    url += `assigned_only=1&status=New Order&`
+    // Show assigned orders with "New Order" and "Confirmed" status
+    url += `assigned_only=1&status=New Order,Confirmed&`
   } else if (props.delivery) {
-    // Show orders with Processing status (confirmed orders that moved to delivery)
-    url += `status=Processing&`
+    // Show orders with Processing, Shipped, and Delivered status (delivery section)
+    url += `status=Processing,Shipped,Delivered&`
   } else {
     // Default "All Orders" view - show only unassigned orders (New Order status)
     url += `unassigned_only=1&`
@@ -285,6 +347,9 @@ const fetchOrders = async () => {
   orders.value = data.orders
   sellers.value = data.sellers
   zones.value = data.zones
+  
+  // Clean up delivery note tracking for orders no longer in the list
+  clearDeliveryNoteTracking()
 }
 
 const fetchAvailableAgents = async () => {
@@ -401,25 +466,101 @@ const toggleSelectAll = (e) => {
   }
 }
 
+// Clear delivery note and invoice tracking when orders are deselected
+const clearDeliveryNoteTracking = () => {
+  // Only keep tracking for orders that are still in the current list
+  const currentOrderIds = new Set(orders.value.map(o => o.id))
+  const filteredDeliveryTracking = new Set()
+  const filteredInvoiceTracking = new Set()
+  
+  deliveryNotesDownloaded.value.forEach(orderId => {
+    if (currentOrderIds.has(orderId)) {
+      filteredDeliveryTracking.add(orderId)
+    }
+  })
+  
+  invoicesDownloaded.value.forEach(orderId => {
+    if (currentOrderIds.has(orderId)) {
+      filteredInvoiceTracking.add(orderId)
+    }
+  })
+  
+  deliveryNotesDownloaded.value = filteredDeliveryTracking
+  invoicesDownloaded.value = filteredInvoiceTracking
+}
+
 const downloadDeliveryNote = () => {
   if (!selectedIds.value.size) return
   const idsParam = Array.from(selectedIds.value).join(',')
+  
+  // Track that delivery notes have been downloaded for these orders
+  Array.from(selectedIds.value).forEach(orderId => {
+    deliveryNotesDownloaded.value.add(orderId)
+  })
+  
   window.open(`/orders/delivery-note?ids=${idsParam}`, '_blank')
 }
 
 const downloadInvoices = () => {
   if (!selectedIds.value.size) return
   const idsParam = Array.from(selectedIds.value).join(',')
+  
+  // Track that invoices have been downloaded for these orders
+  Array.from(selectedIds.value).forEach(orderId => {
+    invoicesDownloaded.value.add(orderId)
+  })
+  
   window.open(`/orders/invoices?ids=${idsParam}`, '_blank')
 }
 
 const generateDeliveryInvoice = () => {
-  if (!selectedIds.value.size) {
-    alert('Please select at least one order first');
+  // For delivery section, automatically generate invoice for all delivered orders of today
+  // No need to select orders manually - the backend will handle filtering by date and status
+  window.open(`/orders/delivery-invoice`, '_blank')
+}
+
+const markAsShipped = async () => {
+  if (!canMarkAsShipped.value) {
+    toastType.value = 'error'
+    toastMessage.value = 'Please download both delivery notes and invoices first'
+    setTimeout(() => { toastMessage.value = '' }, 3000)
     return
   }
-  const idsParam = Array.from(selectedIds.value).join(',')
-  window.open(`/orders/delivery-invoice?ids=${idsParam}`, '_blank')
+  
+  try {
+    const csrf = document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+    
+    // Update each selected order to "Shipped" status
+    for (const orderId of selectedIds.value) {
+      const response = await fetch(`/orders/${orderId}/status`, {
+        method: 'PATCH',
+        headers: { 
+          'Content-Type': 'application/json', 
+          'Accept': 'application/json', 
+          'X-CSRF-TOKEN': csrf 
+        },
+        body: JSON.stringify({ status: 'Shipped' })
+      })
+      
+      if (!response.ok) {
+        throw new Error(`Failed to update order ${orderId}`)
+      }
+    }
+    
+    toastType.value = 'success'
+    toastMessage.value = `${selectedIds.value.size} order(s) marked as shipped successfully!`
+    
+    // Clear selection and refresh orders
+    checked.value = []
+    await fetchOrders()
+    
+  } catch (error) {
+    console.error('Error marking orders as shipped:', error)
+    toastType.value = 'error'
+    toastMessage.value = 'Failed to mark orders as shipped'
+  } finally {
+    setTimeout(() => { toastMessage.value = '' }, 3000)
+  }
 }
 
 const getStatusClass = (status) => {

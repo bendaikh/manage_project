@@ -87,12 +87,6 @@ class OrderController extends Controller
             $query->where('seller', $request->seller);
         }
 
-        if ($request->filled('status')) {
-            $query->whereHas('orderStatus', function($q) use ($request) {
-                $q->where('name', $request->status);
-            });
-        }
-
         if ($request->filled('agent')) {
             $query->where('agent', $request->agent);
         }
@@ -195,24 +189,21 @@ class OrderController extends Controller
         $order = Order::findOrFail($id);
         $request->validate([ 'status' => 'required|string' ]);
         
-        // If the status is being changed to "Confirmed", automatically convert to "Processing"
-        if ($request->status === 'Confirmed') {
-            $processingStatus = \App\Models\OrderStatus::where('name', 'Processing')->first();
-            if (!$processingStatus) {
-                return response()->json(['message' => 'Processing status not found'], 422);
-            }
-            $order->order_status_id = $processingStatus->id;
-            $order->save();
-            return response()->json(['message' => 'Order confirmed and moved to delivery processing', 'order' => $order]);
+        $statusName = $request->status;
+        // If status is 'Confirmed', immediately set to 'Processing'
+        if (strtolower($statusName) === 'confirmed') {
+            $statusName = 'Processing';
         }
-        
-        // For other status changes, proceed normally
-        $statusModel = \App\Models\OrderStatus::where('name', $request->status)->first();
+        // Find the status model
+        $statusModel = \App\Models\OrderStatus::where('name', $statusName)->first();
         if (!$statusModel) {
             return response()->json(['message' => 'Invalid status'], 422);
         }
         $order->order_status_id = $statusModel->id;
         $order->save();
-        return response()->json(['message' => 'Status updated', 'order' => $order]);
+        return response()->json([
+            'message' => $request->status === 'Confirmed' ? 'Order confirmed and moved to Processing (Delivery)' : 'Status updated',
+            'order' => $order
+        ]);
     }
 } 

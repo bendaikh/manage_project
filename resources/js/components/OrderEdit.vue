@@ -1,10 +1,14 @@
 <template>
-  <div class="max-w-5xl mx-auto bg-white rounded-xl shadow p-8 mt-8">
+  <div class="p-6">
     <div class="flex justify-between items-center mb-6">
-      <h2 class="text-2xl font-bold">Edit Order #{{ orderId }}</h2>
-      <button @click="$emit('cancel')" class="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">Back to Orders</button>
+      <h2 class="text-xl font-bold">Edit Order #{{ orderId }}</h2>
+      <button @click="$emit('cancel')" class="text-gray-400 hover:text-gray-600">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      </button>
     </div>
-    <form @submit.prevent="submitForm" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <form @submit.prevent="submitForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div>
         <label class="block text-sm font-medium mb-1">Seller</label>
         <input v-model="form.seller" type="text" class="w-full border rounded px-3 py-2" />
@@ -59,13 +63,13 @@
         <label class="block text-sm font-medium mb-1">Comment</label>
         <textarea v-model="form.comment" class="w-full border rounded px-3 py-2" />
       </div>
-      <div class="md:col-span-2 flex justify-end gap-2 mt-6">
-        <button type="button" @click="$emit('cancel')" class="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">Cancel</button>
-        <button type="submit" class="px-6 py-2 bg-violet-700 text-white rounded hover:bg-violet-800 font-semibold">Update Order</button>
+      <div class="md:col-span-2 flex justify-end gap-2 mt-4">
+        <button type="button" @click="$emit('cancel')" class="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 text-sm">Cancel</button>
+        <button type="submit" class="px-6 py-2 bg-violet-700 text-white rounded hover:bg-violet-800 font-semibold text-sm">Update Order</button>
       </div>
     </form>
-    <div v-if="error" class="text-red-600 mt-4">{{ error }}</div>
-    <div v-if="success" class="text-green-600 mt-4">Order updated successfully!</div>
+    <div v-if="error" class="text-red-600 mt-3 text-sm">{{ error }}</div>
+    <div v-if="success" class="text-green-600 mt-3 text-sm">Order updated successfully!</div>
   </div>
 </template>
 

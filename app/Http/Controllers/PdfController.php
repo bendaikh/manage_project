@@ -56,20 +56,29 @@ class PdfController extends Controller
         $today = now()->toDateString();
         $ids = array_filter(explode(',', $request->query('ids', '')));
 
-        $ordersQuery = Order::with(['product', 'orderStatus'])
-            ->whereHas('orderStatus', function ($query) {
-                $query->whereIn('name', ['Confirmed', 'Delivered']);
-            });
-
         if ($ids) {
-            $ordersQuery->whereIn('id', $ids);
+            // If specific IDs are provided, use them and include multiple statuses
+            $ordersQuery = Order::with(['product', 'orderStatus'])
+                ->whereHas('orderStatus', function ($query) {
+                    $query->whereIn('name', ['Confirmed', 'Delivered', 'Shipped', 'Processing']);
+                })
+                ->whereIn('id', $ids);
         } else {
-            $ordersQuery->whereDate('updated_at', $today);
+            // If no IDs provided, automatically get all delivered orders from today
+            $ordersQuery = Order::with(['product', 'orderStatus'])
+                ->whereHas('orderStatus', function ($query) {
+                    $query->where('name', 'Delivered');
+                })
+                ->whereDate('updated_at', $today);
         }
 
         $orders = $ordersQuery->orderBy('updated_at', 'desc')->get();
         if ($orders->isEmpty()) {
-            abort(404, 'No delivered orders found for today');
+            if ($ids) {
+                abort(404, 'No orders found with the specified IDs');
+            } else {
+                abort(404, 'No delivered orders found for today');
+            }
         }
 
         // Update order status to "Shipped"
