@@ -42,18 +42,18 @@
       </div>
     </div>
     <!-- Action bar -->
-    <div v-if="selectedIds.size" class="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-blue-50 border border-blue-200 rounded p-3 mb-3 gap-3">
+    <div v-if="showActionBar" class="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-blue-50 border border-blue-200 rounded p-3 mb-3 gap-3">
       <div class="text-sm lg:text-base">{{ selectedIds.size }} selected</div>
       <div class="flex flex-col sm:flex-row gap-2">
-        <!-- Assignment button for superadmin -->
-        <button v-if="canAssignToAgent" @click="openAssignmentModal" class="px-3 lg:px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 text-sm flex items-center gap-1">
+        <!-- Assignment button -->
+        <button v-if="showAssignButton" @click="openAssignmentModal" class="px-3 lg:px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 text-sm flex items-center gap-1">
           <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
           </svg>
           Assign to Agent
         </button>
-        <button @click="downloadDeliveryNote" class="px-3 lg:px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm">Download Delivery Note</button>
-        <button 
+        <button v-if="showDeliveryNoteButton" @click="downloadDeliveryNote" class="px-3 lg:px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm">Download Delivery Note</button>
+        <button v-if="showInvoiceButton"
           @click="downloadInvoices" 
           :disabled="!canDownloadInvoices"
           :class="[
@@ -67,7 +67,7 @@
           Download Invoices
           <span v-if="!canDownloadInvoices" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">!</span>
         </button>
-        <button 
+        <button v-if="showMarkShippedButton"
           @click="markAsShipped" 
           :disabled="!canMarkAsShipped"
           :class="[
@@ -177,6 +177,41 @@
         </tbody>
       </table>
     </div>
+    <!-- Pagination -->
+    <nav v-if="totalPages > 1" class="flex justify-center mt-4">
+      <ul class="inline-flex">
+        <li>
+          <button
+            @click="changePage(currentPage - 1)"
+            :disabled="currentPage === 1"
+            class="px-3 py-1 border rounded-l"
+            :class="currentPage === 1 ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-white hover:bg-gray-100'"
+          >
+            &laquo;
+          </button>
+        </li>
+        <li v-for="page in pageNumbers" :key="page">
+          <button
+            @click="changePage(page)"
+            class="px-3 py-1 border-t border-b"
+            :class="page === currentPage ? 'bg-blue-600 text-white' : 'bg-white hover:bg-gray-100'"
+          >
+            {{ page }}
+          </button>
+        </li>
+        <li>
+          <button
+            @click="changePage(currentPage + 1)"
+            :disabled="currentPage === totalPages"
+            class="px-3 py-1 border rounded-r"
+            :class="currentPage === totalPages ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-white hover:bg-gray-100'"
+          >
+            &raquo;
+          </button>
+        </li>
+      </ul>
+    </nav>
+
     <OrderDetailsModal v-if="showDetails" :order="selectedOrder" @close="closeDetails" @edit="openEdit" />
     
     <!-- Order Edit Modal -->
@@ -260,8 +295,38 @@ const props = defineProps({
 })
 
 const orders = ref([])
+// Pagination state
+const currentPage = ref(1)
+const perPage = ref(10) // You can adjust default items per page here
+const totalPages = ref(1)
+
+const pageNumbers = computed(() => {
+  const pages = []
+  for (let i = 1; i <= totalPages.value; i++) pages.push(i)
+  return pages
+})
+
+// Helpers to lock an order to a section (confirmation/delivery)
+const lockKey = (id) => `order_section_${id}`
+const getSectionLock = (id) => localStorage.getItem(lockKey(id))
+const setSectionLock = (id, section) => localStorage.setItem(lockKey(id), section)
+const clearSectionLock = (id) => localStorage.removeItem(lockKey(id))
 const sellers = ref([])
-const statuses = ref(['Confirmed', 'Delivered', 'Cancelled', 'Postponed', 'New Order'])
+// Full list for filter dropdown (can still show all)
+const statuses = ref(['New Order','Confirmed','Confirmed on Date','Unreachable','Postponed','Cancelled','Blacklisted','Out of Stock','Processing','Shipped','Delivered'])
+
+// Allowed statuses per section
+const statusConfig = {
+  all: ['New Order'],
+  confirmation: ['New Order', 'Confirmed', 'Confirmed on Date', 'Unreachable', 'Postponed', 'Cancelled', 'Blacklisted', 'Out of Stock'],
+  delivery: ['Processing', 'Shipped', 'Unreachable', 'Postponed', 'Cancelled', 'Delivered', 'Out of Stock']
+}
+
+const allowedStatuses = computed(() => {
+  if (props.confirmation) return statusConfig.confirmation
+  if (props.delivery) return statusConfig.delivery
+  return statusConfig.all
+})
 const agents = ref(['Mme'])
 const zones = ref([])
 const dateRanges = ['Today', 'Yesterday', 'This Month', 'Last Month', 'Custom Date']
@@ -299,7 +364,8 @@ const canMarkAsShipped = computed(() => {
            invoicesDownloaded.value.has(orderId)
   })
 })
-const availableStatuses = ref([])
+// Statuses shown in change-status modal (restricted per section)
+const availableStatuses = computed(() => allowedStatuses.value)
 const showStatusModal = ref(false)
 const statusTargetOrder = ref(null)
 const toastMessage = ref('')
@@ -325,36 +391,72 @@ const isSuperadmin = computed(() => {
 })
 
 const permissions = window.Laravel?.user?.permissions || []
-const canAssignToAgent = computed(() => {
-  return isSuperadmin.value || permissions.includes('assign_orders_to_agents') || permissions.includes('manage_orders')
-})
+
+// Permission-based assignment availability (regardless of section)
+const baseCanAssignToAgent = computed(() => isSuperadmin.value || permissions.includes('assign_orders_to_agents') || permissions.includes('manage_orders'))
+
+// Section-specific button visibility
+const showAssignButton = computed(() => !props.confirmation && !props.delivery && baseCanAssignToAgent.value)
+const showDeliveryNoteButton = computed(() => props.delivery)
+const showInvoiceButton = computed(() => props.delivery)
+const showMarkShippedButton = computed(() => props.delivery)
+
+// Determine if action bar should render at all
+const showActionBar = computed(() => selectedIds.value.size && (showAssignButton.value || showDeliveryNoteButton.value || showInvoiceButton.value || showMarkShippedButton.value))
 
 const fetchOrders = async () => {
-  let url = '/orders/list?'
-  if (filters.value.search) url += `search=${encodeURIComponent(filters.value.search)}&`
-  if (filters.value.seller) url += `seller=${encodeURIComponent(filters.value.seller)}&`
-  if (filters.value.status) url += `status=${encodeURIComponent(filters.value.status)}&`
-  if (filters.value.agent) url += `agent=${encodeURIComponent(filters.value.agent)}&`
-  if (filters.value.zone) url += `zone=${encodeURIComponent(filters.value.zone)}&`
-  if (filters.value.dateRange) url += `dateRange=${encodeURIComponent(filters.value.dateRange)}&`
+  let url = `/orders/list?page=${currentPage.value}&per_page=${perPage.value}`
+  if (filters.value.search) url += `&search=${encodeURIComponent(filters.value.search)}`
+  if (filters.value.seller) url += `&seller=${encodeURIComponent(filters.value.seller)}`
+  if (filters.value.status) {
+    url += `&status=${encodeURIComponent(filters.value.status)}`
+  } else {
+    // Apply default status set for this section
+    url += `&status=${encodeURIComponent(allowedStatuses.value.join(','))}`
+  }
+  if (filters.value.agent) url += `&agent=${encodeURIComponent(filters.value.agent)}`
+  if (filters.value.zone) url += `&zone=${encodeURIComponent(filters.value.zone)}`
+  if (filters.value.dateRange) url += `&dateRange=${encodeURIComponent(filters.value.dateRange)}`
   if (props.confirmation) {
-    // Show assigned orders with "New Order" and "Confirmed" status
-    url += `assigned_only=1&status=New Order,Confirmed&`
+    // Keep showing only orders assigned to agents in confirmation section
+    url += `&assigned_only=1`
   } else if (props.delivery) {
-    // Show orders with Processing, Shipped, and Delivered status (delivery section)
-    url += `status=Processing,Shipped,Delivered&`
+    // No extra filters; allowedStatuses already cover delivery statuses
   } else {
     // Default "All Orders" view - show only unassigned orders (New Order status)
-    url += `unassigned_only=1&`
+    url += `&unassigned_only=1`
   }
   const res = await fetch(url)
   const data = await res.json()
-  orders.value = data.orders
+  // Apply section-lock filtering so orders don't appear in both Confirmation & Delivery
+  let fetchedOrders = data.orders.data
+  if (props.confirmation) {
+    fetchedOrders = fetchedOrders.filter(o => {
+      const lock = getSectionLock(o.id)
+      return !lock || lock === 'confirmation'
+    })
+  }
+  if (props.delivery) {
+    fetchedOrders = fetchedOrders.filter(o => {
+      const lock = getSectionLock(o.id)
+      return !lock || lock === 'delivery'
+    })
+  }
+  orders.value = fetchedOrders
+  totalPages.value = data.orders.last_page
+  currentPage.value = data.orders.current_page
   sellers.value = data.sellers
   zones.value = data.zones
   
   // Clean up delivery note tracking for orders no longer in the list
   clearDeliveryNoteTracking()
+}
+
+// Change page helper
+const changePage = (page) => {
+  if (page < 1 || page > totalPages.value) return
+  currentPage.value = page
+  fetchOrders()
 }
 
 const fetchAvailableAgents = async () => {
@@ -434,11 +536,13 @@ const assignOrders = async () => {
 
 const clearFilters = () => {
   filters.value = { search: '', seller: '', status: '', agent: '', zone: '', dateRange: '' }
+  currentPage.value = 1 // Reset to first page
   fetchOrders()
 }
 
 const setDateRange = (range) => {
   filters.value.dateRange = range
+  currentPage.value = 1 // Reset to first page
   fetchOrders()
 }
 
@@ -591,11 +695,7 @@ const closeStatusModal = () => {
   statusTargetOrder.value = null
 }
 
-const fetchStatuses = async () => {
-  const res = await fetch('/order-statuses/list')
-  const data = await res.json()
-  availableStatuses.value = data.map(s => s.name)
-}
+// (Removed fetchStatuses; availableStatuses derived from allowedStatuses)
 
 const updateOrderStatus = async (statusName) => {
   if (!statusTargetOrder.value) return
@@ -612,6 +712,18 @@ const updateOrderStatus = async (statusName) => {
     toastType.value = 'success'
     toastMessage.value = data.message || 'Status updated successfully'
     
+    // Lock the order to the current section based on rules
+    if (props.confirmation) {
+      // If status was "Confirmed" the backend will move it to Processing (Delivery) → lock to delivery
+      if (statusName === 'Confirmed') {
+        setSectionLock(statusTargetOrder.value.id, 'delivery')
+      } else {
+        setSectionLock(statusTargetOrder.value.id, 'confirmation')
+      }
+    } else if (props.delivery) {
+      setSectionLock(statusTargetOrder.value.id, 'delivery')
+    }
+
     // Refresh orders to show the updated list (orders may move between sections)
     await fetchOrders()
   } catch (err) {
@@ -625,7 +737,7 @@ const updateOrderStatus = async (statusName) => {
   }
 }
 
-onMounted(() => { fetchOrders(); fetchStatuses() })
+onMounted(() => { fetchOrders() })
 </script>
 
 <style scoped>

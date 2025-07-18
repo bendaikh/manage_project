@@ -12,8 +12,9 @@ class DeliveryInvoiceController extends Controller
 {
     public function index()
     {
-        // Return all invoices, newest first
-        $invoices = DeliveryInvoice::orderByDesc('invoice_date')->get();
+        // Paginate invoices, newest first
+        $perPage = request()->input('per_page', 10);
+        $invoices = DeliveryInvoice::orderByDesc('invoice_date')->paginate($perPage);
         return response()->json($invoices);
     }
 

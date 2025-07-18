@@ -131,7 +131,9 @@ class OrderController extends Controller
             $query->whereDoesntHave('assignment');
         }
 
-        $orders = $query->orderBy('created_at', 'desc')->get();
+        // Apply pagination (default 10 items per page)
+        $perPage = $request->input('per_page', 10);
+        $orders = $query->orderBy('created_at', 'desc')->paginate($perPage);
 
         // Get unique values for filters
         $sellers = Order::distinct()->pluck('seller')->filter()->values();

@@ -28,19 +28,54 @@
           </tr>
         </tbody>
       </table>
+      <!-- Pagination -->
+      <nav v-if="totalPages > 1" class="flex justify-center mt-4">
+        <ul class="inline-flex">
+          <li>
+            <button @click="changePage(currentPage-1)" :disabled="currentPage===1" class="px-3 py-1 border rounded-l" :class="currentPage===1?'bg-gray-200 text-gray-400 cursor-not-allowed':'bg-white hover:bg-gray-100'">&laquo;</button>
+          </li>
+          <li v-for="page in pageNumbers" :key="page">
+            <button @click="changePage(page)" class="px-3 py-1 border-t border-b" :class="page===currentPage?'bg-blue-600 text-white':'bg-white hover:bg-gray-100'">{{ page }}</button>
+          </li>
+          <li>
+            <button @click="changePage(currentPage+1)" :disabled="currentPage===totalPages" class="px-3 py-1 border rounded-r" :class="currentPage===totalPages?'bg-gray-200 text-gray-400 cursor-not-allowed':'bg-white hover:bg-gray-100'">&raquo;</button>
+          </li>
+        </ul>
+      </nav>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
+
 const invoices = ref([])
 
+// Pagination state
+const currentPage = ref(1)
+const perPage = ref(10)
+const totalPages = ref(1)
+
+const pageNumbers = computed(() => {
+  const pages = []
+  for (let i = 1; i <= totalPages.value; i++) pages.push(i)
+  return pages
+})
+
 const fetchInvoices = async () => {
-  const res = await fetch('/delivery-invoices')
+  const res = await fetch(`/delivery-invoices?page=${currentPage.value}&per_page=${perPage.value}`)
   if (res.ok) {
-    invoices.value = await res.json()
+    const data = await res.json()
+    invoices.value = data.data
+    totalPages.value = data.last_page
+    currentPage.value = data.current_page
   }
+}
+
+const changePage = (page) => {
+  if (page < 1 || page > totalPages.value) return
+  currentPage.value = page
+  fetchInvoices()
 }
 
 const formatDate = (dateStr) => {
