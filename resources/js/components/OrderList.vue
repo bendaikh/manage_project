@@ -21,7 +21,7 @@
         </select>
         <select v-model="filters.status" class="w-full border rounded px-3 py-2 text-sm lg:text-base">
           <option value="">All Statuses</option>
-          <option v-for="status in statuses" :key="status" :value="status">{{ status }}</option>
+          <option v-for="status in allowedStatuses" :key="status" :value="status">{{ status }}</option>
         </select>
         <select v-model="filters.agent" class="w-full border rounded px-3 py-2 text-sm lg:text-base">
           <option value="">All Agents</option>
