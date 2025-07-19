@@ -217,7 +217,7 @@
     <!-- Order Edit Modal -->
     <div v-if="showEdit" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" @click.self="closeEdit">
       <div class="bg-white rounded-lg shadow-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-        <OrderEdit :order="editOrder" :products="productsList" @cancel="closeEdit" @updated="handleUpdated" />
+        <OrderEdit :order="editOrder" :products="productsList" :confirmation="confirmation" :delivery="delivery" @cancel="closeEdit" @updated="handleUpdated" />
       </div>
     </div>
     

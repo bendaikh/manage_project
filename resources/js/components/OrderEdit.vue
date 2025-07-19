@@ -74,8 +74,13 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-const props = defineProps({ order: Object, products: Array })
+import { ref, onMounted, computed } from 'vue'
+const props = defineProps({ 
+  order: Object, 
+  products: Array, 
+  confirmation: Boolean, 
+  delivery: Boolean 
+})
 const emit = defineEmits(['cancel', 'updated'])
 
 const orderId = props.order?.id
@@ -83,12 +88,33 @@ const form = ref({ ...props.order })
 const products = ref(props.products || [])
 const error = ref('')
 const success = ref(false)
-const statuses = ref([])
+const allStatuses = ref([])
+
+// Status configuration for different sections
+const statusConfig = {
+  all: ['New Order'],
+  confirmation: ['New Order', 'Confirmed', 'Confirmed on Date', 'Unreachable', 'Postponed', 'Cancelled', 'Blacklisted', 'Out of Stock'],
+  delivery: ['Processing', 'Shipped', 'Unreachable', 'Postponed', 'Cancelled', 'Delivered', 'Out of Stock']
+}
+
+// Filter statuses based on section
+const statuses = computed(() => {
+  let allowedStatusNames = []
+  if (props.confirmation) {
+    allowedStatusNames = statusConfig.confirmation
+  } else if (props.delivery) {
+    allowedStatusNames = statusConfig.delivery
+  } else {
+    allowedStatusNames = statusConfig.all
+  }
+  
+  return allStatuses.value.filter(status => allowedStatusNames.includes(status.name))
+})
 
 const fetchStatuses = async () => {
   const res = await fetch('/order-statuses/list')
   const data = await res.json()
-  statuses.value = data
+  allStatuses.value = data
 }
 
 const submitForm = async () => {
