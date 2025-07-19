@@ -182,8 +182,30 @@ class OrderController extends Controller
             $data['order_status_id'] = $order->order_status_id;
         }
 
+        // Apply status conversion logic (same as updateStatus method)
+        if (!empty($data['order_status_id'])) {
+            $statusModel = \App\Models\OrderStatus::find($data['order_status_id']);
+            if ($statusModel && strtolower($statusModel->name) === 'confirmed') {
+                // Convert "Confirmed" to "Processing" for delivery section
+                $processingStatus = \App\Models\OrderStatus::where('name', 'Processing')->first();
+                if ($processingStatus) {
+                    $data['order_status_id'] = $processingStatus->id;
+                }
+            }
+        }
+
         $order->update($data);
-        return response()->json(['message' => 'Order updated successfully', 'order' => $order], 200);
+        
+        // Return appropriate message based on status conversion
+        $message = 'Order updated successfully';
+        if (!empty($data['order_status_id'])) {
+            $statusModel = \App\Models\OrderStatus::find($data['order_status_id']);
+            if ($statusModel && strtolower($statusModel->name) === 'processing') {
+                $message = 'Order confirmed and moved to Processing (Delivery)';
+            }
+        }
+        
+        return response()->json(['message' => $message, 'order' => $order], 200);
     }
 
     public function updateStatus(Request $request, $id)
