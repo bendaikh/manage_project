@@ -30,8 +30,19 @@
         <label class="block text-sm font-medium mb-1">Price</label>
         <div class="flex items-center">
           <span class="text-gray-400 mr-1">$</span>
-          <input v-model="form.price" type="number" min="0" step="0.01" class="w-full border rounded px-3 py-2 bg-gray-100" readonly />
+          <input 
+            v-model="form.price" 
+            type="number" 
+            min="0" 
+            step="0.01" 
+            :class="[
+              'w-full border rounded px-3 py-2',
+              canEditPrice ? '' : 'bg-gray-100'
+            ]"
+            :readonly="!canEditPrice"
+          />
         </div>
+        <div v-if="!canEditPrice" class="text-xs text-gray-500 mt-1">Price can only be modified by superadmin in delivery section.</div>
       </div>
       <div>
         <label class="block text-sm font-medium mb-1">Client Name</label>
@@ -89,6 +100,17 @@ const products = ref(props.products || [])
 const error = ref('')
 const success = ref(false)
 const allStatuses = ref([])
+
+// Check if user is superadmin
+const isSuperadmin = computed(() => {
+  const roles = window.Laravel?.user?.roles || []
+  return roles.includes('superadmin') || roles.some(role => typeof role === 'object' && role.name === 'superadmin')
+})
+
+// Check if price can be edited (superadmin in delivery section)
+const canEditPrice = computed(() => {
+  return isSuperadmin.value && props.delivery
+})
 
 // Status configuration for different sections
 const statusConfig = {
