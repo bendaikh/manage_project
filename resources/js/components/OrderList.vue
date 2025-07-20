@@ -86,12 +86,25 @@
     
     <!-- Invoice Delivery Button (only for delivery page) -->
     <div v-if="props.delivery" class="flex justify-end mb-4">
-      <button @click="generateDeliveryInvoice" class="px-4 lg:px-6 py-2 lg:py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 font-semibold flex items-center gap-2 text-sm lg:text-base">
+      <button 
+        @click="generateDeliveryInvoice" 
+        :disabled="!hasDeliveredOrdersToday"
+        :class="[
+          'px-4 lg:px-6 py-2 lg:py-3 font-semibold flex items-center gap-2 text-sm lg:text-base rounded-lg',
+          hasDeliveredOrdersToday 
+            ? 'bg-orange-600 text-white hover:bg-orange-700' 
+            : 'bg-gray-400 text-gray-600 cursor-not-allowed'
+        ]"
+      >
         <svg class="h-4 w-4 lg:h-5 lg:w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
         </svg>
-        <span class="hidden sm:inline">Invoice Delivered Yaoundi</span>
-        <span class="sm:hidden">Delivered</span>
+        <span class="hidden sm:inline">
+          {{ hasDeliveredOrdersToday ? 'Invoice Delivered Yaoundi' : 'No Delivered Orders Today' }}
+        </span>
+        <span class="sm:hidden">
+          {{ hasDeliveredOrdersToday ? 'Delivered' : 'No Orders' }}
+        </span>
       </button>
     </div>
     
@@ -404,6 +417,17 @@ const showMarkShippedButton = computed(() => props.delivery)
 // Determine if action bar should render at all
 const showActionBar = computed(() => selectedIds.value.size && (showAssignButton.value || showDeliveryNoteButton.value || showInvoiceButton.value || showMarkShippedButton.value))
 
+// Check if there are delivered orders today for invoice generation
+const hasDeliveredOrdersToday = computed(() => {
+  if (!props.delivery) return false
+  
+  const today = new Date().toISOString().split('T')[0] // YYYY-MM-DD format
+  return orders.value.some(order => {
+    const orderDate = new Date(order.updated_at).toISOString().split('T')[0]
+    return order.status === 'Delivered' && orderDate === today
+  })
+})
+
 const fetchOrders = async () => {
   let url = `/orders/list?page=${currentPage.value}&per_page=${perPage.value}`
   if (filters.value.search) url += `&search=${encodeURIComponent(filters.value.search)}`
@@ -641,6 +665,14 @@ const downloadInvoices = () => {
 }
 
 const generateDeliveryInvoice = () => {
+  // Check if there are delivered orders today
+  if (!hasDeliveredOrdersToday.value) {
+    toastType.value = 'error'
+    toastMessage.value = 'No delivered orders found for today'
+    setTimeout(() => { toastMessage.value = '' }, 3000)
+    return
+  }
+  
   // For delivery section, automatically generate invoice for all delivered orders of today
   // No need to select orders manually - the backend will handle filtering by date and status
   window.open(`/orders/delivery-invoice`, '_blank')
