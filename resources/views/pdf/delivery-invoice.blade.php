@@ -138,10 +138,12 @@
         <thead>
             <tr>
                 <th>Order ID</th>
+                <th>Seller</th>
                 <th>Customer Name</th>
                 <th>Product</th>
                 <th>Quantity</th>
                 <th>Unit Price</th>
+                <th>Delivery Cost</th>
                 <th>Total Price</th>
                 <th>Delivery Time</th>
                 <th>Zone</th>
@@ -151,6 +153,7 @@
             @foreach($orders as $order)
             <tr>
                 <td class="order-id">#{{ $order->id }}</td>
+                <td style="text-align: center;">{{ $order->seller ?? 'N/A' }}</td>
                 <td class="customer-info">
                     <strong>{{ $order->client_name }}</strong><br>
                     {{ $order->client_address }}<br>
@@ -162,6 +165,7 @@
                 </td>
                 <td style="text-align: center;">{{ $order->quantity }}</td>
                 <td class="price">{{ number_format($order->price / $order->quantity, 0, ',', ' ') }} FCFA</td>
+                <td class="price">{{ number_format(\App\Models\Setting::getDeliveryPrice(), 0, ',', ' ') }} FCFA</td>
                 <td class="price">{{ number_format($order->price, 0, ',', ' ') }} FCFA</td>
                 <td style="text-align: center;">{{ date('H:i', strtotime($order->updated_at)) }}</td>
                 <td style="text-align: center;">{{ $order->zone ?? 'N/A' }}</td>
