@@ -45,7 +45,11 @@ class DashboardController extends Controller
         $start = Carbon::parse($request->input('start_date', Carbon::today()->toDateString()))->startOfDay();
         $end = Carbon::parse($request->input('end_date', Carbon::today()->toDateString()))->endOfDay();
 
-        $orders = Order::with('orderStatus')->whereBetween('created_at', [$start, $end])->get();
+        $ordersQuery = Order::with('orderStatus')->whereBetween('created_at', [$start, $end]);
+        if (auth()->check() && auth()->user()->hasRole('seller')) {
+            $ordersQuery->where('seller', auth()->user()->name);
+        }
+        $orders = $ordersQuery->get();
 
         $totalOrders = $orders->count();
         $confirmedOrders = $orders->filter(fn($o) => $o->orderStatus?->name === 'Confirmed')->count();
@@ -95,6 +99,10 @@ class DashboardController extends Controller
 
         $query = Order::with(['orderStatus', 'product']);
         $query->whereBetween('created_at', [$start, $end]);
+        // Auto-filter for seller role
+        if (auth()->check() && auth()->user()->hasRole('seller')) {
+            $query->where('seller', auth()->user()->name);
+        }
         if ($request->filled('seller')) {
             $query->where('seller', $request->seller);
         }
