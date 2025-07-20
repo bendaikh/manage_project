@@ -306,12 +306,12 @@ const pageNumbers = computed(() => {
   return pages
 })
 
+const sellers = ref([])
 // Helpers to lock an order to a section (confirmation/delivery)
 const lockKey = (id) => `order_section_${id}`
 const getSectionLock = (id) => localStorage.getItem(lockKey(id))
 const setSectionLock = (id, section) => localStorage.setItem(lockKey(id), section)
 const clearSectionLock = (id) => localStorage.removeItem(lockKey(id))
-const sellers = ref([])
 // Full list for filter dropdown (can still show all)
 const statuses = ref(['New Order','Confirmed','Confirmed on Date','Unreachable','Postponed','Cancelled','Blacklisted','Out of Stock','Processing','Shipped','Delivered'])
 
@@ -443,8 +443,26 @@ const fetchOrders = async () => {
     })
   }
   orders.value = fetchedOrders
-  totalPages.value = data.orders.last_page
-  currentPage.value = data.orders.current_page
+  
+  // Simple pagination fix: if we have no orders on current page, go to page 1
+  if (fetchedOrders.length === 0 && data.orders.current_page > 1) {
+    currentPage.value = 1
+    await fetchOrders()
+    return
+  }
+  
+  // Fix pagination: use different logic for different sections
+  if (props.confirmation) {
+    // Confirmation section uses frontend filtering, so recalculate pagination
+    const totalFilteredOrders = fetchedOrders.length
+    totalPages.value = Math.ceil(totalFilteredOrders / perPage.value)
+    currentPage.value = 1 // Always start from page 1 since we're showing all filtered orders
+  } else {
+    // Delivery and other sections use backend pagination as is
+    totalPages.value = data.orders.last_page
+    currentPage.value = data.orders.current_page
+  }
+  
   sellers.value = data.sellers
   zones.value = data.zones
   

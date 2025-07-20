@@ -84,6 +84,7 @@ class DashboardController extends Controller
             ],
             'distribution' => $distribution,
             'trend' => $trend,
+            'orders' => $orders, // Include orders with belongs_to field for frontend filtering
         ]);
     }
 
