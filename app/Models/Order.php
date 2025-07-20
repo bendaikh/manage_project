@@ -23,6 +23,7 @@ class Order extends Model
         'comment',
         'agent',
         'order_status_id',
+        'belongs_to',
     ];
 
     protected $appends = ['status'];
