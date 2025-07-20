@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="p-6">
     <!-- Date Filter -->
     <div class="bg-white p-4 rounded-lg shadow mb-6">
       <h2 class="font-semibold text-lg mb-4">Date Range Filter</h2>
@@ -24,54 +24,80 @@
       </div>
     </div>
 
-    <!-- Summary Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-      <div v-for="card in cards" :key="card.title" class="bg-white p-4 rounded-lg shadow">
-        <div class="flex items-center justify-between mb-2">
-          <h3 class="text-sm font-medium">{{ card.title }}</h3>
-          <span class="text-xl font-bold">{{ card.value }}</span>
+    <!-- Confirmation Status Block -->
+    <div class="bg-white p-6 rounded-lg shadow mb-6">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-xl font-semibold text-blue-600">Confirmation Status</h2>
+        <button @click="toggleConfirmation" class="text-blue-600 hover:text-blue-800 transition-transform" :class="{ 'rotate-180': showConfirmation }">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+          </svg>
+        </button>
+      </div>
+      
+      <div v-if="showConfirmation" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div v-for="status in confirmationStatuses" :key="status.name" class="bg-gray-50 p-4 rounded-lg">
+          <div class="flex items-center mb-3">
+            <div class="w-8 h-8 rounded-full flex items-center justify-center mr-3" :class="status.bgColor">
+              <span class="text-white text-sm font-bold">{{ status.icon }}</span>
+            </div>
+            <div>
+              <div class="font-medium">{{ status.name }}</div>
+              <div class="text-2xl font-bold">{{ status.count }}</div>
+            </div>
+          </div>
+          <div class="mb-2">
+            <div class="flex justify-between text-sm mb-1">
+              <span>Progress</span>
+              <span>{{ status.percentage }}%</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-2">
+              <div class="h-2 rounded-full transition-all duration-300" :class="status.barColor" :style="{ width: status.percentage + '%' }"></div>
+            </div>
+          </div>
         </div>
-        <div class="text-sm" :class="card.color">{{ card.percentage }}%</div>
       </div>
     </div>
 
-    <!-- Charts -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-      <div class="bg-white p-4 rounded-lg shadow">
-        <h3 class="font-semibold mb-2">Order Status Distribution</h3>
-        <canvas ref="distChart" height="300"></canvas>
+    <!-- Delivery Status Block -->
+    <div class="bg-white p-6 rounded-lg shadow mb-6">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-xl font-semibold text-green-600">Delivery Status</h2>
+        <button @click="toggleDelivery" class="text-green-600 hover:text-green-800 transition-transform" :class="{ 'rotate-180': showDelivery }">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+          </svg>
+        </button>
       </div>
-      <div class="bg-white p-4 rounded-lg shadow">
-        <h3 class="font-semibold mb-2">Order Trend</h3>
-        <canvas ref="trendChart" height="300"></canvas>
+      
+      <div v-if="showDelivery" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div v-for="status in deliveryStatuses" :key="status.name" class="bg-gray-50 p-4 rounded-lg">
+          <div class="flex items-center mb-3">
+            <div class="w-8 h-8 rounded-full flex items-center justify-center mr-3" :class="status.bgColor">
+              <span class="text-white text-sm font-bold">{{ status.icon }}</span>
+            </div>
+            <div>
+              <div class="font-medium">{{ status.name }}</div>
+              <div class="text-2xl font-bold">{{ status.count }}</div>
+            </div>
+          </div>
+          <div class="mb-2">
+            <div class="flex justify-between text-sm mb-1">
+              <span>Progress</span>
+              <span>{{ status.percentage }}%</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-2">
+              <div class="h-2 rounded-full transition-all duration-300" :class="status.barColor" :style="{ width: status.percentage + '%' }"></div>
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
-
-    <!-- Detailed Breakdown -->
-    <div class="bg-white p-4 rounded-lg shadow">
-      <h3 class="font-semibold mb-4">Detailed Status Breakdown</h3>
-      <table class="min-w-full">
-        <thead>
-          <tr class="text-left text-sm font-semibold text-gray-700">
-            <th class="py-2">Status</th>
-            <th class="py-2">Count</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="(cnt, status) in distribution" :key="status" class="border-t">
-            <td class="py-2">{{ status }}</td>
-            <td class="py-2">{{ cnt }}</td>
-          </tr>
-        </tbody>
-      </table>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, watch, onMounted, nextTick } from 'vue'
-import { Chart, ArcElement, BarElement, CategoryScale, LinearScale, LineElement, PointElement, Tooltip, Legend } from 'chart.js'
-Chart.register(ArcElement, BarElement, CategoryScale, LinearScale, LineElement, PointElement, Tooltip, Legend)
+import { ref, computed, onMounted } from 'vue'
 
 const startDate = ref(new Date().toISOString().substr(0, 10))
 const endDate = ref(new Date().toISOString().substr(0, 10))
@@ -85,70 +111,170 @@ const quickRanges = [
   { label: 'Today', days: 0 }
 ]
 
-const summary = ref({ total: 0, confirmed: 0, cancelled: 0, pending: 0, total_change: null })
-const distribution = ref({})
-const trend = ref([])
+const allOrders = ref([])
+const confirmationOrders = ref([])
+const deliveryOrders = ref([])
 
-const cards = ref([])
-const distChart = ref(null)
-const trendChart = ref(null)
+// Expandable sections
+const showConfirmation = ref(true)
+const showDelivery = ref(true)
+
+// Status configurations with icons and colors based on your database
+const confirmationStatuses = computed(() => {
+  const total = confirmationOrders.value.length
+  return [
+    { 
+      name: 'All Orders', 
+      count: total, 
+      percentage: total > 0 ? 100 : 0, 
+      icon: '📦', 
+      bgColor: 'bg-gray-600', 
+      barColor: 'bg-gray-600' 
+    },
+
+    { 
+      name: 'Confirmed', 
+      count: deliveryOrders.value.length, 
+      percentage: total > 0 ? Math.round((deliveryOrders.value.length / total) * 100) : 0, 
+      icon: '✅', 
+      bgColor: 'bg-green-600', 
+      barColor: 'bg-green-600' 
+    },
+    { 
+      name: 'Confirmed on Date', 
+      count: confirmationOrders.value.filter(o => o.status === 'Confirmed on Date').length, 
+      percentage: total > 0 ? Math.round((confirmationOrders.value.filter(o => o.status === 'Confirmed on Date').length / total) * 100) : 0, 
+      icon: '📅✅', 
+      bgColor: 'bg-green-600', 
+      barColor: 'bg-green-600' 
+    },
+    { 
+      name: 'Unreachable', 
+      count: confirmationOrders.value.filter(o => o.status === 'Unreachable').length, 
+      percentage: total > 0 ? Math.round((confirmationOrders.value.filter(o => o.status === 'Unreachable').length / total) * 100) : 0, 
+      icon: '📞❌', 
+      bgColor: 'bg-red-600', 
+      barColor: 'bg-red-600' 
+    },
+    { 
+      name: 'Postponed', 
+      count: confirmationOrders.value.filter(o => o.status === 'Postponed').length, 
+      percentage: total > 0 ? Math.round((confirmationOrders.value.filter(o => o.status === 'Postponed').length / total) * 100) : 0, 
+      icon: '⏰❌', 
+      bgColor: 'bg-red-600', 
+      barColor: 'bg-red-600' 
+    },
+    { 
+      name: 'Cancelled', 
+      count: confirmationOrders.value.filter(o => o.status === 'Cancelled').length, 
+      percentage: total > 0 ? Math.round((confirmationOrders.value.filter(o => o.status === 'Cancelled').length / total) * 100) : 0, 
+      icon: '❌', 
+      bgColor: 'bg-red-600', 
+      barColor: 'bg-red-600' 
+    },
+    { 
+      name: 'Out of Stock', 
+      count: confirmationOrders.value.filter(o => o.status === 'Out of Stock').length, 
+      percentage: total > 0 ? Math.round((confirmationOrders.value.filter(o => o.status === 'Out of Stock').length / total) * 100) : 0, 
+      icon: '📦❌', 
+      bgColor: 'bg-red-600', 
+      barColor: 'bg-red-600' 
+    },
+    { 
+      name: 'Blacklisted', 
+      count: confirmationOrders.value.filter(o => o.status === 'Blacklisted').length, 
+      percentage: total > 0 ? Math.round((confirmationOrders.value.filter(o => o.status === 'Blacklisted').length / total) * 100) : 0, 
+      icon: '🚫', 
+      bgColor: 'bg-red-600', 
+      barColor: 'bg-red-600' 
+    }
+  ]
+})
+
+const deliveryStatuses = computed(() => {
+  const total = deliveryOrders.value.length
+  return [
+    { 
+      name: 'All Orders', 
+      count: total, 
+      percentage: total > 0 ? 100 : 0, 
+      icon: '📦', 
+      bgColor: 'bg-gray-600', 
+      barColor: 'bg-gray-600' 
+    },
+
+    { 
+      name: 'Shipped', 
+      count: deliveryOrders.value.filter(o => o.status === 'Shipped').length, 
+      percentage: total > 0 ? Math.round((deliveryOrders.value.filter(o => o.status === 'Shipped').length / total) * 100) : 0, 
+      icon: '🚚', 
+      bgColor: 'bg-purple-600', 
+      barColor: 'bg-purple-600' 
+    },
+    { 
+      name: 'Unreachable', 
+      count: deliveryOrders.value.filter(o => o.status === 'Unreachable').length, 
+      percentage: total > 0 ? Math.round((deliveryOrders.value.filter(o => o.status === 'Unreachable').length / total) * 100) : 0, 
+      icon: '📞❌', 
+      bgColor: 'bg-gray-500', 
+      barColor: 'bg-gray-500' 
+    },
+    { 
+      name: 'Postponed', 
+      count: deliveryOrders.value.filter(o => o.status === 'Postponed').length, 
+      percentage: total > 0 ? Math.round((deliveryOrders.value.filter(o => o.status === 'Postponed').length / total) * 100) : 0, 
+      icon: '⏰❌', 
+      bgColor: 'bg-yellow-600', 
+      barColor: 'bg-yellow-600' 
+    },
+    { 
+      name: 'Cancelled', 
+      count: deliveryOrders.value.filter(o => o.status === 'Cancelled').length, 
+      percentage: total > 0 ? Math.round((deliveryOrders.value.filter(o => o.status === 'Cancelled').length / total) * 100) : 0, 
+      icon: '❌', 
+      bgColor: 'bg-red-600', 
+      barColor: 'bg-red-600' 
+    },
+    { 
+      name: 'Delivered', 
+      count: deliveryOrders.value.filter(o => o.status === 'Delivered').length, 
+      percentage: total > 0 ? Math.round((deliveryOrders.value.filter(o => o.status === 'Delivered').length / total) * 100) : 0, 
+      icon: '📦✅', 
+      bgColor: 'bg-green-600', 
+      barColor: 'bg-green-600' 
+    },
+    { 
+      name: 'Out of Stock', 
+      count: deliveryOrders.value.filter(o => o.status === 'Out of Stock').length, 
+      percentage: total > 0 ? Math.round((deliveryOrders.value.filter(o => o.status === 'Out of Stock').length / total) * 100) : 0, 
+      icon: '📦❌', 
+      bgColor: 'bg-gray-500', 
+      barColor: 'bg-gray-500' 
+    }
+  ]
+})
 
 const fetchData = async () => {
   try {
     const url = `/dashboard/overview-data?start_date=${startDate.value}&end_date=${endDate.value}`
     const res = await fetch(url)
     const data = await res.json()
-    summary.value = data.summary
-    distribution.value = data.distribution
-    trend.value = data.trend
-    buildCards()
-    buildCharts()
+    allOrders.value = data.orders || []
+    
+    // Separate orders by belongs_to field
+    confirmationOrders.value = allOrders.value.filter(order => order.belongs_to === 'confirmation')
+    deliveryOrders.value = allOrders.value.filter(order => order.belongs_to === 'delivery')
   } catch (err) {
     console.error('Failed to load overview data', err)
   }
 }
 
-const buildCards = () => {
-  const s = summary.value
-  cards.value = [
-    { title: 'Total Orders', value: s.total, percentage: s.total_change ?? '-', color: 'text-green-600' },
-    { title: 'Confirmed Orders', value: s.confirmed, percentage: s.total ? ((s.confirmed / s.total) * 100).toFixed(0) : 0, color: 'text-green-600' },
-    { title: 'Cancelled Orders', value: s.cancelled, percentage: s.total ? ((s.cancelled / s.total) * 100).toFixed(0) : 0, color: 'text-red-600' },
-    { title: 'Pending Orders', value: s.pending, percentage: s.total ? ((s.pending / s.total) * 100).toFixed(0) : 0, color: 'text-yellow-600' }
-  ]
+const toggleConfirmation = () => {
+  showConfirmation.value = !showConfirmation.value
 }
 
-const buildCharts = () => {
-  nextTick(() => {
-    // Distribution pie
-    if (distChart.value?._chartInstance) distChart.value._chartInstance.destroy()
-    const ctx1 = distChart.value.getContext('2d')
-    distChart.value._chartInstance = new Chart(ctx1, {
-      type: 'pie',
-      data: {
-        labels: Object.keys(distribution.value),
-        datasets: [{ data: Object.values(distribution.value), backgroundColor: ['#3b82f6', '#10b981', '#ef4444', '#f59e0b', '#8b5cf6'] }]
-      },
-      options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
-    })
-
-    // Trend line
-    if (trendChart.value?._chartInstance) trendChart.value._chartInstance.destroy()
-    const ctx2 = trendChart.value.getContext('2d')
-    const dates = trend.value.map(t => t.date)
-    trendChart.value._chartInstance = new Chart(ctx2, {
-      type: 'line',
-      data: {
-        labels: dates,
-        datasets: [
-          { label: 'All Orders', data: trend.value.map(t => t.all), borderColor: '#3b82f6', fill: false },
-          { label: 'Confirmed', data: trend.value.map(t => t.confirmed), borderColor: '#10b981', fill: false },
-          { label: 'Cancelled', data: trend.value.map(t => t.cancelled), borderColor: '#ef4444', fill: false }
-        ]
-      },
-      options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
-    })
-  })
+const toggleDelivery = () => {
+  showDelivery.value = !showDelivery.value
 }
 
 const applyFilter = () => {

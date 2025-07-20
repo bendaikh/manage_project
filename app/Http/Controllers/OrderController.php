@@ -48,6 +48,7 @@ class OrderController extends Controller
             'client_phone' => 'nullable|string|max:255',
             'comment' => 'nullable|string|max:2000',
             'order_status_id' => 'nullable|exists:order_statuses,id',
+            'belongs_to' => 'nullable|in:confirmation,delivery',
         ]);
 
         if ($validator->fails()) {
@@ -58,6 +59,11 @@ class OrderController extends Controller
         if (empty($data['order_status_id'])) {
             $defaultStatus = \App\Models\OrderStatus::where('name', 'New Order')->first();
             $data['order_status_id'] = $defaultStatus ? $defaultStatus->id : null;
+        }
+
+        // Set belongs_to to 'confirmation' by default for new orders
+        if (empty($data['belongs_to'])) {
+            $data['belongs_to'] = 'confirmation';
         }
 
         $order = Order::create($data);
@@ -161,6 +167,7 @@ class OrderController extends Controller
             'comment' => 'nullable|string|max:2000',
             'agent' => 'nullable|string|max:255',
             'order_status_id' => 'nullable|exists:order_statuses,id',
+            'belongs_to' => 'nullable|in:confirmation,delivery',
         ]);
 
         if ($validator->fails()) {
@@ -182,14 +189,27 @@ class OrderController extends Controller
             $data['order_status_id'] = $order->order_status_id;
         }
 
-        // Apply status conversion logic (same as updateStatus method)
+        // Apply status conversion logic and update belongs_to accordingly
         if (!empty($data['order_status_id'])) {
             $statusModel = \App\Models\OrderStatus::find($data['order_status_id']);
-            if ($statusModel && strtolower($statusModel->name) === 'confirmed') {
-                // Convert "Confirmed" to "Processing" for delivery section
-                $processingStatus = \App\Models\OrderStatus::where('name', 'Processing')->first();
-                if ($processingStatus) {
-                    $data['order_status_id'] = $processingStatus->id;
+            if ($statusModel) {
+                // Special case: When confirming an order, always move to delivery
+                if (strtolower($statusModel->name) === 'confirmed') {
+                    $data['belongs_to'] = 'delivery';
+                } else {
+                    // For all other status changes, set belongs_to based on where the change is coming from
+                    if ($request->filled('source')) {
+                        $data['belongs_to'] = $request->source;
+                    }
+                }
+                
+                // Special case: Convert "Confirmed" to "Processing" for delivery section
+                if (strtolower($statusModel->name) === 'confirmed') {
+                    $processingStatus = \App\Models\OrderStatus::where('name', 'Processing')->first();
+                    if ($processingStatus) {
+                        $data['order_status_id'] = $processingStatus->id;
+                        $data['belongs_to'] = 'delivery';
+                    }
                 }
             }
         }
@@ -211,7 +231,10 @@ class OrderController extends Controller
     public function updateStatus(Request $request, $id)
     {
         $order = Order::findOrFail($id);
-        $request->validate([ 'status' => 'required|string' ]);
+        $request->validate([ 
+            'status' => 'required|string',
+            'source' => 'nullable|in:confirmation,delivery' // Add source parameter
+        ]);
         
         $statusName = $request->status;
         // If status is 'Confirmed', immediately set to 'Processing'
@@ -223,7 +246,19 @@ class OrderController extends Controller
         if (!$statusModel) {
             return response()->json(['message' => 'Invalid status'], 422);
         }
+        
         $order->order_status_id = $statusModel->id;
+        
+        // Special case: When confirming an order, always move to delivery
+        if (strtolower($request->status) === 'confirmed') {
+            $order->belongs_to = 'delivery';
+        } else {
+            // For all other status changes, set belongs_to based on where the change is coming from
+            if ($request->filled('source')) {
+                $order->belongs_to = $request->source;
+            }
+        }
+        
         $order->save();
         return response()->json([
             'message' => $request->status === 'Confirmed' ? 'Order confirmed and moved to Processing (Delivery)' : 'Status updated',
