@@ -121,7 +121,7 @@ const showDelivery = ref(true)
 
 // Status configurations with icons and colors based on your database
 const confirmationStatuses = computed(() => {
-  const total = confirmationOrders.value.length
+  const total = allOrders.value.length  // Use total orders from database
   return [
     { 
       name: 'All Orders', 
