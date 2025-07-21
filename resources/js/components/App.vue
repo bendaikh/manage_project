@@ -110,6 +110,22 @@
             </div>
           </div>
 
+          <!-- Shipments -->
+          <div>
+            <button type="button" @click="handleShowShipments" class="w-full flex items-center space-x-3 px-4 py-3 text-left text-white rounded-lg hover:bg-blue-800">
+              <TruckIcon class="h-5 w-5 text-white" />
+              <span>Shipments</span>
+            </button>
+          </div>
+
+          <!-- Stock -->
+          <div>
+            <button type="button" @click="handleShowStock" class="w-full flex items-center space-x-3 px-4 py-3 text-left text-white rounded-lg hover:bg-blue-800">
+              <BoxIcon class="h-5 w-5 text-white" />
+              <span>Stock</span>
+            </button>
+          </div>
+
           <!-- Products -->
           <div v-if="hasProductsPermission">
             <button @click="toggleProductsMenu" class="w-full flex items-center justify-between px-4 py-3 text-white rounded-lg hover:bg-blue-800">
@@ -318,6 +334,8 @@
         <AccountsList v-else-if="showAccounts" />
         <SettingsForm v-else-if="showSettings" />
         <AccessRights v-else-if="showAccessRights" />
+        <ShipmentsList v-else-if="showShipments" />
+        <StockList v-else-if="showStock" />
         <slot v-else></slot>
       </main>
     </div>
@@ -353,6 +371,8 @@ import RefundsList from './RefundsList.vue'
 import TransfersList from './TransfersList.vue'
 import AccessRights from './AccessRights.vue'
 import AiChatbot from './AiChatbot.vue'
+import ShipmentsList from './ShipmentsList.vue'
+import StockList from './StockList.vue'
 
 // Component state
 const isDashboardMenuOpen = ref(false)
@@ -399,6 +419,8 @@ const showRefunds = ref(false)
 const showTransfers = ref(false)
 const showGeneralSettings = ref(false)
 const showAccessRights = ref(false)
+const showShipments = ref(false)
+const showStock = ref(false)
 
 const toggleDashboardMenu = () => {
   isDashboardMenuOpen.value = !isDashboardMenuOpen.value
@@ -493,6 +515,8 @@ const clearViews = () => {
   showRefunds.value = false
   showGeneralSettings.value = false
   showAccessRights.value = false
+  showShipments.value = false
+  showStock.value = false
 }
 
 const handleShowAddProduct = (e) => {
@@ -653,6 +677,18 @@ const handleShowAccessRights = (e) => {
   if (e) e.preventDefault()
   clearViews()
   showAccessRights.value = true
+}
+
+const handleShowShipments = (e) => {
+  if (e) e.preventDefault()
+  clearViews()
+  showShipments.value = true
+}
+
+const handleShowStock = (e) => {
+  if (e) e.preventDefault()
+  clearViews()
+  showStock.value = true
 }
 
 // Fetch app settings

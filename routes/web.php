@@ -272,3 +272,17 @@ Route::middleware(['auth', 'verified'])->prefix('api/order-assignments')->group(
     Route::get('/my-orders', [OrderAssignmentController::class, 'getMyAssignedOrders'])
         ->middleware('permission:view_orders');
 });
+
+// Shipments API routes
+Route::middleware(['auth'])->group(function () {
+    Route::get('/shipments', [\App\Http\Controllers\ShipmentController::class, 'index']);
+    Route::post('/shipments', [\App\Http\Controllers\ShipmentController::class, 'store']);
+    Route::get('/shipments/{id}', [\App\Http\Controllers\ShipmentController::class, 'show']);
+    Route::post('/shipments/{id}/validate', [\App\Http\Controllers\ShipmentController::class, 'validateShipment']);
+    Route::put('/shipments/{id}', [\App\Http\Controllers\ShipmentController::class, 'update']);
+    Route::delete('/shipments/{id}', [\App\Http\Controllers\ShipmentController::class, 'destroy']);
+});
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('/stocks', [\App\Http\Controllers\StockController::class, 'index']);
+});
