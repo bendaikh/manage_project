@@ -131,7 +131,14 @@ const confirmationStatuses = computed(() => {
       bgColor: 'bg-gray-600', 
       barColor: 'bg-gray-600' 
     },
-
+    { 
+      name: 'New Order', 
+      count: confirmationOrders.value.filter(o => o.status === 'New Order').length, 
+      percentage: total > 0 ? Math.round((confirmationOrders.value.filter(o => o.status === 'New Order').length / total) * 100) : 0, 
+      icon: '🆕', 
+      bgColor: 'bg-blue-500', 
+      barColor: 'bg-blue-500' 
+    },
     { 
       name: 'Confirmed', 
       count: deliveryOrders.value.length, 
@@ -202,7 +209,14 @@ const deliveryStatuses = computed(() => {
       bgColor: 'bg-gray-600', 
       barColor: 'bg-gray-600' 
     },
-
+    { 
+      name: 'Processing', 
+      count: deliveryOrders.value.filter(o => o.status === 'Processing').length, 
+      percentage: total > 0 ? Math.round((deliveryOrders.value.filter(o => o.status === 'Processing').length / total) * 100) : 0, 
+      icon: '⚙️', 
+      bgColor: 'bg-yellow-500', 
+      barColor: 'bg-yellow-500' 
+    },
     { 
       name: 'Shipped', 
       count: deliveryOrders.value.filter(o => o.status === 'Shipped').length, 
