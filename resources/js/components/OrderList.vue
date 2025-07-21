@@ -477,10 +477,9 @@ const fetchOrders = async () => {
   
   // Fix pagination: use different logic for different sections
   if (props.confirmation) {
-    // Confirmation section uses frontend filtering, so recalculate pagination
-    const totalFilteredOrders = fetchedOrders.length
-    totalPages.value = Math.ceil(totalFilteredOrders / perPage.value)
-    currentPage.value = 1 // Always start from page 1 since we're showing all filtered orders
+    // Confirmation section should use backend pagination like delivery
+    totalPages.value = data.orders.last_page
+    currentPage.value = data.orders.current_page
   } else {
     // Delivery and other sections use backend pagination as is
     totalPages.value = data.orders.last_page
