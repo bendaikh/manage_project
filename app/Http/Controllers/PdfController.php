@@ -7,6 +7,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\Order;
 use App\Models\DeliveryInvoice;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class PdfController extends Controller
 {
@@ -90,13 +91,17 @@ class PdfController extends Controller
             }
         }
 
-        $totalAmount = $orders->sum('price');
+        $deliveryPrice = \App\Models\Setting::getDeliveryPrice();
         $totalOrders = $orders->count();
+        $productTotal = $orders->sum('price');
+        $deliveryCostTotal = $totalOrders * $deliveryPrice;
+        $totalAmount = $productTotal - $deliveryCostTotal;
+        if ($totalAmount < 0) { $totalAmount = 0; }
         $filename = 'delivery-invoice-' . $today . '.pdf';
         $pdfPath = 'invoices/' . $filename;
         
         // Configure PDF options for better encoding support
-        $pdf = Pdf::loadView('pdf.delivery-invoice', compact('orders', 'totalAmount', 'totalOrders', 'today'))
+        $pdf = Pdf::loadView('pdf.delivery-invoice', compact('orders', 'totalAmount', 'totalOrders', 'today', 'productTotal', 'deliveryCostTotal'))
             ->setPaper('a4', 'portrait')
             ->setOptions([
                 'isHtml5ParserEnabled' => true,
@@ -134,7 +139,53 @@ class PdfController extends Controller
                     'pdf_path' => $pdfPath,
                 ]
             );
-            
+
+            /* Generate seller-level invoices */
+            $ordersBySeller = $orders->groupBy('seller');
+            $sellerDeliveryPrice = \App\Models\Setting::getSellerDeliveryPrice();
+            foreach ($ordersBySeller as $sellerName => $sellerOrders) {
+                $sellerOrderCount   = $sellerOrders->count();
+                $sellerProductTotal = $sellerOrders->sum('price');
+                $sellerDeliveryCostTotal = $sellerOrderCount * $sellerDeliveryPrice;
+                $sellerTotalAmount  = $sellerProductTotal - $sellerDeliveryCostTotal;
+                if ($sellerTotalAmount < 0) { $sellerTotalAmount = 0; }
+                $sellerFileName     = 'seller-invoice-' . Str::slug($sellerName) . '-' . $today . '.pdf';
+                $sellerPdfPath      = 'invoices/sellers/' . $sellerFileName;
+
+                // Ensure directory exists
+                Storage::makeDirectory('invoices/sellers');
+
+                $sellerPdf = Pdf::loadView('pdf.seller-invoice', [
+                    'orders'               => $sellerOrders,
+                    'totalAmount'          => $sellerTotalAmount,
+                    'totalOrders'          => $sellerOrderCount,
+                    'productTotal'         => $sellerProductTotal,
+                    'deliveryCostTotal'    => $sellerDeliveryCostTotal,
+                    'today'                => $today,
+                ])->setPaper('a4', 'portrait')->setOptions([
+                    'isHtml5ParserEnabled' => true,
+                    'isRemoteEnabled'     => true,
+                    'defaultFont'         => 'DejaVu Sans',
+                    'dpi'                 => 150,
+                ]);
+
+                // Save seller PDF
+                Storage::put($sellerPdfPath, $sellerPdf->output());
+
+                // Save/update record in DB
+                \App\Models\SellerInvoice::updateOrCreate(
+                    [
+                        'seller'       => $sellerName,
+                        'invoice_date' => $today,
+                    ],
+                    [
+                        'order_count'  => $sellerOrderCount,
+                        'total_amount' => $sellerTotalAmount,
+                        'pdf_path'     => $sellerPdfPath,
+                    ]
+                );
+            }
+            // Return global invoice download response
             return response()->make($pdf->output(), 200, [
                 'Content-Type' => 'application/pdf',
                 'Content-Disposition' => 'attachment; filename="' . $filename . '"',

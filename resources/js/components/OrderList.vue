@@ -105,6 +105,9 @@
         <span class="sm:hidden">
           {{ hasDeliveredOrdersToday ? 'Delivered' : 'No Orders' }}
         </span>
+        <span v-if="deliveredOrdersTodayCount" class="ml-2 bg-white text-orange-600 font-bold px-2 py-0.5 rounded-full text-xs">
+          {{ deliveredOrdersTodayCount }}
+        </span>
       </button>
     </div>
     
@@ -426,6 +429,16 @@ const hasDeliveredOrdersToday = computed(() => {
     const orderDate = new Date(order.updated_at).toISOString().split('T')[0]
     return order.status === 'Delivered' && orderDate === today
   })
+})
+
+// Count delivered orders today (for badge)
+const deliveredOrdersTodayCount = computed(() => {
+  if (!props.delivery) return 0
+  const today = new Date().toISOString().split('T')[0]
+  return orders.value.reduce((count, o) => {
+    const orderDate = new Date(o.updated_at).toISOString().split('T')[0]
+    return count + ((o.status === 'Delivered' && orderDate === today) ? 1 : 0)
+  }, 0)
 })
 
 const fetchOrders = async () => {

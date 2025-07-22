@@ -71,6 +71,14 @@ class Setting extends Model
     }
 
     /**
+     * Get seller delivery price
+     */
+    public static function getSellerDeliveryPrice()
+    {
+        return (float) self::getValue('seller_delivery_price', self::getDeliveryPrice());
+    }
+
+    /**
      * Get country name
      */
     public static function getCountry()

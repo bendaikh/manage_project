@@ -286,3 +286,6 @@ Route::middleware(['auth'])->group(function () {
 Route::middleware(['auth'])->group(function () {
     Route::get('/stocks', [\App\Http\Controllers\StockController::class, 'index']);
 });
+
+Route::get('/seller-invoices', [\App\Http\Controllers\SellerInvoiceController::class, 'index']);
+Route::get('/seller-invoices/{id}/download', [\App\Http\Controllers\SellerInvoiceController::class, 'download']);

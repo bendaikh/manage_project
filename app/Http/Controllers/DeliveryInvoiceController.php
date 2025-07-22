@@ -91,15 +91,19 @@ class DeliveryInvoiceController extends Controller
                 throw new \Exception('No delivered orders found for this date');
             }
             
-            $totalAmount = $orders->sum('price');
+            $deliveryPrice = \App\Models\Setting::getDeliveryPrice();
             $totalOrders = $orders->count();
+            $productTotal = $orders->sum('price');
+            $deliveryCostTotal = $totalOrders * $deliveryPrice;
+            $totalAmount = $productTotal - $deliveryCostTotal;
+            if ($totalAmount < 0) { $totalAmount = 0; }
             $today = $invoice->invoice_date;
             
             // Ensure the invoices directory exists
             Storage::makeDirectory('invoices');
             
             // Generate PDF
-            $pdf = Pdf::loadView('pdf.delivery-invoice', compact('orders', 'totalAmount', 'totalOrders', 'today'))
+            $pdf = Pdf::loadView('pdf.delivery-invoice', compact('orders', 'totalAmount', 'totalOrders', 'today', 'productTotal', 'deliveryCostTotal'))
                 ->setPaper('a4', 'portrait')
                 ->setOptions([
                     'isHtml5ParserEnabled' => true,
