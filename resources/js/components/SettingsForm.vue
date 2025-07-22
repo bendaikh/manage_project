@@ -115,6 +115,19 @@
               placeholder="0.00"
             />
           </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              Seller Delivery Price (FCFA)
+            </label>
+            <input
+              v-model="form.seller_delivery_price"
+              type="number"
+              step="0.01"
+              min="0"
+              class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="0.00"
+            />
+          </div>
         </div>
       </div>
 
@@ -139,6 +152,7 @@ const settings = ref({
   app_logo: null,
   country: '',
   delivery_price: 0,
+  seller_delivery_price: 0,
   app_name: '',
   app_description: ''
 })
@@ -147,7 +161,8 @@ const form = ref({
   app_name: '',
   app_description: '',
   country: '',
-  delivery_price: 0
+  delivery_price: 0,
+  seller_delivery_price: 0
 })
 
 const logoInput = ref(null)
@@ -166,7 +181,8 @@ const fetchSettings = async () => {
         app_name: data.app_name || '',
         app_description: data.app_description || '',
         country: data.country || '',
-        delivery_price: data.delivery_price || 0
+        delivery_price: data.delivery_price || 0,
+        seller_delivery_price: data.seller_delivery_price || 0
       }
     }
   } catch (error) {
@@ -192,6 +208,7 @@ const saveSettings = async () => {
     formData.append('app_description', form.value.app_description)
     formData.append('country', form.value.country)
     formData.append('delivery_price', form.value.delivery_price)
+    formData.append('seller_delivery_price', form.value.seller_delivery_price)
     
     if (selectedLogo.value) {
       formData.append('app_logo', selectedLogo.value)

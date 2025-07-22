@@ -185,6 +185,13 @@
         </div>
     </div>
 
+    <!-- Totals Summary -->
+    <div class="totals" style="margin-top:20px; font-size:12px;">
+        <p><strong>Total Products Price:</strong> {{ number_format($productTotal, 0, ',', ' ') }} FCFA</p>
+        <p><strong>Total Delivery Cost:</strong> {{ number_format($deliveryCostTotal, 0, ',', ' ') }} FCFA</p>
+        <p class="grand-total"><strong>Net Total Amount:</strong> {{ number_format($totalAmount, 0, ',', ' ') }} FCFA</p>
+    </div>
+
     <div class="footer">
         <p>This invoice contains all orders delivered on {{ date('d/m/Y', strtotime($today)) }}</p>
         <p>Generated automatically by the system</p>

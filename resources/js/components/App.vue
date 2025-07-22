@@ -107,6 +107,10 @@
                 <DocumentTextIcon class="h-4 w-4" />
                 <span>Invoices</span>
               </button>
+              <button type="button" @click="handleShowSellerInvoices" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
+                <DocumentTextIcon class="h-4 w-4" />
+                <span>Sellers Invoices</span>
+              </button>
             </div>
           </div>
 
@@ -317,6 +321,7 @@
         <OrderList v-else-if="showConfirmationOrders" confirmation @create-order="handleShowAddOrder" />
         <OrderList v-else-if="showDeliveryOrders" delivery @create-order="handleShowAddOrder" />
         <InvoicesList v-else-if="showInvoices" />
+        <SellerInvoicesList v-else-if="showSellerInvoices" />
         <DashboardOverview v-else-if="showOverview" />
         <DashboardAnalytics v-else-if="showAnalytics" />
         <AddUser v-else-if="showAddUser" @back="handleBackFromAddUser" />
@@ -373,6 +378,7 @@ import AccessRights from './AccessRights.vue'
 import AiChatbot from './AiChatbot.vue'
 import ShipmentsList from './ShipmentsList.vue'
 import StockList from './StockList.vue'
+import SellerInvoicesList from './SellerInvoicesList.vue'
 
 // Component state
 const isDashboardMenuOpen = ref(false)
@@ -421,6 +427,7 @@ const showGeneralSettings = ref(false)
 const showAccessRights = ref(false)
 const showShipments = ref(false)
 const showStock = ref(false)
+const showSellerInvoices = ref(false)
 
 const toggleDashboardMenu = () => {
   isDashboardMenuOpen.value = !isDashboardMenuOpen.value
@@ -517,6 +524,8 @@ const clearViews = () => {
   showAccessRights.value = false
   showShipments.value = false
   showStock.value = false
+  showSellerInvoices.value = false
+  showTransfers.value = false
 }
 
 const handleShowAddProduct = (e) => {
@@ -589,6 +598,11 @@ const handleShowInvoices = (e) => {
   if (e) e.preventDefault()
   clearViews()
   showInvoices.value = true
+}
+
+const handleShowSellerInvoices = () => {
+  clearViews()
+  showSellerInvoices.value = true
 }
 
 const handleShowOverview = (e) => {
