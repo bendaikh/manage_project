@@ -63,6 +63,39 @@ class Setting extends Model
     }
 
     /**
+     * Get absolute local path to logo for embedding in PDF
+     */
+    public static function getLogoPdfPath()
+    {
+        $relative = self::getValue('app_logo');
+        if ($relative) {
+            $full = public_path('storage/' . $relative);
+            if (file_exists($full)) {
+                return 'file://' . $full;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Return base64-encoded data URI for logo (for embedding in PDFs)
+     */
+    public static function getLogoDataUri()
+    {
+        $relative = self::getValue('app_logo');
+        if (!$relative) {
+            return null;
+        }
+        $full = public_path('storage/' . $relative);
+        if (!file_exists($full)) {
+            return null;
+        }
+        $mime = mime_content_type($full) ?: 'image/png';
+        $data = base64_encode(file_get_contents($full));
+        return "data:$mime;base64,$data";
+    }
+
+    /**
      * Get delivery price
      */
     public static function getDeliveryPrice()

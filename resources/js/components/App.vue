@@ -12,10 +12,7 @@
         
         <!-- Left section - Logo (responsive) -->
         <div class="navbar-logo sidebar-logo lg:w-64 w-auto flex-1 lg:flex-none" style="height: 60px; padding: 0 8px; margin: 0; display: flex; align-items: center; justify-content: center; background-color: white; border-right: 1px solid #e5e7eb;">
-          <div v-if="appLogo" class="w-full max-w-[200px] lg:max-w-none">
-            <img :src="appLogo" alt="Application Logo" class="w-full h-auto block object-contain">
-          </div>
-          <div v-else class="w-full text-center text-gray-800 text-lg lg:text-xl font-bold truncate">
+          <div class="w-full text-center text-gray-800 text-lg lg:text-xl font-bold truncate">
             {{ appName }}
           </div>
         </div>
@@ -51,6 +48,13 @@
                    'w-64 lg:w-64']" style="padding-top: 60px;">
       <!-- Navigation -->
       <nav class="px-3 py-4 h-full overflow-y-auto">
+        <!-- Brand Name -->
+        <div class="mb-6 text-center select-none">
+          <span class="text-white text-2xl lg:text-3xl font-extrabold tracking-wide">
+            {{ appName }}
+          </span>
+        </div>
+ 
         <div class="space-y-1">
           <!-- Dashboard -->
           <div>
