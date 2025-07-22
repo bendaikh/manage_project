@@ -16,8 +16,9 @@
 </head>
 <body>
     <div class="header">
-        @if(\App\Models\Setting::getLogoUrl())
-            <img src="{{ \App\Models\Setting::getLogoUrl() }}" alt="Logo" style="max-height: 50px; max-width: 200px; margin-bottom: 10px;">
+        @php($logoData = \App\Models\Setting::getLogoDataUri())
+        @if($logoData)
+            <img src="{{ $logoData }}" alt="Logo" style="max-height: 50px; max-width: 200px; margin-bottom: 10px;">
         @endif
         <div class="invoice-title">Seller Invoice - {{ $orders->first()->seller ?? 'N/A' }}</div>
         <div class="invoice-date">Delivery Date: {{ date('d/m/Y', strtotime($today)) }}</div>

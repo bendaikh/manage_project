@@ -26,7 +26,7 @@ class PdfController extends Controller
             ->setPaper('a4', 'portrait')
             ->setOptions([
                 'isHtml5ParserEnabled' => true,
-                'isRemoteEnabled' => true,
+                'isRemoteEnabled' => false,
                 'defaultFont' => 'DejaVu Sans',
                 'dpi' => 150,
             ]);
@@ -54,6 +54,10 @@ class PdfController extends Controller
 
     public function deliveryInvoice(Request $request)
     {
+        // Allow lengthy PDF generation
+        @set_time_limit(300); // 5 minutes
+        @ini_set('memory_limit', '512M');
+
         $today = now()->toDateString();
         $ids = array_filter(explode(',', $request->query('ids', '')));
 

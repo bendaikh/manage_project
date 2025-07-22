@@ -104,9 +104,10 @@
 </head>
 <body>
     <div class="header">
-        @if(\App\Models\Setting::getLogoUrl())
+        @php($logoData = \App\Models\Setting::getLogoDataUri())
+        @if($logoData)
             <div style="text-align: center; margin-bottom: 15px;">
-                <img src="{{ \App\Models\Setting::getLogoUrl() }}" alt="Logo" style="max-height: 50px; max-width: 200px;">
+                <img src="{{ $logoData }}" alt="Logo" style="max-height: 50px; max-width: 200px;">
             </div>
         @endif
         <div class="invoice-title">{{ \App\Models\Setting::getValue('app_name', 'DELIVERY INVOICE') }}</div>
