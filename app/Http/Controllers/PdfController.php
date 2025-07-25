@@ -87,13 +87,13 @@ class PdfController extends Controller
         }
 
         // Update order status to "Shipped"
-        $shippedStatus = \App\Models\OrderStatus::where('name', 'Shipped')->first();
+        /* $shippedStatus = \App\Models\OrderStatus::where('name', 'Shipped')->first();
         if ($shippedStatus) {
             foreach ($orders as $order) {
                 $order->order_status_id = $shippedStatus->id;
                 $order->save();
             }
-        }
+        } */
 
         $deliveryPrice = \App\Models\Setting::getDeliveryPrice();
         $totalOrders = $orders->count();
