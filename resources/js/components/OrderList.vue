@@ -311,6 +311,8 @@ const props = defineProps({
 })
 
 const orders = ref([])
+// NEW: global count of today delivered orders (comes from backend)
+const deliveredOrdersTodayCount = ref(0)
 // Pagination state
 const currentPage = ref(1)
 const perPage = ref(10) // You can adjust default items per page here
@@ -420,26 +422,8 @@ const showMarkShippedButton = computed(() => props.delivery)
 // Determine if action bar should render at all
 const showActionBar = computed(() => selectedIds.value.size && (showAssignButton.value || showDeliveryNoteButton.value || showInvoiceButton.value || showMarkShippedButton.value))
 
-// Check if there are delivered orders today for invoice generation
-const hasDeliveredOrdersToday = computed(() => {
-  if (!props.delivery) return false
-  
-  const today = new Date().toISOString().split('T')[0] // YYYY-MM-DD format
-  return orders.value.some(order => {
-    const orderDate = new Date(order.updated_at).toISOString().split('T')[0]
-    return order.status === 'Delivered' && orderDate === today
-  })
-})
-
-// Count delivered orders today (for badge)
-const deliveredOrdersTodayCount = computed(() => {
-  if (!props.delivery) return 0
-  const today = new Date().toISOString().split('T')[0]
-  return orders.value.reduce((count, o) => {
-    const orderDate = new Date(o.updated_at).toISOString().split('T')[0]
-    return count + ((o.status === 'Delivered' && orderDate === today) ? 1 : 0)
-  }, 0)
-})
+// Check if there are delivered orders today for invoice generation (global count)
+const hasDeliveredOrdersToday = computed(() => props.delivery && deliveredOrdersTodayCount.value > 0)
 
 const fetchOrders = async () => {
   let url = `/orders/list?page=${currentPage.value}&per_page=${perPage.value}`
@@ -501,6 +485,11 @@ const fetchOrders = async () => {
   
   sellers.value = data.sellers
   zones.value = data.zones
+
+  // Update global delivered-today count coming from backend
+  if (typeof data.delivered_orders_today_count !== 'undefined') {
+    deliveredOrdersTodayCount.value = data.delivered_orders_today_count
+  }
   
   // Clean up delivery note tracking for orders no longer in the list
   clearDeliveryNoteTracking()
