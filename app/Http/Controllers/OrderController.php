@@ -145,10 +145,16 @@ class OrderController extends Controller
         $sellers = Order::distinct()->pluck('seller')->filter()->values();
         $zones = Order::distinct()->pluck('zone')->filter()->values();
 
+        // Count all orders delivered today across the whole dataset (ignoring pagination)
+        $deliveredOrdersTodayCount = Order::whereHas('orderStatus', function ($q) {
+            $q->where('name', 'Delivered');
+        })->whereDate('updated_at', today())->count();
+
         return response()->json([
             'orders' => $orders,
             'sellers' => $sellers,
-            'zones' => $zones
+            'zones' => $zones,
+            'delivered_orders_today_count' => $deliveredOrdersTodayCount,
         ]);
     }
 
