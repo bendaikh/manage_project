@@ -41,6 +41,23 @@
         </div>
       </div>
     </div>
+    <!-- Status Summary (Confirmation section) -->
+    <div v-if="props.confirmation" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-4">
+      <div v-for="status in confirmationStatusBlocks" :key="status.name" 
+           :class="['flex flex-col items-center justify-center rounded-lg shadow p-3 border', getStatusColor(status.name)]">
+        <span class="text-xs font-semibold">{{ status.name }}</span>
+        <span class="text-lg font-bold">{{ status.count }}</span>
+      </div>
+    </div>
+    
+    <!-- Status Summary (Delivery section) -->
+    <div v-if="props.delivery" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-4">
+      <div v-for="status in deliveryStatusBlocks" :key="status.name" 
+           :class="['flex flex-col items-center justify-center rounded-lg shadow p-3 border', getStatusColor(status.name)]">
+        <span class="text-xs font-semibold">{{ status.name }}</span>
+        <span class="text-lg font-bold">{{ status.count }}</span>
+      </div>
+    </div>
     <!-- Action bar -->
     <div v-if="showActionBar" class="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-blue-50 border border-blue-200 rounded p-3 mb-3 gap-3">
       <div class="text-sm lg:text-base">{{ selectedIds.size }} selected</div>
@@ -313,6 +330,8 @@ const props = defineProps({
 const orders = ref([])
 // NEW: global count of today delivered orders (comes from backend)
 const deliveredOrdersTodayCount = ref(0)
+// Holds counts of orders per status across confirmation section
+const statusCounts = ref({})
 // Pagination state
 const currentPage = ref(1)
 const perPage = ref(10) // You can adjust default items per page here
@@ -490,7 +509,12 @@ const fetchOrders = async () => {
   if (typeof data.delivered_orders_today_count !== 'undefined') {
     deliveredOrdersTodayCount.value = data.delivered_orders_today_count
   }
-  
+
+  // Update status counts (for confirmation section summary)
+  if (typeof data.status_counts !== 'undefined') {
+    statusCounts.value = data.status_counts
+  }
+
   // Clean up delivery note tracking for orders no longer in the list
   clearDeliveryNoteTracking()
 }
@@ -786,6 +810,32 @@ const updateOrderStatus = async (statusName) => {
     // auto clear toast after 3s
     setTimeout(() => { toastMessage.value = '' }, 3000)
   }
+}
+
+const confirmationStatusBlocks = computed(() => {
+  return statusConfig.confirmation.map(name => ({ name, count: statusCounts.value[name] || 0 }))
+})
+
+const deliveryStatusBlocks = computed(() => {
+  return statusConfig.delivery.map(name => ({ name, count: statusCounts.value[name] || 0 }))
+})
+
+// Function to get status color classes
+const getStatusColor = (statusName) => {
+  const colors = {
+    'New Order': 'bg-blue-100 text-blue-800 border-blue-200',
+    'Confirmed': 'bg-green-100 text-green-800 border-green-200',
+    'Confirmed on Date': 'bg-emerald-100 text-emerald-800 border-emerald-200',
+    'Unreachable': 'bg-red-100 text-red-800 border-red-200',
+    'Postponed': 'bg-yellow-100 text-yellow-800 border-yellow-200',
+    'Cancelled': 'bg-gray-100 text-gray-800 border-gray-200',
+    'Blacklisted': 'bg-red-200 text-red-900 border-red-300',
+    'Out of Stock': 'bg-orange-100 text-orange-800 border-orange-200',
+    'Processing': 'bg-purple-100 text-purple-800 border-purple-200',
+    'Shipped': 'bg-indigo-100 text-indigo-800 border-indigo-200',
+    'Delivered': 'bg-green-200 text-green-900 border-green-300'
+  }
+  return colors[statusName] || 'bg-gray-100 text-gray-800 border-gray-200'
 }
 
 onMounted(() => { fetchOrders() })

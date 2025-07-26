@@ -137,9 +137,19 @@ class OrderController extends Controller
             $query->whereDoesntHave('assignment');
         }
 
+        // Build query with filters (already built above $query)
+
+        // Capture counts BEFORE pagination so they reflect the entire filtered dataset
+        $countsQuery = clone $query;
+        $statusCounts = $countsQuery
+            ->join('order_statuses', 'orders.order_status_id', '=', 'order_statuses.id')
+            ->selectRaw('order_statuses.name as status_name, COUNT(*) as total')
+            ->groupBy('order_statuses.name')
+            ->pluck('total', 'status_name');
+
         // Apply pagination (default 10 items per page)
         $perPage = $request->input('per_page', 10);
-        $orders = $query->orderBy('created_at', 'desc')->paginate($perPage);
+        $orders = $query->orderBy('orders.created_at', 'desc')->paginate($perPage);
 
         // Get unique values for filters
         $sellers = Order::distinct()->pluck('seller')->filter()->values();
@@ -155,6 +165,7 @@ class OrderController extends Controller
             'sellers' => $sellers,
             'zones' => $zones,
             'delivered_orders_today_count' => $deliveredOrdersTodayCount,
+            'status_counts' => $statusCounts,
         ]);
     }
 
