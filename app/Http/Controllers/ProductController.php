@@ -5,9 +5,13 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use App\Models\Product;
+use Illuminate\Support\Facades\Storage;
+use App\Traits\LogsActionHistory;
 
 class ProductController extends Controller
 {
+    use LogsActionHistory;
+
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -35,6 +39,8 @@ class ProductController extends Controller
         }
 
         $product = Product::create($data);
+
+        $this->logAction('Product Created', "Created product: {$product->name}", ['product_id' => $product->id]);
 
         return response()->json(['message' => 'Product created successfully', 'product' => $product], 201);
     }
@@ -130,13 +136,17 @@ class ProductController extends Controller
         $data = $validator->validated();
         $product->update($data);
 
+        $this->logAction('Product Updated', "Updated product: {$product->name}", ['product_id' => $product->id]);
+
         return response()->json(['message' => 'Product updated successfully', 'product' => $product]);
     }
 
     public function destroy(Product $product)
     {
+        $productName = $product->name;
         try {
             $product->delete();
+            $this->logAction('Product Deleted', "Deleted product: {$productName}", ['product_id' => $product->id]);
             return response()->json(['message' => 'Product deleted successfully']);
         } catch (\Exception $e) {
             return response()->json(['message' => 'Failed to delete product'], 500);

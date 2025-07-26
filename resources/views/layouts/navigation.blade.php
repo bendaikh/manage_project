@@ -27,6 +27,11 @@
                             {{ __('Settings') }}
                         </x-nav-link>
                     @endif
+                    @if(auth()->check())
+                        <x-nav-link :href="route('history.index')" :active="request()->routeIs('history.*')">
+                            {{ __('History') }}
+                        </x-nav-link>
+                    @endif
                 </div>
             </div>
 
@@ -92,6 +97,11 @@
             @if(auth()->user()->hasRole('superadmin'))
                 <x-responsive-nav-link :href="route('settings.index')" :active="request()->routeIs('settings.*')">
                     {{ __('Settings') }}
+                </x-responsive-nav-link>
+            @endif
+            @if(auth()->check())
+                <x-responsive-nav-link :href="route('history.index')" :active="request()->routeIs('history.*')">
+                    {{ __('History') }}
                 </x-responsive-nav-link>
             @endif
         </div>

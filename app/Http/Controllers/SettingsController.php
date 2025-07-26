@@ -6,9 +6,12 @@ use Illuminate\Http\Request;
 use App\Models\Setting;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use App\Traits\LogsActionHistory;
 
 class SettingsController extends Controller
 {
+    use LogsActionHistory;
+
     public function index()
     {
         $settings = Setting::orderBy('group')->orderBy('key')->get();
@@ -57,6 +60,8 @@ class SettingsController extends Controller
                 $logoPath = $logo->store('logos', 'public');
                 Setting::setValue('app_logo', $logoPath, 'file', 'appearance', 'Application logo displayed in sidebar and headers');
             }
+
+            $this->logAction('Settings Updated', 'Application settings were updated.');
 
             return response()->json([
                 'success' => true,

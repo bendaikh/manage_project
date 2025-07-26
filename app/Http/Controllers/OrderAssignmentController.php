@@ -7,9 +7,12 @@ use App\Models\OrderAssignment;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use App\Traits\LogsActionHistory;
 
 class OrderAssignmentController extends Controller
 {
+    use LogsActionHistory;
+
     /**
      * Get available agents for assignment.
      */
@@ -86,6 +89,8 @@ class OrderAssignmentController extends Controller
         if (!empty($errors)) {
             $message .= ". Errors: " . implode(', ', $errors);
         }
+
+        $this->logAction('Orders Assigned', $assignedCount . " orders assigned to {$agent->name}", ['order_ids' => $request->order_ids, 'agent_id' => $request->agent_id]);
 
         return response()->json([
             'message' => $message,
