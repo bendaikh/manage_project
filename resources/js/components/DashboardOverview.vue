@@ -93,11 +93,43 @@
         </div>
       </div>
     </div>
+
+    <!-- Recent Activity -->
+    <div class="bg-white p-6 rounded-lg shadow mb-6">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-xl font-semibold text-purple-600">Recent Activity</h2>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Activity</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            <tr v-for="history in recentHistories" :key="history.id">
+              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ history.title }} — <span class="text-gray-600">{{ history.user?.name || 'System' }}</span></td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ history.description }}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ new Date(history.created_at).toLocaleString() }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="mt-4 text-right">
+        <button @click="$emit('show-full-history')" class="text-blue-600 hover:underline font-semibold text-sm">
+          See more
+        </button>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+
+const emit = defineEmits(['show-full-history'])
 
 const startDate = ref(new Date().toISOString().substr(0, 10))
 const endDate = ref(new Date().toISOString().substr(0, 10))
@@ -268,6 +300,8 @@ const deliveryStatuses = computed(() => {
   ]
 })
 
+const recentHistories = ref([])
+
 const fetchData = async () => {
   try {
     const url = `/dashboard/overview-data?start_date=${startDate.value}&end_date=${endDate.value}`
@@ -316,5 +350,17 @@ const setQuickRange = ({ label, days }) => {
   fetchData()
 }
 
-onMounted(fetchData)
+onMounted(async () => {
+  await fetchData()
+  await fetchRecentHistories()
+})
+
+const fetchRecentHistories = async () => {
+  try {
+    const res = await fetch('/api/history/latest')
+    if (res.ok) {
+      recentHistories.value = await res.json()
+    }
+  } catch (e) { console.error('Failed to load history', e) }
+}
 </script> 

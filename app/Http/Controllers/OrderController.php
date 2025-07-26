@@ -5,9 +5,12 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use App\Models\Order;
+use App\Traits\LogsActionHistory;
 
 class OrderController extends Controller
 {
+    use LogsActionHistory;
+
     /**
      * Apply date range filter to the query
      */
@@ -67,6 +70,9 @@ class OrderController extends Controller
         }
 
         $order = Order::create($data);
+
+        // Log action
+        $this->logAction('Order Created', 'Order #' . $order->id . ' created', ['order_id' => $order->id]);
 
         return response()->json(['message' => 'Order created successfully', 'order' => $order], 201);
     }
@@ -233,6 +239,9 @@ class OrderController extends Controller
 
         $order->update($data);
         
+        // Log action
+        $this->logAction('Order Updated', 'Order #' . $order->id . ' updated', ['order_id' => $order->id]);
+        
         // Return appropriate message based on status conversion
         $message = 'Order updated successfully';
         if (!empty($data['order_status_id'])) {
@@ -277,6 +286,11 @@ class OrderController extends Controller
         }
         
         $order->save();
+        // Log status change action
+        $this->logAction('Order Status Updated', 'Order #' . $order->id . ' status changed to ' . $statusName, [
+            'order_id' => $order->id,
+            'new_status' => $statusName,
+        ]);
         return response()->json([
             'message' => $request->status === 'Confirmed' ? 'Order confirmed and moved to Processing (Delivery)' : 'Status updated',
             'order' => $order

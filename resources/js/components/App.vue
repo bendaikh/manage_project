@@ -282,10 +282,10 @@
 
           <!-- History -->
           <div v-if="hasHistoryPermission">
-            <a href="/history" class="flex items-center space-x-3 px-4 py-3 text-white rounded-lg hover:bg-blue-800">
+            <button type="button" @click="handleShowHistory" class="flex items-center space-x-3 px-4 py-3 text-white rounded-lg hover:bg-blue-800">
               <ClockIcon class="h-5 w-5 text-white" />
               <span>History</span>
-            </a>
+            </button>
           </div>
 
           <!-- Settings -->
@@ -326,7 +326,7 @@
         <OrderList v-else-if="showDeliveryOrders" delivery @create-order="handleShowAddOrder" />
         <InvoicesList v-else-if="showInvoices" />
         <SellerInvoicesList v-else-if="showSellerInvoices" />
-        <DashboardOverview v-else-if="showOverview" />
+        <DashboardOverview v-else-if="showOverview" @show-full-history="handleShowHistory" />
         <DashboardAnalytics v-else-if="showAnalytics" />
         <AddUser v-else-if="showAddUser" @back="handleBackFromAddUser" />
         <UserList v-else-if="showAgentsList" role="agent" />
@@ -345,6 +345,7 @@
         <AccessRights v-else-if="showAccessRights" />
         <ShipmentsList v-else-if="showShipments" />
         <StockList v-else-if="showStock" />
+        <HistoryList v-else-if="showHistory" />
         <slot v-else></slot>
       </main>
     </div>
@@ -383,6 +384,7 @@ import AiChatbot from './AiChatbot.vue'
 import ShipmentsList from './ShipmentsList.vue'
 import StockList from './StockList.vue'
 import SellerInvoicesList from './SellerInvoicesList.vue'
+import HistoryList from './HistoryList.vue'
 
 // Component state
 const isDashboardMenuOpen = ref(false)
@@ -432,6 +434,7 @@ const showAccessRights = ref(false)
 const showShipments = ref(false)
 const showStock = ref(false)
 const showSellerInvoices = ref(false)
+const showHistory = ref(false)
 
 const toggleDashboardMenu = () => {
   isDashboardMenuOpen.value = !isDashboardMenuOpen.value
@@ -499,7 +502,7 @@ const signOut = async () => {
   }
 }
 
-const clearViews = () => {
+const resetViews = () => {
   showAddProduct.value = false
   showProductList.value = false
   showEditProduct.value = false
@@ -530,17 +533,18 @@ const clearViews = () => {
   showStock.value = false
   showSellerInvoices.value = false
   showTransfers.value = false
+  showHistory.value = false
 }
 
 const handleShowAddProduct = (e) => {
   if (e) e.preventDefault()
-  clearViews()
+  resetViews()
   showAddProduct.value = true
 }
 
 const handleShowProductList = (e) => {
   if (e) e.preventDefault()
-  clearViews()
+  resetViews()
   showProductList.value = true
 }
 
@@ -569,7 +573,7 @@ const handleProductUpdated = () => {
 
 const handleShowAddOrder = (e) => {
   if (e) e.preventDefault()
-  clearViews()
+  resetViews()
   showAddOrder.value = true
 }
 
@@ -588,42 +592,42 @@ const handleShowOrderList = (e) => {
 
 const handleShowConfirmationOrders = (e) => {
   if (e) e.preventDefault()
-  clearViews()
+  resetViews()
   showConfirmationOrders.value = true
 }
 
 const handleShowDeliveryOrders = (e) => {
   if (e) e.preventDefault()
-  clearViews()
+  resetViews()
   showDeliveryOrders.value = true
 }
 
 const handleShowInvoices = (e) => {
   if (e) e.preventDefault()
-  clearViews()
+  resetViews()
   showInvoices.value = true
 }
 
 const handleShowSellerInvoices = () => {
-  clearViews()
+  resetViews()
   showSellerInvoices.value = true
 }
 
 const handleShowOverview = (e) => {
   if (e) e.preventDefault()
-  clearViews()
+  resetViews()
   showOverview.value = true
 }
 
 const handleShowAnalytics = (e) => {
   if (e) e.preventDefault()
-  clearViews()
+  resetViews()
   showAnalytics.value = true
 }
 
 const handleShowAddUser = (e) => {
   if (e) e.preventDefault()
-  clearViews()
+  resetViews()
   showAddUser.value = true
 }
 
@@ -632,81 +636,87 @@ const handleBackFromAddUser = () => {
   showOverview.value = true
 }
 
-const handleShowAgentsList = (e)=>{ if(e) e.preventDefault(); clearViews(); showAgentsList.value=true }
-const handleShowManagersList = (e)=>{ if(e) e.preventDefault(); clearViews(); showManagersList.value=true }
-const handleShowAdminsList = (e)=>{ if(e) e.preventDefault(); clearViews(); showAdminsList.value=true }
-const handleShowSellersList = (e)=>{ if(e) e.preventDefault(); clearViews(); showSellersList.value=true }
+const handleShowAgentsList = (e)=>{ if(e) e.preventDefault(); resetViews(); showAgentsList.value=true }
+const handleShowManagersList = (e)=>{ if(e) e.preventDefault(); resetViews(); showManagersList.value=true }
+const handleShowAdminsList = (e)=>{ if(e) e.preventDefault(); resetViews(); showAdminsList.value=true }
+const handleShowSellersList = (e)=>{ if(e) e.preventDefault(); resetViews(); showSellersList.value=true }
 
 const handleShowCategories = (e) => {
   if (e) e.preventDefault()
-  clearViews()
+  resetViews()
   showCategories.value = true
 }
 
 const handleShowIncomeCategories = (e) => {
   if (e) e.preventDefault()
-  clearViews()
+  resetViews()
   showIncomeCategories.value = true
 }
 
 const handleShowIncomes = (e) => {
   if (e) e.preventDefault()
-  clearViews()
+  resetViews()
   showIncomes.value = true
 }
 
 const handleShowAccounts = (e) => {
   if (e) e.preventDefault()
-  clearViews()
+  resetViews()
   showAccounts.value = true
 }
 
 const handleShowExpenseCategories = (e) => {
   if (e) e.preventDefault()
-  clearViews()
+  resetViews()
   showExpenseCategories.value = true
 }
 
 const handleShowExpenses = (e) => {
   if (e) e.preventDefault()
-  clearViews()
+  resetViews()
   showExpenses.value = true
 }
 
 const handleShowRefunds = (e) => {
   if (e) e.preventDefault()
-  clearViews()
+  resetViews()
   showRefunds.value = true
 }
 
 const handleShowTransfers = (e) => {
   if (e) e.preventDefault()
-  clearViews()
+  resetViews()
   showTransfers.value = true
 }
 
 const handleShowGeneralSettings = (e) => {
   if (e) e.preventDefault()
-  clearViews()
+  resetViews()
   showSettings.value = true
 }
 
 const handleShowAccessRights = (e) => {
   if (e) e.preventDefault()
-  clearViews()
+  resetViews()
   showAccessRights.value = true
 }
 
 const handleShowShipments = (e) => {
   if (e) e.preventDefault()
-  clearViews()
+  resetViews()
   showShipments.value = true
 }
 
 const handleShowStock = (e) => {
   if (e) e.preventDefault()
-  clearViews()
+  resetViews()
   showStock.value = true
+}
+
+const handleShowHistory = () => {
+  resetViews()
+  showHistory.value = true
+  closeMobileMenu()
 }
 
 // Fetch app settings
@@ -875,7 +885,12 @@ const hasManageSupportTicketsPermission = computed(() => hasPermission('manage_s
 
 // Legacy permissions for backward compatibility
 const hasClientsPermission = computed(() => false)
-const hasHistoryPermission = computed(() => false)
+const hasHistoryPermission = computed(() => {
+  // Show history to superadmins or if user has explicit permission
+  const roles = window.Laravel?.user?.roles || []
+  const isSuperadmin = roles.includes('superadmin') || roles.some(r => typeof r === 'object' && r.name === 'superadmin')
+  return isSuperadmin || hasPermission('view_history')
+})
 
 // Fetch settings on component mount
 fetchAppSettings()

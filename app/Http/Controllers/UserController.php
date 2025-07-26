@@ -7,9 +7,12 @@ use App\Models\Role;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
+use App\Traits\LogsActionHistory;
 
 class UserController extends Controller
 {
+    use LogsActionHistory;
+
     /**
      * Display a listing of the resource.
      */
@@ -97,6 +100,8 @@ class UserController extends Controller
 
         $user->roles()->sync($request->roles);
 
+        $this->logAction('User Created', "Created user: {$user->name}", ['user_id' => $user->id, 'roles' => $request->roles]);
+
         return redirect()->route('users.index')
             ->with('success', 'User created successfully.');
     }
@@ -143,6 +148,8 @@ class UserController extends Controller
 
         $user->roles()->sync($request->roles);
 
+        $this->logAction('User Updated', "Updated user: {$user->name}", ['user_id' => $user->id, 'roles' => $request->roles]);
+
         return redirect()->route('users.index')
             ->with('success', 'User updated successfully.');
     }
@@ -157,8 +164,11 @@ class UserController extends Controller
                 ->with('error', 'You cannot delete your own account.');
         }
 
+        $userName = $user->name;
         $user->roles()->detach();
         $user->delete();
+
+        $this->logAction('User Deleted', "Deleted user: {$userName}", ['user_id' => $user->id]);
 
         return redirect()->route('users.index')
             ->with('success', 'User deleted successfully.');

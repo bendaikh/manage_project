@@ -289,3 +289,15 @@ Route::middleware(['auth'])->group(function () {
 
 Route::get('/seller-invoices', [\App\Http\Controllers\SellerInvoiceController::class, 'index']);
 Route::get('/seller-invoices/{id}/download', [\App\Http\Controllers\SellerInvoiceController::class, 'download']);
+
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/history', [\App\Http\Controllers\HistoryController::class, 'index'])->name('history.index');
+    Route::get('/api/history', function () {
+        $perPage = request('per_page', 20);
+        return \App\Models\ActionHistory::with('user')->orderByDesc('created_at')->paginate($perPage);
+    });
+    Route::get('/api/history/latest', function () {
+        $latest = \App\Models\ActionHistory::with('user')->orderByDesc('created_at')->take(10)->get();
+        return response()->json($latest);
+    });
+});
