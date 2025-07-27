@@ -42,20 +42,26 @@
       </div>
     </div>
     <!-- Status Summary (Confirmation section) -->
-    <div v-if="props.confirmation" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-4">
-      <div v-for="status in confirmationStatusBlocks" :key="status.name" 
-           :class="['flex flex-col items-center justify-center rounded-lg shadow p-3 border', getStatusColor(status.name)]">
-        <span class="text-xs font-semibold">{{ status.name }}</span>
-        <span class="text-lg font-bold">{{ status.count }}</span>
+    <div v-if="props.confirmation" class="mb-4">
+      <div class="text-sm font-medium text-gray-700 mb-2">Today's Orders Status Summary</div>
+      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+        <div v-for="status in confirmationStatusBlocks" :key="status.name" 
+             :class="['flex flex-col items-center justify-center rounded-lg shadow p-3 border', getStatusColor(status.name)]">
+          <span class="text-xs font-semibold">{{ status.name }}</span>
+          <span class="text-lg font-bold">{{ status.count }}</span>
+        </div>
       </div>
     </div>
     
     <!-- Status Summary (Delivery section) -->
-    <div v-if="props.delivery" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-4">
-      <div v-for="status in deliveryStatusBlocks" :key="status.name" 
-           :class="['flex flex-col items-center justify-center rounded-lg shadow p-3 border', getStatusColor(status.name)]">
-        <span class="text-xs font-semibold">{{ status.name }}</span>
-        <span class="text-lg font-bold">{{ status.count }}</span>
+    <div v-if="props.delivery" class="mb-4">
+      <div class="text-sm font-medium text-gray-700 mb-2">Today's Orders Status Summary</div>
+      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+        <div v-for="status in deliveryStatusBlocks" :key="status.name" 
+             :class="['flex flex-col items-center justify-center rounded-lg shadow p-3 border', getStatusColor(status.name)]">
+          <span class="text-xs font-semibold">{{ status.name }}</span>
+          <span class="text-lg font-bold">{{ status.count }}</span>
+        </div>
       </div>
     </div>
     <!-- Action bar -->
