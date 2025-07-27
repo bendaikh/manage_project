@@ -55,6 +55,26 @@ class AccountingController extends Controller
         ));
     }
 
+    public function balance()
+    {
+        $totalIncome = \App\Models\Income::sum('amount');
+        $totalExpense = \App\Models\Expense::sum('amount');
+        $balance = $totalIncome - $totalExpense;
+
+        return view('accounting.balance', compact('totalIncome', 'totalExpense', 'balance'));
+    }
+
+    public function balanceData()
+    {
+        $totalIncome = Income::sum('amount');
+        $totalExpense = Expense::sum('amount');
+        return response()->json([
+            'total_income' => $totalIncome,
+            'total_expense' => $totalExpense,
+            'balance' => $totalIncome - $totalExpense,
+        ]);
+    }
+
     /**
      * Get yearly data for charts.
      */

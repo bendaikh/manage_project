@@ -20,6 +20,9 @@
                         <x-nav-link :href="route('accounting.index')" :active="request()->routeIs('accounting.*')">
                             {{ __('Accounting') }}
                         </x-nav-link>
+                        <x-nav-link class="ml-6" :href="route('accounting.balance')" :active="request()->routeIs('accounting.balance')">
+                            {{ __('Balance') }}
+                        </x-nav-link>
                     @endif
                     
                     @if(auth()->user()->hasRole('superadmin'))
@@ -91,6 +94,9 @@
             @if(auth()->user()->hasPermission('view_accounting'))
                 <x-responsive-nav-link :href="route('accounting.index')" :active="request()->routeIs('accounting.*')">
                     {{ __('Accounting') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link class="ml-4" :href="route('accounting.balance')" :active="request()->routeIs('accounting.balance')">
+                    {{ __('Balance') }}
                 </x-responsive-nav-link>
             @endif
             

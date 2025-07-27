@@ -113,6 +113,10 @@ Route::middleware(['auth', 'verified', 'role:superadmin'])->group(function () {
 
 // Accounting Routes
 Route::middleware(['auth', 'verified'])->prefix('accounting')->name('accounting.')->group(function () {
+    // Balance page
+    Route::get('/balance', [AccountingController::class, 'balance'])->name('balance');
+    // Balance data JSON
+    Route::get('/balance-data', [AccountingController::class, 'balanceData'])->name('balance.data');
     // Incomes module
     Route::prefix('incomes')->name('incomes.')->group(function () {
         Route::get('/', [IncomesController::class, 'index'])->name('index');

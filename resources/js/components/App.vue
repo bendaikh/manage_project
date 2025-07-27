@@ -234,6 +234,12 @@
                 <BanknotesIcon class="h-4 w-4" />
                 <span>Accounts</span>
               </button>
+
+              <!-- Balance (Regular subitem) -->
+              <button v-if="hasAccountingPermission" type="button" @click="handleShowBalance" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
+                <CalculatorIcon class="h-4 w-4" />
+                <span>Balance</span>
+              </button>
             </div>
           </div>
 
@@ -346,6 +352,7 @@
         <ShipmentsList v-else-if="showShipments" />
         <StockList v-else-if="showStock" />
         <HistoryList v-else-if="showHistory" />
+        <BalanceView v-else-if="showBalance" />
         <slot v-else></slot>
       </main>
     </div>
@@ -385,6 +392,7 @@ import ShipmentsList from './ShipmentsList.vue'
 import StockList from './StockList.vue'
 import SellerInvoicesList from './SellerInvoicesList.vue'
 import HistoryList from './HistoryList.vue'
+import BalanceView from './BalanceView.vue'
 
 // Component state
 const isDashboardMenuOpen = ref(false)
@@ -435,6 +443,7 @@ const showShipments = ref(false)
 const showStock = ref(false)
 const showSellerInvoices = ref(false)
 const showHistory = ref(false)
+const showBalance = ref(false)
 
 const toggleDashboardMenu = () => {
   isDashboardMenuOpen.value = !isDashboardMenuOpen.value
@@ -534,6 +543,7 @@ const resetViews = () => {
   showSellerInvoices.value = false
   showTransfers.value = false
   showHistory.value = false
+  showBalance.value = false
 }
 
 const handleShowAddProduct = (e) => {
@@ -687,6 +697,12 @@ const handleShowTransfers = (e) => {
   if (e) e.preventDefault()
   resetViews()
   showTransfers.value = true
+}
+
+const handleShowBalance = (e) => {
+  if (e) e.preventDefault()
+  resetViews()
+  showBalance.value = true
 }
 
 const handleShowGeneralSettings = (e) => {
