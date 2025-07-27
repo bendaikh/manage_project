@@ -147,7 +147,12 @@ class OrderController extends Controller
 
         // Capture counts BEFORE pagination so they reflect the entire filtered dataset
         $countsQuery = clone $query;
-        $statusCounts = $countsQuery
+        
+        // For status blocks, we want to show today's orders only
+        $todayCountsQuery = clone $countsQuery;
+        $todayCountsQuery->whereDate('orders.created_at', today());
+        
+        $statusCounts = $todayCountsQuery
             ->join('order_statuses', 'orders.order_status_id', '=', 'order_statuses.id')
             ->selectRaw('order_statuses.name as status_name, COUNT(*) as total')
             ->groupBy('order_statuses.name')
