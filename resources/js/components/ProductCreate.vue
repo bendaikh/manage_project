@@ -33,6 +33,18 @@
           <label class="block text-sm font-medium mb-1">Supplier</label>
           <input v-model="form.supplier" type="text" class="w-full border rounded px-3 py-2 focus:outline-none focus:ring focus:border-blue-300" />
         </div>
+        <!-- Seller field -->
+        <div class="mb-4" v-if="!isSeller">
+          <label class="block text-sm font-medium mb-1">Seller *</label>
+          <select v-model="form.seller_id" class="w-full border rounded px-3 py-2 focus:outline-none focus:ring focus:border-blue-300">
+            <option value="">Select a seller</option>
+            <option v-for="s in sellers" :key="s.id" :value="s.id">{{ s.name }}</option>
+          </select>
+        </div>
+        <div class="mb-4" v-else>
+          <label class="block text-sm font-medium mb-1">Seller</label>
+          <input type="text" :value="window.Laravel?.user?.name" class="w-full border rounded px-3 py-2 bg-gray-100" disabled />
+        </div>
         <div class="mb-4 grid grid-cols-2 gap-4">
           <div>
             <label class="block text-sm font-medium mb-1">Purchase Price *</label>
@@ -116,6 +128,7 @@ const form = ref({
   sku: '',
   category: '',
   supplier: '',
+  seller_id: '',
   purchase_price: '',
   selling_price: '',
   stock_quantity: 1,
@@ -129,6 +142,8 @@ const form = ref({
 const error = ref('')
 const success = ref(false)
 const categories = ref([])
+const sellers = ref([])
+const isSeller = ref(false)
 
 const fetchCategories = async () => {
   const res = await fetch('/categories', { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
@@ -138,6 +153,23 @@ const fetchCategories = async () => {
 }
 
 onMounted(fetchCategories)
+
+// Fetch sellers only if needed
+const fetchSellers = async () => {
+  if (isSeller.value) return
+  const res = await fetch('/users?role=seller', { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
+  if (!res.ok) return
+  const data = await res.json()
+  sellers.value = data.users || []
+}
+
+onMounted(() => {
+  isSeller.value = Array.isArray(window.Laravel?.user?.roles) && window.Laravel.user.roles.includes('seller')
+  if (isSeller.value) {
+    form.value.seller_id = window.Laravel?.user?.id || ''
+  }
+  fetchSellers()
+})
 
 const submitForm = async () => {
   error.value = ''
@@ -161,7 +193,7 @@ const submitForm = async () => {
     }
     success.value = true
     form.value = {
-      name: '', sku: '', category: '', supplier: '', purchase_price: '', selling_price: '', stock_quantity: 1, status: 'In Stock', image_url: '', video_url: '', video_duration: '', description: ''
+      name: '', sku: '', category: '', supplier: '', seller_id: isSeller.value ? (window.Laravel?.user?.id || '') : '', purchase_price: '', selling_price: '', stock_quantity: 1, status: 'In Stock', image_url: '', video_url: '', video_duration: '', description: ''
     }
     // Optionally emit event to parent
     // emit('product-saved')

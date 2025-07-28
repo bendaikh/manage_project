@@ -5,7 +5,7 @@
         <h2 class="text-2xl font-bold">Products</h2>
         <p class="text-gray-500">Manage your inventory and product catalog</p>
       </div>
-      <button @click="$emit('add-product')" class="flex items-center px-4 py-2 bg-violet-600 text-white rounded hover:bg-violet-700 font-semibold">
+      <button v-if="canCreate" @click="$emit('add-product')" class="flex items-center px-4 py-2 bg-violet-600 text-white rounded hover:bg-violet-700 font-semibold">
         + Add Product
       </button>
     </div>
@@ -133,7 +133,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 
 const emit = defineEmits(['add-product', 'edit-product'])
 
@@ -141,6 +141,10 @@ const products = ref([])
 const categories = ref([])
 const summary = ref({ total: 0, inStock: 0, lowStock: 0, outOfStock: 0 })
 const filters = ref({ category: '', status: '', sort: 'name_asc', search: '' })
+
+// Permissions from backend
+const userPermissions = window.Laravel?.user?.permissions || []
+const canCreate = computed(() => userPermissions.includes('create_products') || userPermissions.includes('manage_products'))
 
 const fetchProducts = async () => {
   let url = '/products/list'

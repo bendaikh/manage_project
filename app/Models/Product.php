@@ -14,6 +14,8 @@ class Product extends Model
         'sku',
         'category',
         'supplier',
+        'seller',
+        'seller_id',
         'purchase_price',
         'selling_price',
         'stock_quantity',
@@ -23,4 +25,12 @@ class Product extends Model
         'video_duration',
         'description',
     ];
+
+    /**
+     * Seller (responsible user) relation.
+     */
+    public function seller()
+    {
+        return $this->belongsTo(User::class, 'seller_id');
+    }
 } 

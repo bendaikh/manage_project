@@ -40,8 +40,11 @@ class OrderController extends Controller
      */
     public function store(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'seller' => 'required|string|max:255',
+        // Build validation rules dynamically. If the authenticated user has the "seller"
+        // role they should not (and cannot) supply the seller field – it will be filled
+        // automatically with their own name. All other roles must supply it.
+
+        $rules = [
             'product_id' => 'required|exists:products,id',
             'quantity' => 'required|integer|min:1',
             'client_name' => 'required|string|max:255',
@@ -52,13 +55,26 @@ class OrderController extends Controller
             'comment' => 'nullable|string|max:2000',
             'order_status_id' => 'nullable|exists:order_statuses,id',
             'belongs_to' => 'nullable|in:confirmation,delivery',
-        ]);
+        ];
+
+        if (!auth()->user()->hasRole('seller')) {
+            // Non-seller users (admin, manager, etc.) must choose a seller.
+            $rules['seller'] = 'required|string|max:255';
+        }
+
+        $validator = Validator::make($request->all(), $rules);
 
         if ($validator->fails()) {
             return response()->json(['message' => $validator->errors()->first()], 422);
         }
 
         $data = $validator->validated();
+
+        // Force seller value for authenticated sellers so they cannot spoof another seller.
+        if (auth()->user()->hasRole('seller')) {
+            $data['seller'] = auth()->user()->name;
+        }
+
         if (empty($data['order_status_id'])) {
             $defaultStatus = \App\Models\OrderStatus::where('name', 'New Order')->first();
             $data['order_status_id'] = $defaultStatus ? $defaultStatus->id : null;
@@ -125,6 +141,11 @@ class OrderController extends Controller
             $query->whereHas('orderStatus', function($q) use ($excludeStatuses) {
                 $q->whereNotIn('name', $excludeStatuses);
             });
+        }
+
+        // Check if user is a seller and should only see their own orders
+        if (auth()->user()->hasRole('seller')) {
+            $query->where('seller', auth()->user()->name);
         }
 
         // Check if user is an agent and show only assigned orders

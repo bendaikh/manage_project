@@ -20,12 +20,17 @@
       </div>
       
       <form @submit.prevent="submitForm" class="space-y-4">
-        <div>
+        <!-- Seller field: dropdown for admins/managers, read-only for seller role -->
+        <div v-if="!isSeller">
           <label class="block text-sm font-medium mb-1">Seller</label>
           <select v-model="form.seller" class="w-full border rounded px-3 py-2">
             <option value="">Select a seller</option>
             <option v-for="s in sellers" :key="s.id" :value="s.name">{{ s.name }}</option>
           </select>
+        </div>
+        <div v-else>
+          <label class="block text-sm font-medium mb-1">Seller</label>
+          <input type="text" :value="form.seller" class="w-full border rounded px-3 py-2 bg-gray-100" disabled>
         </div>
         <div>
           <label class="block text-sm font-medium mb-1">Product</label>
@@ -91,6 +96,7 @@ import OrderImportModal from './OrderImportModal.vue'
 
 const products = ref([])
 const sellers = ref([])
+const isSeller = ref(false)
 const showImportModal = ref(false)
 const form = ref({
   seller: '',
@@ -115,6 +121,8 @@ const fetchProducts = async () => {
 }
 
 const fetchSellers = async () => {
+  // If the logged-in user is a seller, we don't need the list.
+  if (isSeller.value) return
   const res = await fetch('/users?role=seller', { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
   if (!res.ok) return
   const data = await res.json()
@@ -193,5 +201,16 @@ const handleOrdersImported = (count) => {
   console.log(`${count} orders imported successfully`)
 }
 
-onMounted(() => { fetchProducts(); fetchSellers(); })
+onMounted(() => {
+  // Determine if user has seller role from data injected in the Blade layout
+  isSeller.value = Array.isArray(window.Laravel?.user?.roles) && window.Laravel.user.roles.includes('seller')
+
+  if (isSeller.value) {
+    // Pre-fill seller name and disable editing
+    form.value.seller = window.Laravel?.user?.name || ''
+  }
+
+  fetchProducts()
+  fetchSellers()
+})
 </script> 
