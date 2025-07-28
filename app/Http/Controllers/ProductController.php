@@ -14,7 +14,8 @@ class ProductController extends Controller
 
     public function store(Request $request)
     {
-        $validator = Validator::make($request->all(), [
+        // Build validation rules. Only non-seller users must provide the seller field.
+        $rules = [
             'name' => 'required|string|max:255',
             'sku' => 'nullable|string|max:255',
             'category' => 'nullable|string|max:255',
@@ -27,13 +28,32 @@ class ProductController extends Controller
             'video_url' => 'nullable|url|max:1024',
             'video_duration' => 'nullable|string|max:255',
             'description' => 'nullable|string|max:2000',
-        ]);
+        ];
+
+        if (!auth()->user()->hasRole('seller')) {
+            $rules['seller_id'] = 'required|exists:users,id';
+        }
+
+        $validator = Validator::make($request->all(), $rules);
 
         if ($validator->fails()) {
             return response()->json(['message' => $validator->errors()->first()], 422);
         }
 
         $data = $validator->validated();
+
+        // Force seller assignment for seller role users
+        if (auth()->user()->hasRole('seller')) {
+            $data['seller_id'] = auth()->user()->id;
+            $data['seller'] = auth()->user()->name; // keep readable name
+        }
+
+        // When admin supplies seller_id fetch name too for convenience
+        if (isset($data['seller_id']) && empty($data['seller'])) {
+            $sellerUser = \App\Models\User::find($data['seller_id']);
+            $data['seller'] = $sellerUser?->name;
+        }
+
         if (empty($data['sku'])) {
             $data['sku'] = strtoupper(uniqid('SKU'));
         }
@@ -48,6 +68,11 @@ class ProductController extends Controller
     public function index(Request $request)
     {
         $query = Product::query();
+
+        // Sellers only see their own products
+        if (auth()->check() && auth()->user()->hasRole('seller')) {
+            $query->where('seller_id', auth()->user()->id);
+        }
 
         if ($request->filled('category')) {
             $query->where('category', $request->category);
@@ -87,12 +112,17 @@ class ProductController extends Controller
         }
 
         $products = $query->get();
-        $categories = Product::select('category')->distinct()->pluck('category')->filter()->values();
+
+        // Categories should also respect seller constraint
+        $categories = $query->clone()->select('category')->distinct()->pluck('category')->filter()->values();
+
+        // Build summary counts based on the SAME filtered dataset so sellers see their own numbers
+        $baseQuery = $query->clone();
         $summary = [
-            'total' => Product::count(),
-            'inStock' => Product::where('status', 'In Stock')->count(),
-            'lowStock' => Product::where('status', 'Low Stock')->count(),
-            'outOfStock' => Product::where('status', 'Out of Stock')->count(),
+            'total' => $baseQuery->count(),
+            'inStock' => (clone $baseQuery)->where('status', 'In Stock')->count(),
+            'lowStock' => (clone $baseQuery)->where('status', 'Low Stock')->count(),
+            'outOfStock' => (clone $baseQuery)->where('status', 'Out of Stock')->count(),
         ];
 
         return response()->json([
@@ -114,7 +144,7 @@ class ProductController extends Controller
 
     public function update(Request $request, Product $product)
     {
-        $validator = Validator::make($request->all(), [
+        $updateRules = [
             'name' => 'required|string|max:255',
             'sku' => 'nullable|string|max:255',
             'category' => 'nullable|string|max:255',
@@ -127,13 +157,30 @@ class ProductController extends Controller
             'video_url' => 'nullable|url|max:1024',
             'video_duration' => 'nullable|string|max:255',
             'description' => 'nullable|string|max:2000',
-        ]);
+        ];
+
+        if (!auth()->user()->hasRole('seller')) {
+            $updateRules['seller_id'] = 'required|exists:users,id';
+        }
+
+        $validator = Validator::make($request->all(), $updateRules);
 
         if ($validator->fails()) {
             return response()->json(['message' => $validator->errors()->first()], 422);
         }
 
         $data = $validator->validated();
+
+        if (auth()->user()->hasRole('seller')) {
+            $data['seller_id'] = auth()->user()->id;
+            $data['seller'] = auth()->user()->name;
+        }
+
+        if (isset($data['seller_id']) && empty($data['seller'])) {
+            $sellerUser = \App\Models\User::find($data['seller_id']);
+            $data['seller'] = $sellerUser?->name;
+        }
+
         $product->update($data);
 
         $this->logAction('Product Updated', "Updated product: {$product->name}", ['product_id' => $product->id]);
