@@ -100,14 +100,38 @@ class OrderController extends Controller
         // Apply filters
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
-                $q->where('id', 'like', "%{$search}%")
-                  ->orWhere('client_name', 'like', "%{$search}%")
-                  ->orWhere('client_phone', 'like', "%{$search}%")
-                  ->orWhere('client_address', 'like', "%{$search}%")
-                  ->orWhereHas('product', function($pq) use ($search) {
-                      $pq->where('name', 'like', "%{$search}%");
-                  });
+            $query->where(function ($q) use ($search) {
+                $searchLike = "%{$search}%";
+
+                // General text search on columns that exist in the 'orders' table.
+                $q->where('orders.client_name', 'like', $searchLike)
+                  ->orWhere('orders.client_address', 'like', $searchLike)
+                  ->orWhere('orders.seller', 'like', $searchLike)
+                  ->orWhere('orders.zone', 'like', $searchLike)
+                  ->orWhere('orders.comment', 'like', $searchLike);
+
+                // Search in the related 'products' table.
+                $q->orWhereHas('product', function ($pq) use ($searchLike) {
+                    $pq->where('name', 'like', $searchLike)
+                       ->orWhere('sku', 'like', $searchLike);
+                });
+
+                // Correctly search for the agent's name in the 'order_assignments' table through its relationship.
+                $q->orWhereHas('assignment.assignedTo', function ($agentQuery) use ($searchLike) {
+                    $agentQuery->where('name', 'like', $searchLike);
+                });
+
+                // Special handling for numeric-only search to include order ID.
+                if (is_numeric($search)) {
+                    $q->orWhere('orders.id', '=', $search);
+                }
+
+                // Special handling for phone numbers to match regardless of formatting.
+                $q->orWhere('orders.client_phone', 'like', $searchLike);
+                $digitsOnly = preg_replace('/[^0-9]/', '', $search);
+                if (!empty($digitsOnly)) {
+                    $q->orWhereRaw("REPLACE(REPLACE(REPLACE(REPLACE(orders.client_phone, ' ', ''), '-', ''), '+', ''), '(', '') LIKE ?", ["%{$digitsOnly}%"]);
+                }
             });
         }
 
