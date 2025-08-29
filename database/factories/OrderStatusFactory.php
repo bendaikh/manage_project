@@ -17,7 +17,7 @@ class OrderStatusFactory extends Factory
     public function definition(): array
     {
         return [
-            //
+            'name' => fake()->unique()->randomElement(['New Order', 'Confirmed', 'Processing', 'Shipped', 'Delivered', 'Cancelled']),
         ];
     }
 }

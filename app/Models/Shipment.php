@@ -25,7 +25,7 @@ class Shipment extends Model
     ];
 
     protected $casts = [
-        'shipment_date' => 'date',
+        'shipment_date' => 'date:Y-m-d',
         'customs_fees' => 'decimal:2',
         'validated' => 'boolean',
     ];
