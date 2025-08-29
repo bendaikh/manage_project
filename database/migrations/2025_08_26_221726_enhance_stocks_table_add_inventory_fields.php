@@ -27,7 +27,7 @@ return new class extends Migration
             // Status and tracking
             $table->enum('status', ['in_stock', 'out_of_stock', 'low_stock'])->default('in_stock')->after('selling_price');
             $table->string('warehouse_location')->nullable()->after('status');
-            $table->foreignId('warehouse_id')->nullable()->after('warehouse_location')->constrained('warehouses')->onDelete('set null');
+            $table->unsignedBigInteger('warehouse_id')->nullable()->after('warehouse_location');
             $table->string('last_updated_by')->nullable()->after('warehouse_id');
             $table->timestamp('last_updated_at')->nullable()->after('last_updated_by');
             
@@ -41,7 +41,15 @@ return new class extends Migration
     public function down()
     {
         Schema::table('stocks', function (Blueprint $table) {
-            $table->dropForeign(['warehouse_id']);
+            // Drop foreign key if it exists
+            if (Schema::hasColumn('stocks', 'warehouse_id')) {
+                try {
+                    $table->dropForeign(['warehouse_id']);
+                } catch (Exception $e) {
+                    // Foreign key might not exist, continue
+                }
+            }
+            
             $table->dropColumn([
                 'reference',
                 'barcode',
