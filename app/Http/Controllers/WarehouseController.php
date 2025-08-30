@@ -125,6 +125,7 @@ class WarehouseController extends Controller
      */
     public function getProducts(Warehouse $warehouse): JsonResponse
     {
+        // Get stocks (from warehouse_stock pivot table)
         $stocks = $warehouse->stocks()
                            ->with(['seller', 'product'])
                            ->orderBy('title')
@@ -132,12 +133,29 @@ class WarehouseController extends Controller
                            ->map(function ($stock) {
                                // Add warehouse-specific quantity from pivot
                                $stock->warehouse_quantity = $stock->pivot->quantity;
+                               $stock->type = 'stock';
                                return $stock;
                            });
 
+        // Get products (directly assigned to warehouse)
+        $products = $warehouse->products()
+                             ->with(['seller'])
+                             ->orderBy('name')
+                             ->get()
+                             ->map(function ($product) {
+                                 $product->type = 'product';
+                                 $product->warehouse_quantity = $product->stock_quantity;
+                                 return $product;
+                             });
+
+        // Combine both collections
+        $allItems = $stocks->concat($products);
+
         return response()->json([
             'warehouse' => $warehouse,
-            'stocks' => $stocks
+            'stocks' => $stocks,
+            'products' => $products,
+            'allItems' => $allItems
         ]);
     }
 }

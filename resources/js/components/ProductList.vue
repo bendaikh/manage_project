@@ -50,7 +50,7 @@
     </div>
     <!-- Filters -->
     <div class="bg-white rounded-lg shadow p-4 mb-6">
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+      <div class="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
         <div>
           <label class="block text-sm font-medium mb-1">Category</label>
           <select v-model="filters.category" class="w-full border rounded px-3 py-2">
@@ -66,6 +66,13 @@
             <option value="Low Stock">Low Stock</option>
             <option value="Out of Stock">Out of Stock</option>
             <option value="Discontinued">Discontinued</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1">Warehouse</label>
+          <select v-model="filters.warehouse_id" class="w-full border rounded px-3 py-2">
+            <option value="">All Warehouses</option>
+            <option v-for="warehouse in warehouses" :key="warehouse.id" :value="warehouse.id">{{ warehouse.name }} - {{ warehouse.location }}</option>
           </select>
         </div>
         <div>
@@ -108,6 +115,9 @@
         <div class="font-semibold truncate mb-1">{{ product.name }}</div>
         <div class="text-xs text-gray-500 mb-1">SKU: {{ product.sku }}</div>
         <div class="text-xs text-gray-500 mb-1">{{ product.stock_quantity }} units</div>
+        <div class="text-xs text-gray-500 mb-1" v-if="product.warehouse">
+          <span class="bg-purple-100 text-purple-600 px-1 py-0.5 rounded text-xs">🏢 {{ product.warehouse.name }}</span>
+        </div>
         <div class="text-lg font-bold text-gray-800 mb-1">Price<br><span class="text-black">FCFA{{ product.selling_price }}</span></div>
         <div class="text-xs text-gray-400">Cost: FCFA{{ product.purchase_price }}</div>
         <div class="flex space-x-2 mt-2">
@@ -139,18 +149,31 @@ const emit = defineEmits(['add-product', 'edit-product'])
 
 const products = ref([])
 const categories = ref([])
+const warehouses = ref([])
 const summary = ref({ total: 0, inStock: 0, lowStock: 0, outOfStock: 0 })
-const filters = ref({ category: '', status: '', sort: 'name_asc', search: '' })
+const filters = ref({ category: '', status: '', warehouse_id: '', sort: 'name_asc', search: '' })
 
 // Permissions from backend
 const userPermissions = window.Laravel?.user?.permissions || []
 const canCreate = computed(() => userPermissions.includes('create_products') || userPermissions.includes('manage_products'))
+
+const fetchWarehouses = async () => {
+  try {
+    const res = await fetch('/warehouses', { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
+    if (!res.ok) return
+    const data = await res.json()
+    warehouses.value = data.data || []
+  } catch (e) {
+    console.error('Failed to fetch warehouses:', e)
+  }
+}
 
 const fetchProducts = async () => {
   let url = '/products/list'
   const params = new URLSearchParams()
   if (filters.value.category) params.append('category', filters.value.category)
   if (filters.value.status) params.append('status', filters.value.status)
+  if (filters.value.warehouse_id) params.append('warehouse_id', filters.value.warehouse_id)
   if (filters.value.sort) params.append('sort', filters.value.sort)
   if (filters.value.search) params.append('search', filters.value.search)
   if ([...params].length) url += `?${params.toString()}`
@@ -176,7 +199,7 @@ const fetchProducts = async () => {
 }
 
 const clearFilters = () => {
-  filters.value = { category: '', status: '', sort: 'name_asc', search: '' }
+  filters.value = { category: '', status: '', warehouse_id: '', sort: 'name_asc', search: '' }
   fetchProducts()
 }
 
@@ -188,6 +211,7 @@ Product Details:
 • SKU: ${product.sku || 'N/A'}
 • Category: ${product.category || 'General'}
 • Supplier: ${product.supplier || 'N/A'}
+• Warehouse: ${product.warehouse ? `${product.warehouse.name} - ${product.warehouse.location}` : 'N/A'}
 • Purchase Price: FCFA${product.purchase_price}
 • Selling Price: FCFA${product.selling_price}
 • Stock Quantity: ${product.stock_quantity} units
@@ -237,5 +261,8 @@ const deleteProduct = async (product) => {
   }
 }
 
-onMounted(fetchProducts)
+onMounted(() => {
+  fetchWarehouses()
+  fetchProducts()
+})
 </script> 
