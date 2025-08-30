@@ -163,6 +163,18 @@ class RolesAndPermissionsSeeder extends Seeder
             ['name' => 'create_support_tickets', 'description' => 'Can create support tickets'],
             ['name' => 'respond_to_tickets', 'description' => 'Can respond to support tickets'],
             ['name' => 'manage_support_tickets', 'description' => 'Can manage support tickets (full access)'],
+            
+            // Shipment permissions
+            ['name' => 'view_shipments', 'description' => 'Can view shipments list'],
+            ['name' => 'create_shipments', 'description' => 'Can create new shipments'],
+            ['name' => 'edit_shipments', 'description' => 'Can edit existing shipments'],
+            ['name' => 'delete_shipments', 'description' => 'Can delete shipments'],
+            ['name' => 'validate_shipments', 'description' => 'Can validate shipments'],
+            ['name' => 'manage_shipments', 'description' => 'Can manage shipments (full access)'],
+            
+            // Stock permissions
+            ['name' => 'view_stock', 'description' => 'Can view stock list'],
+            ['name' => 'manage_stock', 'description' => 'Can manage stock (full access)'],
         ];
 
         foreach ($permissions as $permission) {
@@ -254,6 +266,10 @@ class RolesAndPermissionsSeeder extends Seeder
                 'view_user_transfers', 'create_user_transfers', 'edit_user_transfers',
                 'view_accounts', 'create_accounts', 'edit_accounts',
                 
+                // Shipments and Stock (full access)
+                'view_shipments', 'create_shipments', 'edit_shipments', 'validate_shipments',
+                'view_stock', 'manage_stock',
+                
                 // Reports
                 'view_reports', 'generate_reports', 'export_reports',
                 
@@ -284,6 +300,9 @@ class RolesAndPermissionsSeeder extends Seeder
                 // Basic accounting
                 'view_accounting', 'view_incomes', 'create_incomes',
                 'view_expenses', 'create_expenses',
+                
+                // Shipments (view and validate)
+                'view_shipments', 'validate_shipments', 'view_stock',
                 
                 // Support
                 'view_support_tickets', 'create_support_tickets',
@@ -340,6 +359,10 @@ class RolesAndPermissionsSeeder extends Seeder
                 'view_invoices', 'create_invoices', 'download_invoices',
                 'view_delivery_notes', 'create_delivery_notes', 'download_delivery_notes',
                 'view_delivery_invoices', 'create_delivery_invoices', 'download_delivery_invoices',
+                
+                // Shipments (full access)
+                'view_shipments', 'create_shipments', 'edit_shipments', 'validate_shipments',
+                'view_stock', 'manage_stock',
                 
                 // Basic accounting (view only)
                 'view_accounting', 'view_incomes', 'view_expenses',

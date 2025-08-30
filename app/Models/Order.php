@@ -24,9 +24,32 @@ class Order extends Model
         'agent',
         'order_status_id',
         'belongs_to',
+        'warehouse_id',
     ];
 
     protected $appends = ['status'];
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        // When order status is updated, update corresponding stock
+        static::updated(function ($order) {
+            if ($order->wasChanged('order_status_id')) {
+                $oldStatus = OrderStatus::find($order->getOriginal('order_status_id'));
+                $newStatus = $order->orderStatus;
+                
+                // Find stock for this product and seller
+                $stock = Stock::where('product_id', $order->product_id)
+                    ->where('seller_id', $order->belongs_to)
+                    ->first();
+                
+                if ($stock) {
+                    $stock->updateFromOrder($order, $oldStatus);
+                }
+            }
+        });
+    }
 
     public function product()
     {
@@ -36,6 +59,11 @@ class Order extends Model
     public function orderStatus()
     {
         return $this->belongsTo(OrderStatus::class);
+    }
+
+    public function warehouse()
+    {
+        return $this->belongsTo(Warehouse::class);
     }
 
     /**

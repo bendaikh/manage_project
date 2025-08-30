@@ -19,6 +19,7 @@ use App\Http\Controllers\TransfersController;
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\AiChatController;
 use App\Http\Controllers\OrderAssignmentController;
+use App\Http\Controllers\WarehouseController;
 use Illuminate\Support\Facades\Route;
 
 // Redirect root to login if not authenticated
@@ -49,6 +50,11 @@ Route::middleware(['auth', 'verified', 'role:agent'])
     ->group(function () {
         Route::get('/agent', [DashboardController::class, 'agent'])->name('dashboard.agent');
     });
+
+// Users API routes (must be before resource routes to avoid conflicts)
+Route::middleware(['auth'])->group(function () {
+    Route::get('/users/sellers', [\App\Http\Controllers\UserController::class, 'getSellers']);
+});
 
 // Role, Permission, and User management routes (superadmin only)
 Route::middleware(['auth', 'verified', 'role:superadmin'])
@@ -95,6 +101,34 @@ Route::get('/categories', [\App\Http\Controllers\CategoryController::class, 'ind
 Route::post('/categories', [\App\Http\Controllers\CategoryController::class, 'store']);
 Route::put('/categories/{category}', [\App\Http\Controllers\CategoryController::class, 'update']);
 Route::delete('/categories/{category}', [\App\Http\Controllers\CategoryController::class, 'destroy']);
+
+// Warehouse Routes
+Route::middleware(['auth'])->group(function () {
+    Route::resource('warehouses', WarehouseController::class);
+    Route::get('/warehouses/{warehouse}/products', [WarehouseController::class, 'getProducts']);
+});
+
+// Shipments API routes
+Route::middleware(['auth'])->group(function () {
+    Route::get('/shipments', [\App\Http\Controllers\ShipmentController::class, 'index']);
+    Route::get('/shipments/stocks', [\App\Http\Controllers\ShipmentController::class, 'getStocks']);
+    Route::get('/shipments/warehouses', [\App\Http\Controllers\ShipmentController::class, 'getWarehouses']);
+    Route::post('/shipments', [\App\Http\Controllers\ShipmentController::class, 'store']);
+    Route::get('/shipments/{id}', [\App\Http\Controllers\ShipmentController::class, 'show']);
+    Route::post('/shipments/{id}/validate', [\App\Http\Controllers\ShipmentController::class, 'validateShipment']);
+    Route::put('/shipments/{id}', [\App\Http\Controllers\ShipmentController::class, 'update']);
+    Route::delete('/shipments/{id}', [\App\Http\Controllers\ShipmentController::class, 'destroy']);
+});
+
+// Warehouse Transfers API routes
+Route::middleware(['auth'])->group(function () {
+    Route::get('/warehouse-transfers', [\App\Http\Controllers\WarehouseTransferController::class, 'index']);
+    Route::post('/warehouse-transfers', [\App\Http\Controllers\WarehouseTransferController::class, 'store']);
+    Route::get('/warehouse-transfers/stocks-by-warehouse', [\App\Http\Controllers\WarehouseTransferController::class, 'getStocksByWarehouse']);
+    Route::get('/warehouse-transfers/{warehouseTransfer}', [\App\Http\Controllers\WarehouseTransferController::class, 'show']);
+    Route::put('/warehouse-transfers/{warehouseTransfer}', [\App\Http\Controllers\WarehouseTransferController::class, 'update']);
+    Route::delete('/warehouse-transfers/{warehouseTransfer}', [\App\Http\Controllers\WarehouseTransferController::class, 'destroy']);
+});
 
 Route::get('/orders/delivery-note', [PdfController::class, 'deliveryNote']);
 Route::get('/orders/invoices', [PdfController::class, 'invoices']);
@@ -280,6 +314,7 @@ Route::middleware(['auth', 'verified'])->prefix('api/order-assignments')->group(
 // Shipments API routes
 Route::middleware(['auth'])->group(function () {
     Route::get('/shipments', [\App\Http\Controllers\ShipmentController::class, 'index']);
+    Route::get('/shipments/stocks', [\App\Http\Controllers\ShipmentController::class, 'getStocks']);
     Route::post('/shipments', [\App\Http\Controllers\ShipmentController::class, 'store']);
     Route::get('/shipments/{id}', [\App\Http\Controllers\ShipmentController::class, 'show']);
     Route::post('/shipments/{id}/validate', [\App\Http\Controllers\ShipmentController::class, 'validateShipment']);
@@ -287,8 +322,19 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/shipments/{id}', [\App\Http\Controllers\ShipmentController::class, 'destroy']);
 });
 
+
+
+// Comprehensive Stock Management Routes
 Route::middleware(['auth'])->group(function () {
     Route::get('/stocks', [\App\Http\Controllers\StockController::class, 'index']);
+    Route::post('/stocks', [\App\Http\Controllers\StockController::class, 'store']);
+    Route::get('/stocks/statistics', [\App\Http\Controllers\StockController::class, 'statistics']);
+    Route::get('/stocks/products/available', [\App\Http\Controllers\StockController::class, 'getAvailableProducts']);
+    Route::get('/stocks/{id}', [\App\Http\Controllers\StockController::class, 'show']);
+    Route::put('/stocks/{id}', [\App\Http\Controllers\StockController::class, 'update']);
+    Route::delete('/stocks/{id}', [\App\Http\Controllers\StockController::class, 'destroy']);
+    Route::patch('/stocks/{id}/quantities', [\App\Http\Controllers\StockController::class, 'updateQuantities']);
+    Route::post('/stocks/{id}/sync-product', [\App\Http\Controllers\StockController::class, 'syncWithProduct']);
 });
 
 Route::get('/seller-invoices', [\App\Http\Controllers\SellerInvoiceController::class, 'index']);
@@ -303,5 +349,36 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/api/history/latest', function () {
         $latest = \App\Models\ActionHistory::with('user')->orderByDesc('created_at')->take(10)->get();
         return response()->json($latest);
+    });
+    
+    // Temporary debug route
+    Route::get('/debug/orders-today', function () {
+        $today = now()->toDateString();
+        $orders = \App\Models\Order::whereDate('created_at', $today)->get();
+        $deliveredOrders = \App\Models\Order::whereDate('created_at', $today)
+            ->whereHas('orderStatus', function($q) {
+                $q->where('name', 'Delivered');
+            })->get();
+        $shippedOrders = \App\Models\Order::whereDate('created_at', $today)
+            ->whereHas('orderStatus', function($q) {
+                $q->where('name', 'Shipped');
+            })->get();
+            
+        return response()->json([
+            'today' => $today,
+            'total_orders_today' => $orders->count(),
+            'delivered_orders_today' => $deliveredOrders->count(),
+            'shipped_orders_today' => $shippedOrders->count(),
+            'orders' => $orders->map(function($order) {
+                return [
+                    'id' => $order->id,
+                    'product_id' => $order->product_id,
+                    'seller' => $order->seller,
+                    'status' => $order->orderStatus->name,
+                    'created_at' => $order->created_at,
+                    'quantity' => $order->quantity
+                ];
+            })
+        ]);
     });
 });

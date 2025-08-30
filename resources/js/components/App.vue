@@ -134,6 +134,33 @@
             </button>
           </div>
 
+          <!-- Warehouse -->
+          <div>
+            <button @click="toggleWarehouseMenu" class="w-full flex items-center justify-between px-4 py-3 text-white rounded-lg hover:bg-blue-800">
+              <div class="flex items-center space-x-3">
+                <BuildingOfficeIcon class="h-5 w-5 text-white" />
+                <span>Warehouse</span>
+              </div>
+              <ChevronDownIcon :class="['h-4 w-4 text-white transition-transform', isWarehouseMenuOpen ? 'rotate-180' : '']" />
+            </button>
+            
+            <!-- Warehouse Sub-menu -->
+            <div v-show="isWarehouseMenuOpen" class="mt-1 ml-4 space-y-1">
+              <button type="button" @click="handleShowAddWarehouse" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
+                <PlusIcon class="h-4 w-4" />
+                <span>Add Warehouse</span>
+              </button>
+              <button type="button" @click="handleShowManageWarehouses" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
+                <ListIcon class="h-4 w-4" />
+                <span>Manage Warehouses</span>
+              </button>
+              <button type="button" @click="handleShowWarehouseTransfers" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
+                <ArrowsRightLeftIcon class="h-4 w-4" />
+                <span>Transfers</span>
+              </button>
+            </div>
+          </div>
+
           <!-- Products -->
           <div v-if="hasProductsPermission">
             <button @click="toggleProductsMenu" class="w-full flex items-center justify-between px-4 py-3 text-white rounded-lg hover:bg-blue-800">
@@ -351,6 +378,9 @@
         <AccessRights v-else-if="showAccessRights" />
         <ShipmentsList v-else-if="showShipments" />
         <StockList v-else-if="showStock" />
+        <WarehouseCreate v-else-if="showAddWarehouse" @back="handleBackFromAddWarehouse" />
+        <WarehouseList v-else-if="showManageWarehouses" @add-warehouse="handleShowAddWarehouse" />
+        <WarehouseTransfers v-else-if="showWarehouseTransfers" />
         <HistoryList v-else-if="showHistory" />
         <BalanceView v-else-if="showBalance" />
         <slot v-else></slot>
@@ -393,6 +423,9 @@ import StockList from './StockList.vue'
 import SellerInvoicesList from './SellerInvoicesList.vue'
 import HistoryList from './HistoryList.vue'
 import BalanceView from './BalanceView.vue'
+import WarehouseCreate from './WarehouseCreate.vue'
+import WarehouseList from './WarehouseList.vue'
+import WarehouseTransfers from './WarehouseTransfers.vue'
 
 // Component state
 const isDashboardMenuOpen = ref(false)
@@ -405,6 +438,7 @@ const isExpensesMenuOpen = ref(false)
 const isProfileMenuOpen = ref(false)
 const isMobileMenuOpen = ref(false)
 const isSettingsMenuOpen = ref(false)
+const isWarehouseMenuOpen = ref(false)
 
 // App settings
 const appLogo = ref(null)
@@ -444,6 +478,9 @@ const showStock = ref(false)
 const showSellerInvoices = ref(false)
 const showHistory = ref(false)
 const showBalance = ref(false)
+const showAddWarehouse = ref(false)
+const showManageWarehouses = ref(false)
+const showWarehouseTransfers = ref(false)
 
 const toggleDashboardMenu = () => {
   isDashboardMenuOpen.value = !isDashboardMenuOpen.value
@@ -479,6 +516,10 @@ const toggleProfileMenu = () => {
 
 const toggleSettingsMenu = () => {
   isSettingsMenuOpen.value = !isSettingsMenuOpen.value
+}
+
+const toggleWarehouseMenu = () => {
+  isWarehouseMenuOpen.value = !isWarehouseMenuOpen.value
 }
 
 const closeProfileMenu = () => {
@@ -544,6 +585,8 @@ const resetViews = () => {
   showTransfers.value = false
   showHistory.value = false
   showBalance.value = false
+  showAddWarehouse.value = false
+  showManageWarehouses.value = false
 }
 
 const handleShowAddProduct = (e) => {
@@ -727,6 +770,29 @@ const handleShowStock = (e) => {
   if (e) e.preventDefault()
   resetViews()
   showStock.value = true
+}
+
+const handleShowAddWarehouse = (e) => {
+  if (e) e.preventDefault()
+  resetViews()
+  showAddWarehouse.value = true
+}
+
+const handleShowManageWarehouses = (e) => {
+  if (e) e.preventDefault()
+  resetViews()
+  showManageWarehouses.value = true
+}
+
+const handleShowWarehouseTransfers = (e) => {
+  if (e) e.preventDefault()
+  resetViews()
+  showWarehouseTransfers.value = true
+}
+
+const handleBackFromAddWarehouse = () => {
+  showAddWarehouse.value = false
+  showManageWarehouses.value = true
 }
 
 const handleShowHistory = () => {
@@ -1108,6 +1174,14 @@ const SellerIcon = {
   `
 }
 
+const BuildingOfficeIcon = {
+  template: `
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+    </svg>
+  `
+}
+
 export default {
   components: {
     HomeIcon,
@@ -1127,6 +1201,7 @@ export default {
     TagIcon,
     UserPlusIcon,
     SellerIcon,
+    BuildingOfficeIcon,
     CalculatorIcon,
     CurrencyDollarIcon,
     CreditCardIcon,

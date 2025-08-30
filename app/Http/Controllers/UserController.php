@@ -155,6 +155,18 @@ class UserController extends Controller
     }
 
     /**
+     * Get all sellers for dropdown selection
+     */
+    public function getSellers()
+    {
+        $sellers = User::whereHas('roles', function ($query) {
+            $query->where('name', 'seller');
+        })->select('id', 'name', 'email')->orderBy('name')->get();
+        
+        return response()->json($sellers);
+    }
+
+    /**
      * Remove the specified resource from storage.
      */
     public function destroy(User $user)

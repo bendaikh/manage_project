@@ -147,6 +147,7 @@
             <th class="px-2 lg:px-3 py-2 text-left text-xs font-bold hidden md:table-cell">CLIENT</th>
             <th class="px-2 lg:px-3 py-2 text-left text-xs font-bold hidden lg:table-cell">AGENT</th>
             <th class="px-2 lg:px-3 py-2 text-left text-xs font-bold">STATUS</th>
+            <th v-if="props.delivery" class="px-2 lg:px-3 py-2 text-left text-xs font-bold hidden xl:table-cell">WAREHOUSE</th>
             <th class="px-2 lg:px-3 py-2 text-left text-xs font-bold hidden lg:table-cell">DATE</th>
             <th class="px-2 lg:px-3 py-2 text-left text-xs font-bold hidden xl:table-cell">ZONE</th>
             <th class="px-2 lg:px-3 py-2 text-left text-xs font-bold hidden xl:table-cell">COMMENT</th>
@@ -186,6 +187,14 @@
                 {{ order.status }}
               </button>
             </td>
+            <td v-if="props.delivery" class="px-2 lg:px-3 py-2 hidden xl:table-cell">
+              <div v-if="order.warehouse" class="text-xs text-green-600 font-medium">
+                {{ order.warehouse.name }}
+              </div>
+              <div v-else class="text-xs text-gray-400">
+                Not assigned
+              </div>
+            </td>
             <td class="px-2 lg:px-3 py-2 hidden lg:table-cell">
               <div class="text-xs text-gray-600">Created: {{ formatDate(order.created_at) }}</div>
               <div class="text-xs text-blue-600">Updated: {{ formatDate(order.updated_at) }}</div>
@@ -217,7 +226,8 @@
       </table>
     </div>
     <!-- Pagination -->
-    <nav v-if="totalPages > 1" class="flex justify-center mt-4">
+    <nav v-if="totalPages > 1" class="flex flex-col items-center mt-4 space-y-2">
+      <!-- Page Navigation -->
       <ul class="inline-flex">
         <li>
           <button
@@ -231,12 +241,19 @@
         </li>
         <li v-for="page in pageNumbers" :key="page">
           <button
+            v-if="page !== '...'"
             @click="changePage(page)"
             class="px-3 py-1 border-t border-b"
             :class="page === currentPage ? 'bg-blue-600 text-white' : 'bg-white hover:bg-gray-100'"
           >
             {{ page }}
           </button>
+          <span
+            v-else
+            class="px-3 py-1 border-t border-b bg-gray-50 text-gray-500"
+          >
+            {{ page }}
+          </span>
         </li>
         <li>
           <button
@@ -249,6 +266,28 @@
           </button>
         </li>
       </ul>
+      
+      <!-- Page Info and Go to Page (for large datasets) -->
+      <div v-if="totalPages > 10" class="flex items-center space-x-4 text-sm text-gray-600">
+        <span>Page {{ currentPage }} of {{ totalPages }}</span>
+        <div class="flex items-center space-x-2">
+          <span>Go to:</span>
+          <input
+            v-model="goToPage"
+            type="number"
+            min="1"
+            :max="totalPages"
+            class="w-16 px-2 py-1 border rounded text-center"
+            @keyup.enter="goToPageNumber"
+          />
+          <button
+            @click="goToPageNumber"
+            class="px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-xs"
+          >
+            Go
+          </button>
+        </div>
+      </div>
     </nav>
 
     <OrderDetailsModal v-if="showDetails" :order="selectedOrder" @close="closeDetails" @edit="openEdit" />
@@ -316,6 +355,33 @@
         <button class="mt-4 w-full text-center px-4 py-2 bg-gray-200 rounded" @click="closeStatusModal">Cancel</button>
       </div>
     </div>
+    
+    <!-- Warehouse Selection Modal -->
+    <div v-if="showWarehouseModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" @click.self="closeWarehouseModal">
+      <div class="bg-white rounded-lg shadow-lg p-4 lg:p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <h3 class="text-lg font-semibold mb-4">Select Warehouse for Order Confirmation</h3>
+        <p class="text-sm text-gray-600 mb-4">Please select which warehouse this order will take products from:</p>
+        
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-2">Warehouse</label>
+          <select v-model="selectedWarehouseId" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="">Select a warehouse</option>
+            <option v-for="warehouse in warehouses" :key="warehouse.id" :value="warehouse.id">
+              {{ warehouse.name }} - {{ warehouse.location }}
+            </option>
+          </select>
+        </div>
+        
+        <div class="flex justify-end space-x-3">
+          <button @click="closeWarehouseModal" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">
+            Cancel
+          </button>
+          <button @click="confirmOrderWithWarehouse" :disabled="!selectedWarehouseId" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50">
+            Confirm Order
+          </button>
+        </div>
+      </div>
+    </div>
     <!-- Toast inline -->
     <div v-if="toastMessage" :class="'toast px-4 py-2 rounded text-white '+(toastType==='success'?'bg-green-600':'bg-red-600')">
       {{ toastMessage }}
@@ -324,7 +390,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, defineProps, computed } from 'vue'
+import { ref, onMounted, defineProps, computed, watch } from 'vue'
 import OrderDetailsModal from './OrderDetailsModal.vue'
 import OrderEdit from './OrderEdit.vue'
 
@@ -342,19 +408,52 @@ const statusCounts = ref({})
 const currentPage = ref(1)
 const perPage = ref(10) // You can adjust default items per page here
 const totalPages = ref(1)
+const goToPage = ref('')
 
 const pageNumbers = computed(() => {
   const pages = []
-  for (let i = 1; i <= totalPages.value; i++) pages.push(i)
+  const current = currentPage.value
+  const total = totalPages.value
+  
+  // If we have 10 or fewer pages, show all
+  if (total <= 10) {
+    for (let i = 1; i <= total; i++) {
+      pages.push(i)
+    }
+    return pages
+  }
+  
+  // Always show first page
+  pages.push(1)
+  
+  // Calculate range around current page
+  const start = Math.max(2, current - 2)
+  const end = Math.min(total - 1, current + 2)
+  
+  // Add ellipsis if there's a gap after first page
+  if (start > 2) {
+    pages.push('...')
+  }
+  
+  // Add pages around current page
+  for (let i = start; i <= end; i++) {
+    pages.push(i)
+  }
+  
+  // Add ellipsis if there's a gap before last page
+  if (end < total - 1) {
+    pages.push('...')
+  }
+  
+  // Always show last page (if not already included)
+  if (total > 1) {
+    pages.push(total)
+  }
+  
   return pages
 })
 
 const sellers = ref([])
-// Helpers to lock an order to a section (confirmation/delivery)
-const lockKey = (id) => `order_section_${id}`
-const getSectionLock = (id) => localStorage.getItem(lockKey(id))
-const setSectionLock = (id, section) => localStorage.setItem(lockKey(id), section)
-const clearSectionLock = (id) => localStorage.removeItem(lockKey(id))
 // Full list for filter dropdown (can still show all)
 const statuses = ref(['New Order','Confirmed','Confirmed on Date','Unreachable','Postponed','Cancelled','Blacklisted','Out of Stock','Processing','Shipped','Delivered'])
 
@@ -411,6 +510,10 @@ const canMarkAsShipped = computed(() => {
 const availableStatuses = computed(() => allowedStatuses.value)
 const showStatusModal = ref(false)
 const statusTargetOrder = ref(null)
+const showWarehouseModal = ref(false)
+const warehouseTargetOrder = ref(null)
+const warehouses = ref([])
+const selectedWarehouseId = ref('')
 const toastMessage = ref('')
 const toastType = ref('success')
 
@@ -464,49 +567,31 @@ const fetchOrders = async () => {
   if (filters.value.zone) url += `&zone=${encodeURIComponent(filters.value.zone)}`
   if (filters.value.dateRange) url += `&dateRange=${encodeURIComponent(filters.value.dateRange)}`
   if (props.confirmation) {
-    // Keep showing only orders assigned to agents in confirmation section
-    url += `&assigned_only=1`
+    // Show confirmation section orders
+    url += `&belongs_to=confirmation&assigned_only=1`
   } else if (props.delivery) {
-    // No extra filters; allowedStatuses already cover delivery statuses
+    // Show delivery section orders
+    url += `&belongs_to=delivery`
   } else {
     // Default "All Orders" view - show only unassigned orders (New Order status)
     url += `&unassigned_only=1`
   }
   const res = await fetch(url)
   const data = await res.json()
-  // Apply section-lock filtering so orders don't appear in both Confirmation & Delivery
-  let fetchedOrders = data.orders.data
-  if (props.confirmation) {
-    fetchedOrders = fetchedOrders.filter(o => {
-      const lock = getSectionLock(o.id)
-      return !lock || lock === 'confirmation'
-    })
-  }
-  if (props.delivery) {
-    fetchedOrders = fetchedOrders.filter(o => {
-      const lock = getSectionLock(o.id)
-      return !lock || lock === 'delivery'
-    })
-  }
-  orders.value = fetchedOrders
+  // Backend now handles belongs_to filtering, so no client-side filtering needed
+  orders.value = data.orders.data
   
-  // Simple pagination fix: if we have no orders on current page, go to page 1
-  if (fetchedOrders.length === 0 && data.orders.current_page > 1) {
+  // Handle pagination - backend now handles all filtering
+  if (orders.value.length === 0 && data.orders.current_page > 1) {
+    // If we have no orders on current page, go to page 1
     currentPage.value = 1
     await fetchOrders()
     return
   }
   
-  // Fix pagination: use different logic for different sections
-  if (props.confirmation) {
-    // Confirmation section should use backend pagination like delivery
-    totalPages.value = data.orders.last_page
-    currentPage.value = data.orders.current_page
-  } else {
-    // Delivery and other sections use backend pagination as is
-    totalPages.value = data.orders.last_page
-    currentPage.value = data.orders.current_page
-  }
+  // Use backend pagination for all sections
+  totalPages.value = data.orders.last_page
+  currentPage.value = data.orders.current_page
   
   sellers.value = data.sellers
   zones.value = data.zones
@@ -530,6 +615,15 @@ const changePage = (page) => {
   if (page < 1 || page > totalPages.value) return
   currentPage.value = page
   fetchOrders()
+}
+
+// Go to specific page number
+const goToPageNumber = () => {
+  const page = parseInt(goToPage.value)
+  if (page && page >= 1 && page <= totalPages.value) {
+    changePage(page)
+    goToPage.value = '' // Clear input after navigation
+  }
 }
 
 const fetchAvailableAgents = async () => {
@@ -776,10 +870,93 @@ const closeStatusModal = () => {
   statusTargetOrder.value = null
 }
 
+const showWarehouseSelectionModal = async (order) => {
+  warehouseTargetOrder.value = order
+  selectedWarehouseId.value = ''
+  
+  // Fetch warehouses
+  try {
+    const response = await fetch('/warehouses')
+    if (response.ok) {
+      const data = await response.json()
+      warehouses.value = data.data || []
+    }
+  } catch (error) {
+    console.error('Error fetching warehouses:', error)
+  }
+  
+  showWarehouseModal.value = true
+}
+
+const closeWarehouseModal = () => {
+  showWarehouseModal.value = false
+  warehouseTargetOrder.value = null
+  selectedWarehouseId.value = ''
+}
+
+const confirmOrderWithWarehouse = async () => {
+  if (!warehouseTargetOrder.value || !selectedWarehouseId.value) return
+  
+  try {
+    const csrf = document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+    const res = await fetch(`/orders/${warehouseTargetOrder.value.id}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf },
+      body: JSON.stringify({ 
+        status: 'Confirmed',
+        warehouse_id: selectedWarehouseId.value
+      })
+    })
+    
+    if (!res.ok) {
+      console.log('Response status:', res.status)
+      console.log('Response headers:', res.headers)
+      
+      let errorMessage = 'Failed to confirm order'
+      try {
+        const errorData = await res.json()
+        console.log('Error data:', errorData)
+        errorMessage = errorData.message || errorMessage
+      } catch (e) {
+        console.log('JSON parsing failed:', e)
+        // If JSON parsing fails, try to get text
+        const errorText = await res.text()
+        console.log('Error text:', errorText)
+        errorMessage = errorText || errorMessage
+      }
+      throw new Error(errorMessage)
+    }
+    
+    const data = await res.json()
+    
+    toastType.value = 'success'
+    toastMessage.value = data.message || 'Order confirmed successfully'
+    
+    // Refresh orders to show the updated list
+    await fetchOrders()
+  } catch (err) {
+    toastType.value = 'error'
+    toastMessage.value = err.message || 'Failed to confirm order'
+    console.error(err)
+  } finally {
+    closeWarehouseModal()
+    closeStatusModal() // Also close the status modal
+    // auto clear toast after 3s
+    setTimeout(() => { toastMessage.value = '' }, 3000)
+  }
+}
+
 // (Removed fetchStatuses; availableStatuses derived from allowedStatuses)
 
 const updateOrderStatus = async (statusName) => {
   if (!statusTargetOrder.value) return
+  
+  // If status is "Confirmed", show warehouse selection first
+  if (statusName === 'Confirmed') {
+    showWarehouseSelectionModal(statusTargetOrder.value)
+    return
+  }
+  
   try {
     const csrf = document.querySelector('meta[name="csrf-token"]').getAttribute('content')
     const res = await fetch(`/orders/${statusTargetOrder.value.id}/status`, {
@@ -793,18 +970,6 @@ const updateOrderStatus = async (statusName) => {
     toastType.value = 'success'
     toastMessage.value = data.message || 'Status updated successfully'
     
-    // Lock the order to the current section based on rules
-    if (props.confirmation) {
-      // If status was "Confirmed" the backend will move it to Processing (Delivery) → lock to delivery
-      if (statusName === 'Confirmed') {
-        setSectionLock(statusTargetOrder.value.id, 'delivery')
-      } else {
-        setSectionLock(statusTargetOrder.value.id, 'confirmation')
-      }
-    } else if (props.delivery) {
-      setSectionLock(statusTargetOrder.value.id, 'delivery')
-    }
-
     // Refresh orders to show the updated list (orders may move between sections)
     await fetchOrders()
   } catch (err) {
@@ -845,6 +1010,11 @@ const getStatusColor = (statusName) => {
 }
 
 onMounted(() => { fetchOrders() })
+
+// Watch for current page changes to clear goToPage input
+watch(currentPage, () => {
+  goToPage.value = ''
+})
 </script>
 
 <style scoped>

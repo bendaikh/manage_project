@@ -74,7 +74,7 @@ class PdfController extends Controller
                 ->whereHas('orderStatus', function ($query) {
                     $query->where('name', 'Delivered');
                 })
-                ->whereDate('updated_at', $today);
+                ->whereDate('created_at', $today);
         }
 
         $orders = $ordersQuery->orderBy('updated_at', 'desc')->get();
