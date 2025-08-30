@@ -25,6 +25,7 @@ class Product extends Model
         'video_url',
         'video_duration',
         'description',
+        'warehouse_id',
     ];
 
     /**
@@ -33,6 +34,14 @@ class Product extends Model
     public function seller()
     {
         return $this->belongsTo(User::class, 'seller_id');
+    }
+
+    /**
+     * Warehouse relation.
+     */
+    public function warehouse()
+    {
+        return $this->belongsTo(Warehouse::class);
     }
 
     /**

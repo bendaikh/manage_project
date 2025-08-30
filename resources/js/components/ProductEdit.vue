@@ -33,6 +33,26 @@
           <label class="block text-sm font-medium mb-1">Supplier</label>
           <input v-model="form.supplier" type="text" class="w-full border rounded px-3 py-2 focus:outline-none focus:ring focus:border-blue-300" />
         </div>
+        <!-- Warehouse field -->
+        <div class="mb-4">
+          <label class="block text-sm font-medium mb-1">Warehouse *</label>
+          <select v-model="form.warehouse_id" required class="w-full border rounded px-3 py-2 focus:outline-none focus:ring focus:border-blue-300">
+            <option value="">Select a warehouse</option>
+            <option v-for="warehouse in warehouses" :key="warehouse.id" :value="warehouse.id">{{ warehouse.name }} - {{ warehouse.location }}</option>
+          </select>
+        </div>
+        <!-- Seller field -->
+        <div class="mb-4" v-if="!isSeller">
+          <label class="block text-sm font-medium mb-1">Seller *</label>
+          <select v-model="form.seller_id" class="w-full border rounded px-3 py-2 focus:outline-none focus:ring focus:border-blue-300">
+            <option value="">Select a seller</option>
+            <option v-for="s in sellers" :key="s.id" :value="s.id">{{ s.name }}</option>
+          </select>
+        </div>
+        <div class="mb-4" v-else>
+          <label class="block text-sm font-medium mb-1">Seller</label>
+          <input type="text" :value="window.Laravel?.user?.name" class="w-full border rounded px-3 py-2 bg-gray-100" disabled />
+        </div>
         <div class="mb-4 grid grid-cols-2 gap-4">
           <div>
             <label class="block text-sm font-medium mb-1">Purchase Price *</label>
@@ -111,6 +131,8 @@ const form = ref({
   sku: '',
   category: '',
   supplier: '',
+  seller_id: '',
+  warehouse_id: '',
   purchase_price: '',
   selling_price: '',
   stock_quantity: 1,
@@ -124,12 +146,30 @@ const form = ref({
 const error = ref('')
 const success = ref(false)
 const categories = ref([])
+const warehouses = ref([])
+const sellers = ref([])
+const isSeller = ref(false)
 
 const fetchCategories = async () => {
   const res = await fetch('/categories', { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
   if (!res.ok) return
   const data = await res.json()
   categories.value = data.categories || []
+}
+
+const fetchWarehouses = async () => {
+  const res = await fetch('/warehouses', { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
+  if (!res.ok) return
+  const data = await res.json()
+  warehouses.value = data.data || []
+}
+
+const fetchSellers = async () => {
+  if (isSeller.value) return
+  const res = await fetch('/users?role=seller', { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
+  if (!res.ok) return
+  const data = await res.json()
+  sellers.value = data.users || []
 }
 
 const fetchProduct = async () => {
@@ -148,6 +188,8 @@ const fetchProduct = async () => {
       sku: product.sku || '',
       category: product.category || '',
       supplier: product.supplier || '',
+      seller_id: product.seller_id || '',
+      warehouse_id: product.warehouse_id || '',
       purchase_price: product.purchase_price || '',
       selling_price: product.selling_price || '',
       stock_quantity: product.stock_quantity || 1,
@@ -163,7 +205,13 @@ const fetchProduct = async () => {
 }
 
 onMounted(() => {
+  isSeller.value = Array.isArray(window.Laravel?.user?.roles) && window.Laravel.user.roles.includes('seller')
+  if (isSeller.value) {
+    form.value.seller_id = window.Laravel?.user?.id || ''
+  }
   fetchCategories()
+  fetchWarehouses()
+  fetchSellers()
   fetchProduct()
 })
 

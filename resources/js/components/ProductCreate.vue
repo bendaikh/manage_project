@@ -33,6 +33,14 @@
           <label class="block text-sm font-medium mb-1">Supplier</label>
           <input v-model="form.supplier" type="text" class="w-full border rounded px-3 py-2 focus:outline-none focus:ring focus:border-blue-300" />
         </div>
+        <!-- Warehouse field -->
+        <div class="mb-4">
+          <label class="block text-sm font-medium mb-1">Warehouse *</label>
+          <select v-model="form.warehouse_id" required class="w-full border rounded px-3 py-2 focus:outline-none focus:ring focus:border-blue-300">
+            <option value="">Select a warehouse</option>
+            <option v-for="warehouse in warehouses" :key="warehouse.id" :value="warehouse.id">{{ warehouse.name }} - {{ warehouse.location }}</option>
+          </select>
+        </div>
         <!-- Seller field -->
         <div class="mb-4" v-if="!isSeller">
           <label class="block text-sm font-medium mb-1">Seller *</label>
@@ -79,22 +87,19 @@
         <h3 class="font-semibold text-lg mb-4">Additional Details</h3>
         <div class="mb-4">
           <label class="block text-sm font-medium mb-1">Image URL</label>
-          <input v-model="form.image_url" type="url" class="w-full border rounded px-3 py-2 focus:outline-none focus:ring focus:border-blue-300" />
+          <input v-model="form.image_url" type="url" class="w-full border rounded px-3 py-2 focus:outline-none focus:ring focus:border-blue-300" placeholder="https://example.com/image.jpg" />
         </div>
-        <div class="mb-4 grid grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm font-medium mb-1">Video URL</label>
-            <input v-model="form.video_url" type="url" class="w-full border rounded px-3 py-2 focus:outline-none focus:ring focus:border-blue-300" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium mb-1">Video Duration</label>
-            <input v-model="form.video_duration" type="text" class="w-full border rounded px-3 py-2 focus:outline-none focus:ring focus:border-blue-300" placeholder="e.g. 2:30" />
-          </div>
+        <div class="mb-4">
+          <label class="block text-sm font-medium mb-1">Video URL</label>
+          <input v-model="form.video_url" type="url" class="w-full border rounded px-3 py-2 focus:outline-none focus:ring focus:border-blue-300" placeholder="https://example.com/video.mp4" />
+        </div>
+        <div class="mb-4">
+          <label class="block text-sm font-medium mb-1">Video Duration</label>
+          <input v-model="form.video_duration" type="text" class="w-full border rounded px-3 py-2 focus:outline-none focus:ring focus:border-blue-300" placeholder="e.g., 2:30" />
         </div>
         <div class="mb-4">
           <label class="block text-sm font-medium mb-1">Description</label>
-          <textarea v-model="form.description" maxlength="2000" rows="5" class="w-full border rounded px-3 py-2 focus:outline-none focus:ring focus:border-blue-300" placeholder="Enter product description (supports all characters: emojis 😊, special symbols ™ © ®, international text 中文 العربية français, etc.)"></textarea>
-          <div class="text-xs text-gray-400 mt-1">{{ form.description.length }}/2000 characters</div>
+          <textarea v-model="form.description" rows="4" class="w-full border rounded px-3 py-2 focus:outline-none focus:ring focus:border-blue-300" placeholder="Enter product description..."></textarea>
         </div>
         <div class="bg-blue-50 border border-blue-200 rounded p-4 text-sm text-blue-900">
           <div class="flex items-center mb-2">
@@ -129,6 +134,7 @@ const form = ref({
   category: '',
   supplier: '',
   seller_id: '',
+  warehouse_id: '',
   purchase_price: '',
   selling_price: '',
   stock_quantity: 1,
@@ -143,6 +149,7 @@ const error = ref('')
 const success = ref(false)
 const categories = ref([])
 const sellers = ref([])
+const warehouses = ref([])
 const isSeller = ref(false)
 
 const fetchCategories = async () => {
@@ -152,7 +159,15 @@ const fetchCategories = async () => {
   categories.value = data.categories || []
 }
 
+const fetchWarehouses = async () => {
+  const res = await fetch('/warehouses', { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
+  if (!res.ok) return
+  const data = await res.json()
+  warehouses.value = data.data || []
+}
+
 onMounted(fetchCategories)
+onMounted(fetchWarehouses)
 
 // Fetch sellers only if needed
 const fetchSellers = async () => {
@@ -193,7 +208,7 @@ const submitForm = async () => {
     }
     success.value = true
     form.value = {
-      name: '', sku: '', category: '', supplier: '', seller_id: isSeller.value ? (window.Laravel?.user?.id || '') : '', purchase_price: '', selling_price: '', stock_quantity: 1, status: 'In Stock', image_url: '', video_url: '', video_duration: '', description: ''
+      name: '', sku: '', category: '', supplier: '', seller_id: isSeller.value ? (window.Laravel?.user?.id || '') : '', warehouse_id: '', purchase_price: '', selling_price: '', stock_quantity: 1, status: 'In Stock', image_url: '', video_url: '', video_duration: '', description: ''
     }
     // Optionally emit event to parent
     // emit('product-saved')

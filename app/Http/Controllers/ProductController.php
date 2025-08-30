@@ -28,6 +28,7 @@ class ProductController extends Controller
             'video_url' => 'nullable|url|max:1024',
             'video_duration' => 'nullable|string|max:255',
             'description' => 'nullable|string|max:2000',
+            'warehouse_id' => 'required|exists:warehouses,id',
         ];
 
         if (!auth()->user()->hasRole('seller')) {
@@ -67,7 +68,7 @@ class ProductController extends Controller
 
     public function index(Request $request)
     {
-        $query = Product::query();
+        $query = Product::with(['seller', 'warehouse']);
 
         // Sellers only see their own products
         if (auth()->check() && auth()->user()->hasRole('seller')) {
@@ -79,6 +80,9 @@ class ProductController extends Controller
         }
         if ($request->filled('status')) {
             $query->where('status', $request->status);
+        }
+        if ($request->filled('warehouse_id')) {
+            $query->where('warehouse_id', $request->warehouse_id);
         }
         if ($request->filled('search')) {
             $search = $request->search;
@@ -134,12 +138,12 @@ class ProductController extends Controller
 
     public function show(Product $product)
     {
-        return response()->json($product);
+        return response()->json($product->load(['seller', 'warehouse']));
     }
 
     public function edit(Product $product)
     {
-        return response()->json($product);
+        return response()->json($product->load(['seller', 'warehouse']));
     }
 
     public function update(Request $request, Product $product)
@@ -157,6 +161,7 @@ class ProductController extends Controller
             'video_url' => 'nullable|url|max:1024',
             'video_duration' => 'nullable|string|max:255',
             'description' => 'nullable|string|max:2000',
+            'warehouse_id' => 'required|exists:warehouses,id',
         ];
 
         if (!auth()->user()->hasRole('seller')) {

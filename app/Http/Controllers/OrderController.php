@@ -394,6 +394,12 @@ class OrderController extends Controller
             return; // No product associated with this order
         }
 
+        // Check if this is a product directly assigned to a warehouse
+        if ($product->warehouse_id && $warehouseId && $product->warehouse_id == $warehouseId) {
+            $this->updateProductStockFromOrderStatus($order, $oldStatus, $newStatus, $product);
+            return;
+        }
+
         // Find the corresponding stock record using the product's SKU
         $stock = \App\Models\Stock::where('reference', $product->sku)->first();
         if (!$stock) {
@@ -517,12 +523,30 @@ class OrderController extends Controller
             ];
         }
 
-        // Find the corresponding stock record
+        // First, check if the product is directly assigned to the warehouse
+        if ($product->warehouse_id == $warehouseId) {
+            $availableQuantity = $product->stock_quantity;
+            $requiredQuantity = $order->quantity;
+
+            if ($availableQuantity >= $requiredQuantity) {
+                return [
+                    'valid' => true,
+                    'message' => 'Stock validation passed (direct product assignment)'
+                ];
+            } else {
+                return [
+                    'valid' => false,
+                    'message' => "Insufficient stock in warehouse. Available: {$availableQuantity}, Required: {$requiredQuantity}"
+                ];
+            }
+        }
+
+        // If not directly assigned, check for stock records (for products created through shipments)
         $stock = \App\Models\Stock::where('reference', $product->sku)->first();
         if (!$stock) {
             return [
                 'valid' => false,
-                'message' => 'No stock record found for this product'
+                'message' => "Product '{$product->name}' is not available in the selected warehouse"
             ];
         }
 
@@ -550,7 +574,54 @@ class OrderController extends Controller
 
         return [
             'valid' => true,
-            'message' => 'Stock validation passed'
+            'message' => 'Stock validation passed (stock record)'
         ];
+    }
+
+    /**
+     * Update product stock quantities when product is directly assigned to warehouse
+     */
+    private function updateProductStockFromOrderStatus($order, $oldStatus, $newStatus, $product)
+    {
+        $quantity = $order->quantity;
+        $oldStatusLower = strtolower($oldStatus);
+        $newStatusLower = strtolower($newStatus);
+
+        // Handle status transitions for products directly assigned to warehouses
+        switch ($newStatusLower) {
+            case 'processing':
+            case 'shipped':
+                // Moving TO Processing/Shipped - reduce available stock
+                if ($oldStatusLower !== 'processing' && $oldStatusLower !== 'shipped') {
+                    $newStockQuantity = max(0, $product->stock_quantity - $quantity);
+                    $product->update(['stock_quantity' => $newStockQuantity]);
+                }
+                break;
+
+            case 'cancelled':
+            case 'refunded':
+            case 'unreachable':
+            case 'postponed':
+            case 'wrong number':
+            case 'out of stock':
+            case 'blacklisted':
+            case 'new order':
+            case 'pending':
+                // Moving TO statuses that restore stock quantities
+                if ($oldStatusLower === 'processing' || $oldStatusLower === 'shipped') {
+                    // Return stock when order is cancelled/refunded
+                    $newStockQuantity = $product->stock_quantity + $quantity;
+                    $product->update(['stock_quantity' => $newStockQuantity]);
+                }
+                break;
+        }
+
+        // Log the action
+        $this->logAction('Product Stock Updated', "Product '{$product->name}' stock updated from order #{$order->id} status change: {$oldStatus} → {$newStatus}", [
+            'product_id' => $product->id,
+            'order_id' => $order->id,
+            'quantity_change' => $quantity,
+            'new_stock_quantity' => $product->stock_quantity
+        ]);
     }
 } 

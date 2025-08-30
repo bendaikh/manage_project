@@ -170,7 +170,7 @@ const viewProducts = async (warehouse) => {
     const response = await fetch(`/warehouses/${warehouse.id}/products`)
     if (response.ok) {
       const data = await response.json()
-      showProductsModal(warehouse, data.stocks)
+      showProductsModal(warehouse, data.allItems, data.stocks, data.products)
     }
   } catch (error) {
     console.error('Error fetching warehouse products:', error)
@@ -178,7 +178,7 @@ const viewProducts = async (warehouse) => {
   }
 }
 
-const showProductsModal = (warehouse, stocks) => {
+const showProductsModal = (warehouse, allItems, stocks, products) => {
   const modal = document.createElement('div')
   modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50'
   modal.innerHTML = `
@@ -194,36 +194,42 @@ const showProductsModal = (warehouse, stocks) => {
       
       <div class="mb-4 text-sm text-gray-600">
         <p><strong>Location:</strong> ${warehouse.location}</p>
-        <p><strong>Total Products:</strong> ${stocks.length}</p>
+        <p><strong>Total Items:</strong> ${allItems.length} (${stocks.length} stocks, ${products.length} products)</p>
       </div>
       
-      ${stocks.length > 0 ? `
+      ${allItems.length > 0 ? `
         <div class="overflow-x-auto">
           <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
               <tr>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reference</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name/Title</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reference/SKU</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity in Warehouse</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Seller</th>
               </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
-              ${stocks.map(stock => `
+              ${allItems.map(item => `
                 <tr class="hover:bg-gray-50">
                   <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-sm font-medium text-gray-900">${stock.title}</div>
-                    <div class="text-sm text-gray-500">${stock.description || 'No description'}</div>
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${stock.reference}</td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${stock.warehouse_quantity || 0}</td>
-                  <td class="px-6 py-4 whitespace-nowrap">
-                    <span class="px-2 py-1 text-xs font-medium rounded-full ${getStockStatusClass(stock.status)}">
-                      ${stock.status}
+                    <span class="px-2 py-1 text-xs font-medium rounded-full ${item.type === 'product' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}">
+                      ${item.type === 'product' ? 'Product' : 'Stock'}
                     </span>
                   </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${stock.seller?.name || 'N/A'}</td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm font-medium text-gray-900">${item.type === 'product' ? item.name : item.title}</div>
+                    <div class="text-sm text-gray-500">${item.description || 'No description'}</div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${item.type === 'product' ? (item.sku || 'N/A') : item.reference}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${item.warehouse_quantity || 0}</td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="px-2 py-1 text-xs font-medium rounded-full ${getStockStatusClass(item.status)}">
+                      ${item.status}
+                    </span>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${item.seller?.name || 'N/A'}</td>
                 </tr>
               `).join('')}
             </tbody>
