@@ -94,7 +94,8 @@
               <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product Link</th>
               <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Photos</th>
               <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Shipping Date</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fees</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Shipping Cost</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Transport Cost</th>
               <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customs Fee</th>
               <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Validation</th>
               <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
@@ -136,7 +137,10 @@
                 {{ formatDate(shipment.shipment_date) }}
               </td>
               <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
-                {{ formatCurrency(shipment.customs_fees || 0) }}
+                {{ formatCurrency(shipment.shipping_cost || 0) }}
+              </td>
+              <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                {{ formatCurrency(shipment.transport_cost || 0) }}
               </td>
               <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
                 {{ formatCurrency(shipment.customs_fees || 0) }}
@@ -179,7 +183,7 @@
               </td>
             </tr>
             <tr v-if="shipments.length === 0">
-              <td colspan="12" class="text-center py-8 text-gray-400">
+              <td colspan="13" class="text-center py-8 text-gray-400">
                 No shipments found.
               </td>
             </tr>
@@ -721,26 +725,48 @@ const showWarehouseSelection = async (shipment) => {
       const modal = document.createElement('div')
       modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50'
       modal.innerHTML = `
-        <div class="bg-white rounded-lg p-6 w-full max-w-md">
-          <h3 class="text-lg font-medium text-gray-900 mb-4">Select Warehouse</h3>
-          <p class="text-sm text-gray-600 mb-4">Choose a warehouse for shipment: "${shipment.title}"</p>
-          <div class="space-y-2 mb-4 max-h-60 overflow-y-auto">
-            ${warehouses.map(w => `
-              <label class="flex items-center p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
-                <input type="radio" name="warehouse" value="${w.id}" class="mr-3">
-                <div>
-                  <div class="font-medium">${w.name}</div>
-                  <div class="text-sm text-gray-500">${w.location}</div>
-                </div>
-              </label>
-            `).join('')}
+        <div class="bg-white rounded-lg p-6 w-full max-w-lg">
+          <h3 class="text-lg font-medium text-gray-900 mb-4">Validate Shipment</h3>
+          <p class="text-sm text-gray-600 mb-4">Complete validation for shipment: "${shipment.title}"</p>
+          
+          <!-- Warehouse Selection -->
+          <div class="mb-6">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Select Warehouse *</label>
+            <div class="space-y-2 max-h-40 overflow-y-auto border rounded-lg p-3">
+              ${warehouses.map(w => `
+                <label class="flex items-center p-2 border rounded-lg hover:bg-gray-50 cursor-pointer">
+                  <input type="radio" name="warehouse" value="${w.id}" class="mr-3" required>
+                  <div>
+                    <div class="font-medium">${w.name}</div>
+                    <div class="text-sm text-gray-500">${w.location}</div>
+                  </div>
+                </label>
+              `).join('')}
+            </div>
           </div>
+          
+          <!-- Cost Inputs -->
+          <div class="grid grid-cols-2 gap-4 mb-6">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Shipping Cost (China to Africa) *</label>
+              <input type="number" name="shipping_cost" step="0.01" min="0" required 
+                     class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                     placeholder="0.00">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Transport Cost (Airport to Warehouse) *</label>
+              <input type="number" name="transport_cost" step="0.01" min="0" required 
+                     class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                     placeholder="0.00">
+            </div>
+          </div>
+          
           <div class="flex justify-end space-x-3">
             <button type="button" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50" onclick="this.closest('.fixed').remove()">
               Cancel
             </button>
             <button type="button" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700" onclick="window.validateWithSelectedWarehouse(${shipment.id})">
-              Validate
+              Validate Shipment
             </button>
           </div>
         </div>
@@ -751,13 +777,22 @@ const showWarehouseSelection = async (shipment) => {
       // Add global function to handle validation
       window.validateWithSelectedWarehouse = async (shipmentId) => {
         const selectedWarehouse = document.querySelector('input[name="warehouse"]:checked')
-        if (selectedWarehouse) {
-          const warehouseId = parseInt(selectedWarehouse.value)
-          modal.remove()
-          await validateShipmentWithWarehouse(shipment, warehouseId)
-        } else {
+        const shippingCost = document.querySelector('input[name="shipping_cost"]').value
+        const transportCost = document.querySelector('input[name="transport_cost"]').value
+        
+        if (!selectedWarehouse) {
           alert('Please select a warehouse')
+          return
         }
+        
+        if (!shippingCost || !transportCost) {
+          alert('Please enter both shipping and transport costs')
+          return
+        }
+        
+        const warehouseId = parseInt(selectedWarehouse.value)
+        modal.remove()
+        await validateShipmentWithWarehouse(shipment, warehouseId, parseFloat(shippingCost), parseFloat(transportCost))
       }
     }
   } catch (error) {
@@ -766,7 +801,7 @@ const showWarehouseSelection = async (shipment) => {
   }
 }
 
-const validateShipmentWithWarehouse = async (s, warehouseId) => {
+const validateShipmentWithWarehouse = async (s, warehouseId, shippingCost, transportCost) => {
   const csrf = document.querySelector('meta[name="csrf-token"]').getAttribute('content')
   const res = await fetch(`/shipments/${s.id}/validate`, { 
     method: 'POST', 
@@ -775,7 +810,11 @@ const validateShipmentWithWarehouse = async (s, warehouseId) => {
       'Accept': 'application/json',
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({ warehouse_id: warehouseId }),
+    body: JSON.stringify({ 
+      warehouse_id: warehouseId,
+      shipping_cost: shippingCost,
+      transport_cost: transportCost
+    }),
     credentials: 'same-origin' 
   })
   

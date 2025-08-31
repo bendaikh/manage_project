@@ -220,7 +220,6 @@ const showProductsModal = (warehouse, allItems, stocks, products) => {
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap">
                     <div class="text-sm font-medium text-gray-900">${item.type === 'product' ? item.name : item.title}</div>
-                    <div class="text-sm text-gray-500">${item.description || 'No description'}</div>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${item.type === 'product' ? (item.sku || 'N/A') : item.reference}</td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${item.warehouse_quantity || 0}</td>
