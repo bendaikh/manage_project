@@ -222,6 +222,19 @@ class ShipmentController extends Controller
             abort(403);
         }
         
+        // If validating (not revoking), validate the cost inputs
+        if (!$shipment->validated) {
+            $request->validate([
+                'shipping_cost' => 'required|numeric|min:0',
+                'transport_cost' => 'required|numeric|min:0',
+                'warehouse_id' => 'nullable|exists:warehouses,id'
+            ]);
+            
+            // Update shipment with costs
+            $shipment->shipping_cost = $request->shipping_cost;
+            $shipment->transport_cost = $request->transport_cost;
+        }
+        
         $shipment->validated = !$shipment->validated;
         $shipment->status = $shipment->validated ? 'Validated' : 'Processing';
         $shipment->save();

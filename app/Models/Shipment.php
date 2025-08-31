@@ -20,6 +20,8 @@ class Shipment extends Model
         'photo',
         'shipment_date',
         'customs_fees',
+        'shipping_cost',
+        'transport_cost',
         'status',
         'validated',
     ];
@@ -27,6 +29,8 @@ class Shipment extends Model
     protected $casts = [
         'shipment_date' => 'date:Y-m-d',
         'customs_fees' => 'decimal:2',
+        'shipping_cost' => 'decimal:2',
+        'transport_cost' => 'decimal:2',
         'validated' => 'boolean',
     ];
 
