@@ -353,7 +353,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     
     // Temporary debug route
     Route::get('/debug/orders-today', function () {
-        $today = now()->toDateString();
+        $today = now()->setTimezone('UTC')->toDateString();
         $orders = \App\Models\Order::whereDate('created_at', $today)->get();
         $deliveredOrders = \App\Models\Order::whereDate('created_at', $today)
             ->whereHas('orderStatus', function($q) {

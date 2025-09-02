@@ -61,7 +61,7 @@ class StockController extends Controller
      */
     private function calculateTodayQuantities($stock)
     {
-        $today = now()->toDateString();
+        $today = now()->setTimezone('UTC')->toDateString();
         
         // Get the seller name from the stock's seller relationship
         $sellerName = $stock->seller ? $stock->seller->name : null;
@@ -294,7 +294,7 @@ class StockController extends Controller
         $stocks = $baseQuery->get();
         
         // Calculate today's totals
-        $today = now()->toDateString();
+        $today = now()->setTimezone('UTC')->toDateString();
         $todayDeliveredTotal = 0;
         $todayInProgressTotal = 0;
         

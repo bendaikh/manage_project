@@ -58,7 +58,8 @@ class PdfController extends Controller
         @set_time_limit(300); // 5 minutes
         @ini_set('memory_limit', '512M');
 
-        $today = now()->toDateString();
+        // Use explicit timezone handling to ensure correct date
+        $today = now()->setTimezone('UTC')->toDateString();
         $ids = array_filter(explode(',', $request->query('ids', '')));
 
         if ($ids) {
