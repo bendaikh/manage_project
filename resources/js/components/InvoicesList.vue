@@ -13,7 +13,7 @@
         </thead>
         <tbody>
           <tr v-for="invoice in invoices" :key="invoice.id" class="border-b">
-            <td class="px-3 py-2">{{ formatDate(invoice.invoice_date) }}</td>
+            <td class="px-3 py-2">{{ invoice.invoice_date }}</td>
             <td class="px-3 py-2">{{ invoice.order_count }}</td>
             <td class="px-3 py-2 font-bold">{{ formatAmount(invoice.total_amount) }} FCFA</td>
             <td class="px-3 py-2">
@@ -78,11 +78,6 @@ const changePage = (page) => {
   fetchInvoices()
 }
 
-const formatDate = (dateStr) => {
-  if (!dateStr) return ''
-  const d = new Date(dateStr)
-  return d.toLocaleDateString()
-}
 const formatAmount = (n) => Number(n).toLocaleString()
 
 const downloadInvoice = async (invoice) => {
