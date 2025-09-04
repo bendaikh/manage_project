@@ -43,7 +43,18 @@
     </div>
     <!-- Status Summary (Confirmation section) -->
     <div v-if="props.confirmation" class="mb-4">
-      <div class="text-sm font-medium text-gray-700 mb-2">Today's Orders Status Summary</div>
+      <div class="flex items-center justify-between mb-2">
+        <div class="text-sm font-medium text-gray-700">Today's Orders Status Summary</div>
+        <button 
+          @click="applyTodayWorkFilter" 
+          class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center gap-2"
+        >
+          <span>See Today Work</span>
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+          </svg>
+        </button>
+      </div>
       <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
         <div v-for="status in confirmationStatusBlocks" :key="status.name" 
              :class="['flex flex-col items-center justify-center rounded-lg shadow p-3 border', getStatusColor(status.name)]">
@@ -55,7 +66,18 @@
     
     <!-- Status Summary (Delivery section) -->
     <div v-if="props.delivery" class="mb-4">
-      <div class="text-sm font-medium text-gray-700 mb-2">Today's Orders Status Summary</div>
+      <div class="flex items-center justify-between mb-2">
+        <div class="text-sm font-medium text-gray-700">Today's Orders Status Summary</div>
+        <button 
+          @click="applyTodayWorkFilter" 
+          class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center gap-2"
+        >
+          <span>See Today Work</span>
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+          </svg>
+        </button>
+      </div>
       <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
         <div v-for="status in deliveryStatusBlocks" :key="status.name" 
              :class="['flex flex-col items-center justify-center rounded-lg shadow p-3 border', getStatusColor(status.name)]">
@@ -1200,7 +1222,41 @@ const getStatusColor = (statusName) => {
   return colors[statusName] || 'bg-gray-100 text-gray-800 border-gray-200'
 }
 
-onMounted(() => { fetchOrders() })
+const applyTodayWorkFilter = () => {
+  // Set date range to Today
+  filters.value.dateRange = 'Today'
+  
+  // Set specific statuses based on the section
+  if (props.confirmation) {
+    filters.value.status = 'New Order,Confirmed on Date,Postponed'
+  } else if (props.delivery) {
+    filters.value.status = 'Postponed'
+  }
+  
+  // Reset to first page and fetch orders
+  currentPage.value = 1
+  fetchOrders()
+}
+
+onMounted(() => { 
+  // Check if there's a date filter from navigation
+  const storedDateFilter = localStorage.getItem('orderListDateFilter')
+  if (storedDateFilter) {
+    filters.value.dateRange = storedDateFilter
+    // Clear the stored filter after using it
+    localStorage.removeItem('orderListDateFilter')
+  }
+  
+  // Check if there's a status filter from navigation
+  const storedStatusFilter = localStorage.getItem('orderListStatusFilter')
+  if (storedStatusFilter) {
+    filters.value.status = storedStatusFilter
+    // Clear the stored filter after using it
+    localStorage.removeItem('orderListStatusFilter')
+  }
+  
+  fetchOrders() 
+})
 
 // Watch for current page changes to clear goToPage input
 watch(currentPage, () => {

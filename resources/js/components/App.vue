@@ -359,7 +359,12 @@
         <OrderList v-else-if="showDeliveryOrders" delivery @create-order="handleShowAddOrder" />
         <InvoicesList v-else-if="showInvoices" />
         <SellerInvoicesList v-else-if="showSellerInvoices" />
-        <DashboardOverview v-else-if="showOverview" @show-full-history="handleShowHistory" />
+        <DashboardOverview 
+          v-else-if="showOverview" 
+          @show-full-history="handleShowHistory"
+          @navigate-to-confirmation="handleNavigateToConfirmationFromOverview"
+          @navigate-to-delivery="handleNavigateToDeliveryFromOverview"
+        />
         <DashboardAnalytics v-else-if="showAnalytics" />
         <AddUser v-else-if="showAddUser" @back="handleBackFromAddUser" />
         <UserList v-else-if="showAgentsList" role="agent" />
@@ -653,6 +658,28 @@ const handleShowDeliveryOrders = (e) => {
   if (e) e.preventDefault()
   resetViews()
   showDeliveryOrders.value = true
+}
+
+const handleNavigateToConfirmationFromOverview = (options) => {
+  resetViews()
+  showConfirmationOrders.value = true
+  // Store the dateRange option for the OrderList component to use
+  if (options && options.dateRange) {
+    localStorage.setItem('orderListDateFilter', options.dateRange)
+    // Store specific statuses for confirmation "See Today Work"
+    localStorage.setItem('orderListStatusFilter', 'New Order,Confirmed on Date,Postponed')
+  }
+}
+
+const handleNavigateToDeliveryFromOverview = (options) => {
+  resetViews()
+  showDeliveryOrders.value = true
+  // Store the dateRange option for the OrderList component to use
+  if (options && options.dateRange) {
+    localStorage.setItem('orderListDateFilter', options.dateRange)
+    // Store specific statuses for delivery "See Today Work"
+    localStorage.setItem('orderListStatusFilter', 'Postponed')
+  }
 }
 
 const handleShowInvoices = (e) => {

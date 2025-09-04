@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use App\Models\Order;
 use App\Traits\LogsActionHistory;
+use Carbon\Carbon;
 
 class OrderController extends Controller
 {
@@ -14,22 +15,62 @@ class OrderController extends Controller
     /**
      * Apply date range filter to the query
      */
-    private function applyDateRangeFilter($query, $dateRange)
+    private function applyDateRangeFilter($query, $dateRange, $request = null)
     {
         switch ($dateRange) {
             case 'Today':
-                $query->whereDate('created_at', today());
+                // Special logic for "See Today Work" buttons
+                if ($request && $request->filled('belongs_to') && $request->filled('status')) {
+                    $belongsTo = $request->belongs_to;
+                    $statuses = explode(',', $request->status);
+                    
+                    if ($belongsTo === 'delivery' && in_array('Postponed', $statuses)) {
+                        // For delivery section with postponed status, only show orders scheduled for delivery today
+                        $query->whereDate('postponed_date', Carbon::today());
+                    } elseif ($belongsTo === 'confirmation') {
+                        // For confirmation section, show orders based on their specific statuses
+                        $query->where(function($q) use ($statuses) {
+                            foreach ($statuses as $status) {
+                                switch ($status) {
+                                    case 'New Order':
+                                        $q->orWhereDate('created_at', Carbon::today());
+                                        break;
+                                    case 'Confirmed on Date':
+                                        $q->orWhereDate('confirmed_date', Carbon::today());
+                                        break;
+                                    case 'Postponed':
+                                        $q->orWhereDate('postponed_date', Carbon::today());
+                                        break;
+                                }
+                            }
+                        });
+                    } else {
+                        // Default behavior for other cases
+                        $query->where(function($q) {
+                            $q->whereDate('created_at', Carbon::today())
+                              ->orWhereDate('confirmed_date', Carbon::today())
+                              ->orWhereDate('postponed_date', Carbon::today());
+                        });
+                    }
+                } else {
+                    // Default behavior when no specific context
+                    $query->where(function($q) {
+                        $q->whereDate('created_at', Carbon::today())
+                          ->orWhereDate('confirmed_date', Carbon::today())
+                          ->orWhereDate('postponed_date', Carbon::today());
+                    });
+                }
                 break;
             case 'Yesterday':
-                $query->whereDate('created_at', today()->subDay());
+                $query->whereDate('created_at', Carbon::yesterday());
                 break;
             case 'This Month':
-                $query->whereMonth('created_at', now()->month)
-                      ->whereYear('created_at', now()->year);
+                $query->whereMonth('created_at', Carbon::now()->month)
+                      ->whereYear('created_at', Carbon::now()->year);
                 break;
             case 'Last Month':
-                $query->whereMonth('created_at', now()->subMonth()->month)
-                      ->whereYear('created_at', now()->subMonth()->year);
+                $query->whereMonth('created_at', Carbon::now()->subMonth()->month)
+                      ->whereYear('created_at', Carbon::now()->subMonth()->year);
                 break;
             // Add more date ranges as needed
         }
@@ -149,7 +190,7 @@ class OrderController extends Controller
 
         // Date range filtering
         if ($request->filled('dateRange')) {
-            $this->applyDateRangeFilter($query, $request->dateRange);
+            $this->applyDateRangeFilter($query, $request->dateRange, $request);
         }
 
         // Status filtering for specific pages
@@ -199,10 +240,77 @@ class OrderController extends Controller
         $countsQuery = clone $query;
         
         // For status blocks, we want to show today's orders only
-        $todayCountsQuery = clone $countsQuery;
-        $todayCountsQuery->whereDate('orders.created_at', today());
+        // Create a fresh query for status counts to avoid ambiguity issues
+        $statusCountsQuery = Order::with(['orderStatus']);
         
-        $statusCounts = $todayCountsQuery
+        // Apply the same intelligent date filtering logic
+        if ($request->filled('dateRange') && $request->dateRange === 'Today') {
+            if ($request->filled('belongs_to') && $request->filled('status')) {
+                $belongsTo = $request->belongs_to;
+                $statuses = explode(',', $request->status);
+                
+                if ($belongsTo === 'delivery' && in_array('Postponed', $statuses)) {
+                    // For delivery section with postponed status, only show orders scheduled for delivery today
+                    $statusCountsQuery->whereDate('orders.postponed_date', Carbon::today());
+                } elseif ($belongsTo === 'confirmation') {
+                    // For confirmation section, show orders based on their specific statuses
+                    $statusCountsQuery->where(function($q) use ($statuses) {
+                        foreach ($statuses as $status) {
+                            switch ($status) {
+                                case 'New Order':
+                                    $q->orWhereDate('orders.created_at', Carbon::today());
+                                    break;
+                                case 'Confirmed on Date':
+                                    $q->orWhereDate('orders.confirmed_date', Carbon::today());
+                                    break;
+                                case 'Postponed':
+                                    $q->orWhereDate('orders.postponed_date', Carbon::today());
+                                    break;
+                            }
+                        }
+                    });
+                } else {
+                    // Default behavior for other cases
+                    $statusCountsQuery->where(function($q) {
+                        $q->whereDate('orders.created_at', Carbon::today())
+                          ->orWhereDate('orders.confirmed_date', Carbon::today())
+                          ->orWhereDate('orders.postponed_date', Carbon::today());
+                    });
+                }
+            } else {
+                // Default behavior when no specific context
+                $statusCountsQuery->where(function($q) {
+                    $q->whereDate('orders.created_at', Carbon::today())
+                      ->orWhereDate('orders.confirmed_date', Carbon::today())
+                      ->orWhereDate('orders.postponed_date', Carbon::today());
+                });
+            }
+        }
+        
+        // Apply the same filters as the main query for consistency
+        if ($request->filled('belongs_to')) {
+            $statusCountsQuery->where('belongs_to', $request->belongs_to);
+        }
+        
+        // Apply user role filters
+        if (auth()->user()->hasRole('seller')) {
+            $statusCountsQuery->where('seller', auth()->user()->name);
+        }
+        
+        if (auth()->user()->isAgent()) {
+            $statusCountsQuery->whereHas('assignment', function($q) {
+                $q->where('assigned_to', auth()->id());
+            });
+        }
+        
+        // Apply assignment filters
+        if ($request->filled('assigned_only')) {
+            $statusCountsQuery->whereHas('assignment');
+        } elseif ($request->filled('unassigned_only')) {
+            $statusCountsQuery->whereDoesntHave('assignment');
+        }
+        
+        $statusCounts = $statusCountsQuery
             ->join('order_statuses', 'orders.order_status_id', '=', 'order_statuses.id')
             ->selectRaw('order_statuses.name as status_name, COUNT(*) as total')
             ->groupBy('order_statuses.name')
@@ -219,7 +327,7 @@ class OrderController extends Controller
         // Count all orders delivered today across the whole dataset (ignoring pagination)
         $deliveredOrdersTodayCount = Order::whereHas('orderStatus', function ($q) {
             $q->where('name', 'Delivered');
-        })->whereDate('updated_at', today())->count();
+        })->whereDate('updated_at', Carbon::today())->count();
 
         return response()->json([
             'orders' => $orders,

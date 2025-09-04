@@ -12,7 +12,18 @@
     <div v-if="showToDoWork" class="space-y-6">
       <!-- Confirmation Section -->
       <div class="border-l-4 border-blue-500 pl-4">
-        <h3 class="text-lg font-semibold text-blue-600 mb-3">Confirmation</h3>
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-lg font-semibold text-blue-600">Confirmation</h3>
+          <button 
+            @click="navigateToConfirmationToday" 
+            class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center gap-2"
+          >
+            <span>See Today Work</span>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+            </svg>
+          </button>
+        </div>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <!-- New Order -->
           <div class="bg-blue-50 p-4 rounded-lg border border-blue-200">
@@ -60,7 +71,18 @@
 
       <!-- Delivery Section -->
       <div class="border-l-4 border-green-500 pl-4">
-        <h3 class="text-lg font-semibold text-green-600 mb-3">Delivery</h3>
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-lg font-semibold text-green-600">Delivery</h3>
+          <button 
+            @click="navigateToDeliveryToday" 
+            class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center gap-2"
+          >
+            <span>See Today Work</span>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+            </svg>
+          </button>
+        </div>
         <div class="grid grid-cols-1 md:grid-cols-1 gap-4">
           <!-- Postponed -->
           <div class="bg-orange-50 p-4 rounded-lg border border-orange-200">
@@ -83,6 +105,9 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+
+// Define emits for parent communication
+const emit = defineEmits(['navigate-to-confirmation', 'navigate-to-delivery'])
 
 const showToDoWork = ref(true)
 
@@ -111,6 +136,14 @@ const fetchToDoWorkData = async () => {
 
 const toggleToDoWork = () => {
   showToDoWork.value = !showToDoWork.value
+}
+
+const navigateToConfirmationToday = () => {
+  emit('navigate-to-confirmation', { dateRange: 'Today' })
+}
+
+const navigateToDeliveryToday = () => {
+  emit('navigate-to-delivery', { dateRange: 'Today' })
 }
 
 onMounted(() => {
