@@ -205,10 +205,13 @@ class DashboardController extends Controller
         $baseQuery($newOrderQuery);
         $newOrderCount = $newOrderQuery->count();
 
-        // 2. Confirm on Date - Show orders where today matches the confirmed_date
+        // 2. Confirm on Date - Show orders where today matches the confirmed_date AND status is "Confirmed on Date"
         $confirmOnDateQuery = Order::where('belongs_to', 'confirmation')
             ->whereDate('confirmed_date', $today)
-            ->whereNotNull('confirmed_date');
+            ->whereNotNull('confirmed_date')
+            ->whereHas('orderStatus', function($query) {
+                $query->where('name', 'Confirmed on Date');
+            });
         $baseQuery($confirmOnDateQuery);
         $confirmOnDateCount = $confirmOnDateQuery->count();
 
