@@ -97,6 +97,26 @@ Route::get('/order-statuses/list', function () {
 Route::get('/dashboard/overview-data', [\App\Http\Controllers\DashboardController::class, 'overviewData']);
 Route::get('/dashboard/analytics-data', [\App\Http\Controllers\DashboardController::class, 'analyticsData']);
 
+// Dashboard filter endpoints
+Route::get('/api/dashboard/agents', function () {
+    return \App\Models\User::whereHas('roles', function ($query) {
+        $query->where('name', 'agent');
+    })->select('id', 'name')->orderBy('name')->get();
+});
+Route::get('/api/dashboard/sellers', function () {
+    return \App\Models\Order::select('seller')
+        ->whereNotNull('seller')
+        ->where('seller', '!=', '')
+        ->distinct()
+        ->orderBy('seller')
+        ->pluck('seller');
+});
+Route::get('/api/dashboard/products', function () {
+    return \App\Models\Product::select('id', 'name')
+        ->orderBy('name')
+        ->get();
+});
+
 Route::get('/categories', [\App\Http\Controllers\CategoryController::class, 'index']);
 Route::post('/categories', [\App\Http\Controllers\CategoryController::class, 'store']);
 Route::put('/categories/{category}', [\App\Http\Controllers\CategoryController::class, 'update']);
@@ -344,11 +364,39 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/history', [\App\Http\Controllers\HistoryController::class, 'index'])->name('history.index');
     Route::get('/api/history', function () {
         $perPage = request('per_page', 20);
-        return \App\Models\ActionHistory::with('user')->orderByDesc('created_at')->paginate($perPage);
+        $query = \App\Models\ActionHistory::with('user');
+        
+        // Date range filtering
+        if (request('date_from')) {
+            $query->whereDate('created_at', '>=', request('date_from'));
+        }
+        if (request('date_to')) {
+            $query->whereDate('created_at', '<=', request('date_to'));
+        }
+        
+        // User filtering
+        if (request('user_id')) {
+            $query->where('user_id', request('user_id'));
+        }
+        
+        // Title filtering (partial match)
+        if (request('title')) {
+            $query->where('title', 'like', '%' . request('title') . '%');
+        }
+        
+        // Description filtering (partial match)
+        if (request('description')) {
+            $query->where('description', 'like', '%' . request('description') . '%');
+        }
+        
+        return $query->orderByDesc('created_at')->paginate($perPage);
     });
     Route::get('/api/history/latest', function () {
         $latest = \App\Models\ActionHistory::with('user')->orderByDesc('created_at')->take(10)->get();
         return response()->json($latest);
+    });
+    Route::get('/api/history/users', function () {
+        return \App\Models\User::select('id', 'name')->orderBy('name')->get();
     });
     
     // Temporary debug route

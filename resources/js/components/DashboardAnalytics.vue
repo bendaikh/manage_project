@@ -6,6 +6,48 @@
       <p class="text-gray-600">Analytics and reporting overview</p>
     </div>
 
+    <!-- Filter Section -->
+    <div class="bg-white p-4 rounded-lg shadow mb-6">
+      <h2 class="font-semibold text-lg mb-4">Filters</h2>
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+        <div>
+          <label class="block text-sm font-medium mb-1">Date From</label>
+          <input v-model="startDate" type="date" class="w-full border rounded px-3 py-2" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1">Date To</label>
+          <input v-model="endDate" type="date" class="w-full border rounded px-3 py-2" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1">Agent</label>
+          <select v-model="selectedAgent" class="w-full border rounded px-3 py-2">
+            <option value="">All Agents</option>
+            <option v-for="agent in agents" :key="agent.id" :value="agent.name">{{ agent.name }}</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1">Seller</label>
+          <select v-model="selectedSeller" class="w-full border rounded px-3 py-2">
+            <option value="">All Sellers</option>
+            <option v-for="seller in sellers" :key="seller" :value="seller">{{ seller }}</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+        <div>
+          <label class="block text-sm font-medium mb-1">Product</label>
+          <select v-model="selectedProduct" class="w-full border rounded px-3 py-2">
+            <option value="">All Products</option>
+            <option v-for="product in products" :key="product.id" :value="product.id">{{ product.name }}</option>
+          </select>
+        </div>
+        <div class="flex gap-2 items-end">
+          <button @click="applyFilters" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Apply Filters</button>
+          <button @click="clearFilters" class="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">Clear</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Simple Stats Cards -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
       <div class="bg-white p-4 rounded-lg shadow">
@@ -46,6 +88,16 @@ const stats = ref({
   activeSellers: 0
 })
 
+// Filter state
+const startDate = ref(new Date().toISOString().substr(0, 10))
+const endDate = ref(new Date().toISOString().substr(0, 10))
+const selectedAgent = ref('')
+const selectedSeller = ref('')
+const selectedProduct = ref('')
+const agents = ref([])
+const sellers = ref([])
+const products = ref([])
+
 const formatCurrency = (amount) => {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
@@ -55,9 +107,25 @@ const formatCurrency = (amount) => {
 
 const fetchStats = async () => {
   try {
-    const response = await fetch('/dashboard/analytics-stats')
+    // Build query parameters
+    const params = new URLSearchParams({
+      start_date: startDate.value,
+      end_date: endDate.value
+    })
+    
+    // Add filter parameters
+    if (selectedAgent.value) params.append('agent', selectedAgent.value)
+    if (selectedSeller.value) params.append('seller', selectedSeller.value)
+    if (selectedProduct.value) params.append('product_id', selectedProduct.value)
+    
+    const response = await fetch(`/dashboard/analytics-data?${params.toString()}`)
     const data = await response.json()
-    stats.value = data
+    stats.value = data.summary || {
+      revenue: 0,
+      profit: 0,
+      totalOrders: 0,
+      activeSellers: 0
+    }
   } catch (error) {
     console.error('Failed to fetch analytics stats:', error)
     // Set default values
@@ -70,7 +138,45 @@ const fetchStats = async () => {
   }
 }
 
-onMounted(() => {
+const applyFilters = () => {
   fetchStats()
+}
+
+const clearFilters = () => {
+  startDate.value = new Date().toISOString().substr(0, 10)
+  endDate.value = new Date().toISOString().substr(0, 10)
+  selectedAgent.value = ''
+  selectedSeller.value = ''
+  selectedProduct.value = ''
+  fetchStats()
+}
+
+const fetchFilterData = async () => {
+  try {
+    // Fetch agents
+    const agentsRes = await fetch('/api/dashboard/agents')
+    if (agentsRes.ok) {
+      agents.value = await agentsRes.json()
+    }
+    
+    // Fetch sellers
+    const sellersRes = await fetch('/api/dashboard/sellers')
+    if (sellersRes.ok) {
+      sellers.value = await sellersRes.json()
+    }
+    
+    // Fetch products
+    const productsRes = await fetch('/api/dashboard/products')
+    if (productsRes.ok) {
+      products.value = await productsRes.json()
+    }
+  } catch (err) {
+    console.error('Failed to load filter data', err)
+  }
+}
+
+onMounted(async () => {
+  await fetchStats()
+  await fetchFilterData()
 })
 </script> 

@@ -45,10 +45,28 @@ class DashboardController extends Controller
         $start = Carbon::parse($request->input('start_date', Carbon::today()->toDateString()))->startOfDay();
         $end = Carbon::parse($request->input('end_date', Carbon::today()->toDateString()))->endOfDay();
 
-        $ordersQuery = Order::with('orderStatus')->whereBetween('created_at', [$start, $end]);
+        $ordersQuery = Order::with(['orderStatus', 'assignment.assignedTo'])->whereBetween('created_at', [$start, $end]);
+        
+        // Auto-filter for seller role
         if (auth()->check() && auth()->user()->hasRole('seller')) {
             $ordersQuery->where('seller', auth()->user()->name);
         }
+        
+        // Apply additional filters
+        if ($request->filled('agent')) {
+            $ordersQuery->whereHas('assignment', function ($query) use ($request) {
+                $query->whereHas('assignedTo', function ($userQuery) use ($request) {
+                    $userQuery->where('name', $request->agent);
+                });
+            });
+        }
+        if ($request->filled('seller')) {
+            $ordersQuery->where('seller', $request->seller);
+        }
+        if ($request->filled('product_id')) {
+            $ordersQuery->where('product_id', $request->product_id);
+        }
+        
         $orders = $ordersQuery->get();
 
         $totalOrders = $orders->count();
@@ -97,7 +115,7 @@ class DashboardController extends Controller
         $start = Carbon::parse($request->input('start_date', Carbon::today()->toDateString()))->startOfDay();
         $end = Carbon::parse($request->input('end_date', Carbon::today()->toDateString()))->endOfDay();
 
-        $query = Order::with(['orderStatus', 'product']);
+        $query = Order::with(['orderStatus', 'product', 'assignment.assignedTo']);
         $query->whereBetween('created_at', [$start, $end]);
         // Auto-filter for seller role
         if (auth()->check() && auth()->user()->hasRole('seller')) {
@@ -107,7 +125,11 @@ class DashboardController extends Controller
             $query->where('seller', $request->seller);
         }
         if ($request->filled('agent')) {
-            $query->where('agent', $request->agent);
+            $query->whereHas('assignment', function ($query) use ($request) {
+                $query->whereHas('assignedTo', function ($userQuery) use ($request) {
+                    $userQuery->where('name', $request->agent);
+                });
+            });
         }
         if ($request->filled('zone')) {
             $query->where('zone', $request->zone);
