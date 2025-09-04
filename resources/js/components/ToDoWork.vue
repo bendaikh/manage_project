@@ -50,7 +50,7 @@
                 <div class="text-2xl font-bold text-green-600">{{ confirmationData.confirmOnDate }}</div>
               </div>
             </div>
-            <div class="text-sm text-green-600">Orders to confirm today</div>
+            <div class="text-sm text-green-600">Orders scheduled for delivery today</div>
           </div>
 
           <!-- Postponed -->
@@ -64,7 +64,7 @@
                 <div class="text-2xl font-bold text-yellow-600">{{ confirmationData.postponed }}</div>
               </div>
             </div>
-            <div class="text-sm text-yellow-600">Postponed orders</div>
+            <div class="text-sm text-yellow-600">Orders scheduled for delivery today</div>
           </div>
         </div>
       </div>

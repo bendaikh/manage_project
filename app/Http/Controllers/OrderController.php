@@ -28,21 +28,11 @@ class OrderController extends Controller
                         // For delivery section with postponed status, only show orders scheduled for delivery today
                         $query->whereDate('postponed_date', Carbon::today());
                     } elseif ($belongsTo === 'confirmation') {
-                        // For confirmation section, show orders based on their specific statuses
-                        $query->where(function($q) use ($statuses) {
-                            foreach ($statuses as $status) {
-                                switch ($status) {
-                                    case 'New Order':
-                                        $q->orWhereDate('created_at', Carbon::today());
-                                        break;
-                                    case 'Confirmed on Date':
-                                        $q->orWhereDate('confirmed_date', Carbon::today());
-                                        break;
-                                    case 'Postponed':
-                                        $q->orWhereDate('postponed_date', Carbon::today());
-                                        break;
-                                }
-                            }
+                        // For confirmation section, show orders scheduled for delivery today
+                        $query->where(function($q) {
+                            // Orders scheduled for delivery today (confirmed_date = today OR postponed_date = today)
+                            $q->whereDate('confirmed_date', Carbon::today())
+                              ->orWhereDate('postponed_date', Carbon::today());
                         });
                     } else {
                         // Default behavior for other cases
@@ -253,21 +243,11 @@ class OrderController extends Controller
                     // For delivery section with postponed status, only show orders scheduled for delivery today
                     $statusCountsQuery->whereDate('orders.postponed_date', Carbon::today());
                 } elseif ($belongsTo === 'confirmation') {
-                    // For confirmation section, show orders based on their specific statuses
-                    $statusCountsQuery->where(function($q) use ($statuses) {
-                        foreach ($statuses as $status) {
-                            switch ($status) {
-                                case 'New Order':
-                                    $q->orWhereDate('orders.created_at', Carbon::today());
-                                    break;
-                                case 'Confirmed on Date':
-                                    $q->orWhereDate('orders.confirmed_date', Carbon::today());
-                                    break;
-                                case 'Postponed':
-                                    $q->orWhereDate('orders.postponed_date', Carbon::today());
-                                    break;
-                            }
-                        }
+                    // For confirmation section, show orders scheduled for delivery today
+                    $statusCountsQuery->where(function($q) {
+                        // Orders scheduled for delivery today (confirmed_date = today OR postponed_date = today)
+                        $q->whereDate('orders.confirmed_date', Carbon::today())
+                          ->orWhereDate('orders.postponed_date', Carbon::today());
                     });
                 } else {
                     // Default behavior for other cases
