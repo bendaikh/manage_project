@@ -382,6 +382,60 @@
         </div>
       </div>
     </div>
+    <!-- Confirmation Date Modal -->
+    <div v-if="showConfirmationModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" @click.self="closeConfirmationModal">
+      <div class="bg-white rounded-lg shadow-lg p-4 lg:p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <h3 class="text-lg font-semibold mb-4">Confirm Order on Date</h3>
+        <p class="text-sm text-gray-600 mb-4">Please set the confirmation date and add any comments:</p>
+        
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-2">Date Confirmed with Client</label>
+          <input v-model="confirmationForm.date" type="date" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required />
+        </div>
+        
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-2">Comment</label>
+          <textarea v-model="confirmationForm.comment" rows="3" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Add any comments about the confirmation..."></textarea>
+        </div>
+        
+        <div class="flex justify-end space-x-3">
+          <button @click="closeConfirmationModal" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">
+            Cancel
+          </button>
+          <button @click="submitConfirmation" :disabled="!confirmationForm.date" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50">
+            Confirm Order
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Postponed Modal -->
+    <div v-if="showPostponedModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" @click.self="closePostponedModal">
+      <div class="bg-white rounded-lg shadow-lg p-4 lg:p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <h3 class="text-lg font-semibold mb-4">Postpone Order</h3>
+        <p class="text-sm text-gray-600 mb-4">Please set the postponed date and add any comments:</p>
+        
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-2">Postponed Date</label>
+          <input v-model="postponedForm.date" type="date" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required />
+        </div>
+        
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-2">Comment</label>
+          <textarea v-model="postponedForm.comment" rows="3" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Add any comments about the postponement..."></textarea>
+        </div>
+        
+        <div class="flex justify-end space-x-3">
+          <button @click="closePostponedModal" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">
+            Cancel
+          </button>
+          <button @click="submitPostponed" :disabled="!postponedForm.date" class="px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 disabled:opacity-50">
+            Postpone Order
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Toast inline -->
     <div v-if="toastMessage" :class="'toast px-4 py-2 rounded text-white '+(toastType==='success'?'bg-green-600':'bg-red-600')">
       {{ toastMessage }}
@@ -516,6 +570,22 @@ const warehouses = ref([])
 const selectedWarehouseId = ref('')
 const toastMessage = ref('')
 const toastType = ref('success')
+
+// Confirmation modal refs
+const showConfirmationModal = ref(false)
+const confirmationTargetOrder = ref(null)
+const confirmationForm = ref({
+  date: '',
+  comment: ''
+})
+
+// Postponed modal refs
+const showPostponedModal = ref(false)
+const postponedTargetOrder = ref(null)
+const postponedForm = ref({
+  date: '',
+  comment: ''
+})
 
 // Assignment related refs
 const showAssignmentModal = ref(false)
@@ -894,6 +964,114 @@ const closeWarehouseModal = () => {
   selectedWarehouseId.value = ''
 }
 
+// Confirmation modal methods
+const openConfirmationModal = (order) => {
+  confirmationTargetOrder.value = order
+  confirmationForm.value = {
+    date: '',
+    comment: ''
+  }
+  showConfirmationModal.value = true
+}
+
+const closeConfirmationModal = () => {
+  showConfirmationModal.value = false
+  confirmationTargetOrder.value = null
+  confirmationForm.value = {
+    date: '',
+    comment: ''
+  }
+}
+
+const submitConfirmation = async () => {
+  if (!confirmationTargetOrder.value || !confirmationForm.value.date) return
+  
+  try {
+    const csrf = document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+    const res = await fetch(`/orders/${confirmationTargetOrder.value.id}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf },
+      body: JSON.stringify({ 
+        status: 'Confirmed on Date',
+        confirmed_date: confirmationForm.value.date,
+        confirmation_comment: confirmationForm.value.comment
+      })
+    })
+    
+    if (!res.ok) throw new Error(await res.text())
+    const data = await res.json()
+    
+    toastType.value = 'success'
+    toastMessage.value = data.message || 'Order confirmed on date successfully'
+    
+    // Refresh orders to show the updated list
+    await fetchOrders()
+  } catch (err) {
+    toastType.value = 'error'
+    toastMessage.value = 'Failed to confirm order on date'
+    console.error(err)
+  } finally {
+    closeConfirmationModal()
+    closeStatusModal() // Also close the status modal
+    // auto clear toast after 3s
+    setTimeout(() => { toastMessage.value = '' }, 3000)
+  }
+}
+
+// Postponed modal methods
+const openPostponedModal = (order) => {
+  postponedTargetOrder.value = order
+  postponedForm.value = {
+    date: '',
+    comment: ''
+  }
+  showPostponedModal.value = true
+}
+
+const closePostponedModal = () => {
+  showPostponedModal.value = false
+  postponedTargetOrder.value = null
+  postponedForm.value = {
+    date: '',
+    comment: ''
+  }
+}
+
+const submitPostponed = async () => {
+  if (!postponedTargetOrder.value || !postponedForm.value.date) return
+  
+  try {
+    const csrf = document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+    const res = await fetch(`/orders/${postponedTargetOrder.value.id}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf },
+      body: JSON.stringify({ 
+        status: 'Postponed',
+        postponed_date: postponedForm.value.date,
+        postponed_comment: postponedForm.value.comment
+      })
+    })
+    
+    if (!res.ok) throw new Error(await res.text())
+    const data = await res.json()
+    
+    toastType.value = 'success'
+    toastMessage.value = data.message || 'Order postponed successfully'
+    
+    // Refresh orders to show the updated list
+    await fetchOrders()
+  } catch (err) {
+    toastType.value = 'error'
+    toastMessage.value = 'Failed to postpone order'
+    console.error(err)
+  } finally {
+    closePostponedModal()
+    closeStatusModal() // Also close the status modal
+    // auto clear toast after 3s
+    setTimeout(() => { toastMessage.value = '' }, 3000)
+  }
+}
+
 const confirmOrderWithWarehouse = async () => {
   if (!warehouseTargetOrder.value || !selectedWarehouseId.value) return
   
@@ -954,6 +1132,18 @@ const updateOrderStatus = async (statusName) => {
   // If status is "Confirmed", show warehouse selection first
   if (statusName === 'Confirmed') {
     showWarehouseSelectionModal(statusTargetOrder.value)
+    return
+  }
+  
+  // If status is "Confirmed on Date" in confirmation section, show confirmation modal
+  if (statusName === 'Confirmed on Date' && props.confirmation) {
+    openConfirmationModal(statusTargetOrder.value)
+    return
+  }
+  
+  // If status is "Postponed", show postponed modal
+  if (statusName === 'Postponed') {
+    openPostponedModal(statusTargetOrder.value)
     return
   }
   

@@ -105,6 +105,60 @@
         </div>
       </div>
     </div>
+    
+    <!-- Confirmation Date Modal -->
+    <div v-if="showConfirmationModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" @click.self="closeConfirmationModal">
+      <div class="bg-white rounded-lg shadow-lg p-4 lg:p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <h3 class="text-lg font-semibold mb-4">Confirm Order on Date</h3>
+        <p class="text-sm text-gray-600 mb-4">Please set the confirmation date and add any comments:</p>
+        
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-2">Date Confirmed with Client</label>
+          <input v-model="confirmationForm.date" type="date" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required />
+        </div>
+        
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-2">Comment</label>
+          <textarea v-model="confirmationForm.comment" rows="3" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Add any comments about the confirmation..."></textarea>
+        </div>
+        
+        <div class="flex justify-end space-x-3">
+          <button @click="closeConfirmationModal" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">
+            Cancel
+          </button>
+          <button @click="submitConfirmation" :disabled="!confirmationForm.date" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50">
+            Confirm Order
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Postponed Modal -->
+    <div v-if="showPostponedModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" @click.self="closePostponedModal">
+      <div class="bg-white rounded-lg shadow-lg p-4 lg:p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <h3 class="text-lg font-semibold mb-4">Postpone Order</h3>
+        <p class="text-sm text-gray-600 mb-4">Please set the postponed date and add any comments:</p>
+        
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-2">Postponed Date</label>
+          <input v-model="postponedForm.date" type="date" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required />
+        </div>
+        
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-2">Comment</label>
+          <textarea v-model="postponedForm.comment" rows="3" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Add any comments about the postponement..."></textarea>
+        </div>
+        
+        <div class="flex justify-end space-x-3">
+          <button @click="closePostponedModal" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">
+            Cancel
+          </button>
+          <button @click="submitPostponed" :disabled="!postponedForm.date" class="px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 disabled:opacity-50">
+            Postpone Order
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -174,6 +228,18 @@ const submitForm = async () => {
       await openWarehouseSelection()
       return
     }
+    
+    // If status is "Confirmed on Date" in confirmation section, show confirmation modal
+    if (selectedStatusName === 'Confirmed on Date' && props.confirmation) {
+      openConfirmationModal()
+      return
+    }
+    
+    // If status is "Postponed", show postponed modal
+    if (selectedStatusName === 'Postponed') {
+      openPostponedModal()
+      return
+    }
 
     const csrfToken = document.querySelector('meta[name=\'csrf-token\']')?.getAttribute('content')
     const response = await fetch(`/orders/${orderId}`, {
@@ -206,6 +272,20 @@ onMounted(() => {
 const showWarehouseModal = ref(false)
 const warehouses = ref([])
 const selectedWarehouseId = ref('')
+
+// Confirmation modal refs
+const showConfirmationModal = ref(false)
+const confirmationForm = ref({
+  date: '',
+  comment: ''
+})
+
+// Postponed modal refs
+const showPostponedModal = ref(false)
+const postponedForm = ref({
+  date: '',
+  comment: ''
+})
 
 const openWarehouseSelection = async () => {
   selectedWarehouseId.value = ''
@@ -259,6 +339,120 @@ const confirmOrderWithWarehouse = async () => {
     error.value = e.message || 'Failed to confirm order'
   } finally {
     selectedWarehouseId.value = ''
+  }
+}
+
+// Confirmation modal methods
+const openConfirmationModal = () => {
+  confirmationForm.value = {
+    date: '',
+    comment: ''
+  }
+  showConfirmationModal.value = true
+}
+
+const closeConfirmationModal = () => {
+  showConfirmationModal.value = false
+  confirmationForm.value = {
+    date: '',
+    comment: ''
+  }
+}
+
+const submitConfirmation = async () => {
+  if (!confirmationForm.value.date) return
+  
+  error.value = ''
+  success.value = false
+  try {
+    const csrfToken = document.querySelector('meta[name=\'csrf-token\']')?.getAttribute('content')
+    
+    // Update the form with confirmation data
+    const updatedForm = {
+      ...form.value,
+      confirmed_date: confirmationForm.value.date,
+      confirmation_comment: confirmationForm.value.comment
+    }
+    
+    const response = await fetch(`/orders/${orderId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': csrfToken,
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(updatedForm),
+      credentials: 'same-origin'
+    })
+    
+    if (!response.ok) {
+      const data = await response.json()
+      error.value = data.message || 'Failed to confirm order on date.'
+      return
+    }
+    
+    success.value = true
+    showConfirmationModal.value = false
+    emit('updated')
+  } catch (e) {
+    error.value = 'Failed to confirm order on date.'
+  }
+}
+
+// Postponed modal methods
+const openPostponedModal = () => {
+  postponedForm.value = {
+    date: '',
+    comment: ''
+  }
+  showPostponedModal.value = true
+}
+
+const closePostponedModal = () => {
+  showPostponedModal.value = false
+  postponedForm.value = {
+    date: '',
+    comment: ''
+  }
+}
+
+const submitPostponed = async () => {
+  if (!postponedForm.value.date) return
+  
+  error.value = ''
+  success.value = false
+  try {
+    const csrfToken = document.querySelector('meta[name=\'csrf-token\']')?.getAttribute('content')
+    
+    // Update the form with postponed data
+    const updatedForm = {
+      ...form.value,
+      postponed_date: postponedForm.value.date,
+      postponed_comment: postponedForm.value.comment
+    }
+    
+    const response = await fetch(`/orders/${orderId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': csrfToken,
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(updatedForm),
+      credentials: 'same-origin'
+    })
+    
+    if (!response.ok) {
+      const data = await response.json()
+      error.value = data.message || 'Failed to postpone order.'
+      return
+    }
+    
+    success.value = true
+    showPostponedModal.value = false
+    emit('updated')
+  } catch (e) {
+    error.value = 'Failed to postpone order.'
   }
 }
 </script>

@@ -246,6 +246,10 @@ class OrderController extends Controller
             'agent' => 'nullable|string|max:255',
             'order_status_id' => 'nullable|exists:order_statuses,id',
             'belongs_to' => 'nullable|in:confirmation,delivery',
+            'confirmed_date' => 'nullable|date',
+            'confirmation_comment' => 'nullable|string',
+            'postponed_date' => 'nullable|date',
+            'postponed_comment' => 'nullable|string'
         ]);
 
         if ($validator->fails()) {
@@ -271,6 +275,15 @@ class OrderController extends Controller
         if (!empty($data['order_status_id'])) {
             $statusModel = \App\Models\OrderStatus::find($data['order_status_id']);
             if ($statusModel) {
+                // Handle confirmation and postponed data based on status
+                if (strtolower($statusModel->name) === 'confirmed on date') {
+                    $data['confirmed_date'] = $request->confirmed_date;
+                    $data['confirmation_comment'] = $request->confirmation_comment;
+                } elseif (strtolower($statusModel->name) === 'postponed') {
+                    $data['postponed_date'] = $request->postponed_date;
+                    $data['postponed_comment'] = $request->postponed_comment;
+                }
+                
                 // Special case: When confirming an order, always move to delivery
                 if (strtolower($statusModel->name) === 'confirmed') {
                     $data['belongs_to'] = 'delivery';
@@ -324,7 +337,11 @@ class OrderController extends Controller
         $request->validate([ 
             'status' => 'required|string',
             'source' => 'nullable|in:confirmation,delivery', // Add source parameter
-            'warehouse_id' => 'nullable|exists:warehouses,id' // Add warehouse_id parameter
+            'warehouse_id' => 'nullable|exists:warehouses,id', // Add warehouse_id parameter
+            'confirmed_date' => 'nullable|date',
+            'confirmation_comment' => 'nullable|string',
+            'postponed_date' => 'nullable|date',
+            'postponed_comment' => 'nullable|string'
         ]);
         
         $oldStatus = $order->status; // Get the old status before updating
@@ -352,6 +369,15 @@ class OrderController extends Controller
         }
         
         $order->order_status_id = $statusModel->id;
+        
+        // Handle confirmation and postponed data based on status
+        if (strtolower($request->status) === 'confirmed on date') {
+            $order->confirmed_date = $request->confirmed_date;
+            $order->confirmation_comment = $request->confirmation_comment;
+        } elseif (strtolower($request->status) === 'postponed') {
+            $order->postponed_date = $request->postponed_date;
+            $order->postponed_comment = $request->postponed_comment;
+        }
         
         // Special case: When confirming an order, always move to delivery
         if (strtolower($request->status) === 'confirmed') {

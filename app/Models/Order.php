@@ -25,6 +25,10 @@ class Order extends Model
         'order_status_id',
         'belongs_to',
         'warehouse_id',
+        'confirmed_date',
+        'confirmation_comment',
+        'postponed_date',
+        'postponed_comment',
     ];
 
     protected $appends = ['status'];
