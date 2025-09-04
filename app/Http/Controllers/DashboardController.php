@@ -173,4 +173,73 @@ class DashboardController extends Controller
             'orders' => $orders,
         ]);
     }
+
+    public function todoWorkData()
+    {
+        $today = Carbon::today();
+        $user = auth()->user();
+        
+        // Base query with agent filtering
+        $baseQuery = function($query) use ($user) {
+            // Filter by agent if user is an agent
+            if ($user->hasRole('agent')) {
+                $query->whereHas('assignment', function ($assignmentQuery) use ($user) {
+                    $assignmentQuery->whereHas('assignedTo', function ($userQuery) use ($user) {
+                        $userQuery->where('name', $user->name);
+                    });
+                });
+            }
+            // Filter by seller if user is a seller
+            elseif ($user->hasRole('seller')) {
+                $query->where('seller', $user->name);
+            }
+        };
+        
+        // Confirmation Section
+        // 1. New Order - Show new orders of the day
+        $newOrderQuery = Order::whereDate('created_at', $today)
+            ->where('belongs_to', 'confirmation')
+            ->whereHas('orderStatus', function($query) {
+                $query->where('name', 'New Order');
+            });
+        $baseQuery($newOrderQuery);
+        $newOrderCount = $newOrderQuery->count();
+
+        // 2. Confirm on Date - Show orders where today matches the confirmed_date
+        $confirmOnDateQuery = Order::where('belongs_to', 'confirmation')
+            ->whereDate('confirmed_date', $today)
+            ->whereNotNull('confirmed_date');
+        $baseQuery($confirmOnDateQuery);
+        $confirmOnDateCount = $confirmOnDateQuery->count();
+
+        // 3. Postponed - Show postponed orders
+        $postponedQuery = Order::where('belongs_to', 'confirmation')
+            ->whereHas('orderStatus', function($query) {
+                $query->where('name', 'Postponed');
+            });
+        $baseQuery($postponedQuery);
+        $postponedCount = $postponedQuery->count();
+
+        // Delivery Section
+        // 1. Postponed - Show postponed orders where today matches the postponed_date for delivery
+        $deliveryPostponedQuery = Order::where('belongs_to', 'delivery')
+            ->whereDate('postponed_date', $today)
+            ->whereNotNull('postponed_date')
+            ->whereHas('orderStatus', function($query) {
+                $query->where('name', 'Postponed');
+            });
+        $baseQuery($deliveryPostponedQuery);
+        $deliveryPostponedCount = $deliveryPostponedQuery->count();
+
+        return response()->json([
+            'confirmation' => [
+                'newOrder' => $newOrderCount,
+                'confirmOnDate' => $confirmOnDateCount,
+                'postponed' => $postponedCount
+            ],
+            'delivery' => [
+                'postponed' => $deliveryPostponedCount
+            ]
+        ]);
+    }
 }

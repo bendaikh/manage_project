@@ -1,5 +1,8 @@
 <template>
   <div class="p-6">
+    <!-- To Do Work Section -->
+    <ToDoWork />
+    
     <!-- Date Filter -->
     <div class="bg-white p-4 rounded-lg shadow mb-6">
       <h2 class="font-semibold text-lg mb-4">Date Range Filter</h2>
@@ -160,6 +163,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import ToDoWork from './ToDoWork.vue'
 
 const emit = defineEmits(['show-full-history'])
 

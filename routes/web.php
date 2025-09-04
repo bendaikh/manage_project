@@ -96,6 +96,7 @@ Route::get('/order-statuses/list', function () {
 // Dashboard overview data
 Route::get('/dashboard/overview-data', [\App\Http\Controllers\DashboardController::class, 'overviewData']);
 Route::get('/dashboard/analytics-data', [\App\Http\Controllers\DashboardController::class, 'analyticsData']);
+Route::get('/api/dashboard/todo-work', [\App\Http\Controllers\DashboardController::class, 'todoWorkData']);
 
 // Dashboard filter endpoints
 Route::get('/api/dashboard/agents', function () {

@@ -219,7 +219,7 @@ class OrderController extends Controller
         // Count all orders delivered today across the whole dataset (ignoring pagination)
         $deliveredOrdersTodayCount = Order::whereHas('orderStatus', function ($q) {
             $q->where('name', 'Delivered');
-        })->whereDate('created_at', today())->count();
+        })->whereDate('updated_at', today())->count();
 
         return response()->json([
             'orders' => $orders,
