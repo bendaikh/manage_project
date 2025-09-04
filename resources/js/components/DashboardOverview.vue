@@ -1,7 +1,10 @@
 <template>
   <div class="p-6">
     <!-- To Do Work Section -->
-    <ToDoWork />
+    <ToDoWork 
+      @navigate-to-confirmation="handleNavigateToConfirmation"
+      @navigate-to-delivery="handleNavigateToDelivery"
+    />
     
     <!-- Date Filter -->
     <div class="bg-white p-4 rounded-lg shadow mb-6">
@@ -165,7 +168,7 @@
 import { ref, computed, onMounted } from 'vue'
 import ToDoWork from './ToDoWork.vue'
 
-const emit = defineEmits(['show-full-history'])
+const emit = defineEmits(['show-full-history', 'navigate-to-confirmation', 'navigate-to-delivery'])
 
 const startDate = ref(new Date().toISOString().substr(0, 10))
 const endDate = ref(new Date().toISOString().substr(0, 10))
@@ -430,6 +433,14 @@ const clearAdditionalFilters = () => {
   selectedSeller.value = ''
   selectedProduct.value = ''
   fetchData()
+}
+
+const handleNavigateToConfirmation = (options) => {
+  emit('navigate-to-confirmation', options)
+}
+
+const handleNavigateToDelivery = (options) => {
+  emit('navigate-to-delivery', options)
 }
 
 const fetchFilterData = async () => {
