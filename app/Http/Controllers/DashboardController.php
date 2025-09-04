@@ -212,8 +212,10 @@ class DashboardController extends Controller
         $baseQuery($confirmOnDateQuery);
         $confirmOnDateCount = $confirmOnDateQuery->count();
 
-        // 3. Postponed - Show postponed orders
+        // 3. Postponed - Show postponed orders where today matches the postponed_date
         $postponedQuery = Order::where('belongs_to', 'confirmation')
+            ->whereDate('postponed_date', $today)
+            ->whereNotNull('postponed_date')
             ->whereHas('orderStatus', function($query) {
                 $query->where('name', 'Postponed');
             });
