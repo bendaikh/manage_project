@@ -81,6 +81,30 @@
     </form>
     <div v-if="error" class="text-red-600 mt-3 text-sm">{{ error }}</div>
     <div v-if="success" class="text-green-600 mt-3 text-sm">Order updated successfully!</div>
+    <!-- Warehouse Selection Modal for confirmation flow -->
+    <div v-if="showWarehouseModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" @click.self="closeWarehouseModal">
+      <div class="bg-white rounded-lg shadow-lg p-4 lg:p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <h3 class="text-lg font-semibold mb-4">Select Warehouse for Order Confirmation</h3>
+        <p class="text-sm text-gray-600 mb-4">Please select which warehouse this order will take products from:</p>
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-2">Warehouse</label>
+          <select v-model="selectedWarehouseId" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="">Select a warehouse</option>
+            <option v-for="warehouse in warehouses" :key="warehouse.id" :value="warehouse.id">
+              {{ warehouse.name }} - {{ warehouse.location }}
+            </option>
+          </select>
+        </div>
+        <div class="flex justify-end space-x-3">
+          <button @click="closeWarehouseModal" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">
+            Cancel
+          </button>
+          <button @click="confirmOrderWithWarehouse" :disabled="!selectedWarehouseId" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50">
+            Confirm Order
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -143,6 +167,14 @@ const submitForm = async () => {
   error.value = ''
   success.value = false
   try {
+    // If in confirmation section and selected status is Confirmed, show warehouse selection flow
+    const selectedStatus = allStatuses.value.find(s => s.id === form.value.order_status_id)
+    const selectedStatusName = selectedStatus?.name || ''
+    if (props.confirmation && selectedStatusName === 'Confirmed') {
+      await openWarehouseSelection()
+      return
+    }
+
     const csrfToken = document.querySelector('meta[name=\'csrf-token\']')?.getAttribute('content')
     const response = await fetch(`/orders/${orderId}`, {
       method: 'PUT',
@@ -169,4 +201,64 @@ const submitForm = async () => {
 onMounted(() => {
   fetchStatuses()
 })
-</script> 
+
+// Warehouse selection modal state and logic for confirmation -> Confirmed
+const showWarehouseModal = ref(false)
+const warehouses = ref([])
+const selectedWarehouseId = ref('')
+
+const openWarehouseSelection = async () => {
+  selectedWarehouseId.value = ''
+  try {
+    const res = await fetch('/warehouses')
+    if (res.ok) {
+      const data = await res.json()
+      warehouses.value = data.data || []
+    }
+  } catch (e) {
+    // swallow; error will surface on confirm attempt
+  }
+  showWarehouseModal.value = true
+}
+
+const closeWarehouseModal = () => {
+  showWarehouseModal.value = false
+  selectedWarehouseId.value = ''
+}
+
+const confirmOrderWithWarehouse = async () => {
+  if (!selectedWarehouseId.value) return
+  error.value = ''
+  success.value = false
+  try {
+    const csrf = document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+    const res = await fetch(`/orders/${orderId}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf },
+      body: JSON.stringify({
+        status: 'Confirmed',
+        warehouse_id: selectedWarehouseId.value
+      })
+    })
+    if (!res.ok) {
+      let message = 'Failed to confirm order'
+      try {
+        const data = await res.json()
+        message = data.message || message
+      } catch (_) {
+        const text = await res.text()
+        message = text || message
+      }
+      throw new Error(message)
+    }
+    await res.json()
+    success.value = true
+    showWarehouseModal.value = false
+    emit('updated')
+  } catch (e) {
+    error.value = e.message || 'Failed to confirm order'
+  } finally {
+    selectedWarehouseId.value = ''
+  }
+}
+</script>

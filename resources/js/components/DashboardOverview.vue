@@ -24,6 +24,38 @@
       </div>
     </div>
 
+    <!-- Additional Filters -->
+    <div class="bg-white p-4 rounded-lg shadow mb-6">
+      <h2 class="font-semibold text-lg mb-4">Additional Filters</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+        <div>
+          <label class="block text-sm font-medium mb-1">Agent</label>
+          <select v-model="selectedAgent" class="w-full border rounded px-3 py-2">
+            <option value="">All Agents</option>
+            <option v-for="agent in agents" :key="agent.id" :value="agent.name">{{ agent.name }}</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1">Seller</label>
+          <select v-model="selectedSeller" class="w-full border rounded px-3 py-2">
+            <option value="">All Sellers</option>
+            <option v-for="seller in sellers" :key="seller" :value="seller">{{ seller }}</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1">Product</label>
+          <select v-model="selectedProduct" class="w-full border rounded px-3 py-2">
+            <option value="">All Products</option>
+            <option v-for="product in products" :key="product.id" :value="product.id">{{ product.name }}</option>
+          </select>
+        </div>
+      </div>
+      <div class="flex gap-2 mt-4">
+        <button @click="applyAdditionalFilters" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Apply Filters</button>
+        <button @click="clearAdditionalFilters" class="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">Clear Filters</button>
+      </div>
+    </div>
+
     <!-- Confirmation Status Block -->
     <div class="bg-white p-6 rounded-lg shadow mb-6">
       <div class="flex items-center justify-between mb-4">
@@ -135,6 +167,14 @@ const startDate = ref(new Date().toISOString().substr(0, 10))
 const endDate = ref(new Date().toISOString().substr(0, 10))
 const activeRange = ref('Today')
 
+// Additional filter state
+const selectedAgent = ref('')
+const selectedSeller = ref('')
+const selectedProduct = ref('')
+const agents = ref([])
+const sellers = ref([])
+const products = ref([])
+
 const quickRanges = [
   { label: 'Last 7 Days', days: 7 },
   { label: 'Last 30 Days', days: 30 },
@@ -226,6 +266,14 @@ const confirmationStatuses = computed(() => {
       icon: '🚫', 
       bgColor: 'bg-red-600', 
       barColor: 'bg-red-600' 
+    },
+    { 
+      name: 'Expired', 
+      count: confirmationOrders.value.filter(o => o.status === 'Expired').length, 
+      percentage: total > 0 ? Math.round((confirmationOrders.value.filter(o => o.status === 'Expired').length / total) * 100) : 0, 
+      icon: '⏰❌', 
+      bgColor: 'bg-red-700', 
+      barColor: 'bg-red-700' 
     }
   ]
 })
@@ -296,6 +344,14 @@ const deliveryStatuses = computed(() => {
       icon: '📦❌', 
       bgColor: 'bg-gray-500', 
       barColor: 'bg-gray-500' 
+    },
+    { 
+      name: 'Expired', 
+      count: deliveryOrders.value.filter(o => o.status === 'Expired').length, 
+      percentage: total > 0 ? Math.round((deliveryOrders.value.filter(o => o.status === 'Expired').length / total) * 100) : 0, 
+      icon: '⏰❌', 
+      bgColor: 'bg-red-700', 
+      barColor: 'bg-red-700' 
     }
   ]
 })
@@ -304,7 +360,18 @@ const recentHistories = ref([])
 
 const fetchData = async () => {
   try {
-    const url = `/dashboard/overview-data?start_date=${startDate.value}&end_date=${endDate.value}`
+    // Build query parameters
+    const params = new URLSearchParams({
+      start_date: startDate.value,
+      end_date: endDate.value
+    })
+    
+    // Add filter parameters
+    if (selectedAgent.value) params.append('agent', selectedAgent.value)
+    if (selectedSeller.value) params.append('seller', selectedSeller.value)
+    if (selectedProduct.value) params.append('product_id', selectedProduct.value)
+    
+    const url = `/dashboard/overview-data?${params.toString()}`
     const res = await fetch(url)
     const data = await res.json()
     allOrders.value = data.orders || []
@@ -350,9 +417,45 @@ const setQuickRange = ({ label, days }) => {
   fetchData()
 }
 
+const applyAdditionalFilters = () => {
+  fetchData()
+}
+
+const clearAdditionalFilters = () => {
+  selectedAgent.value = ''
+  selectedSeller.value = ''
+  selectedProduct.value = ''
+  fetchData()
+}
+
+const fetchFilterData = async () => {
+  try {
+    // Fetch agents
+    const agentsRes = await fetch('/api/dashboard/agents')
+    if (agentsRes.ok) {
+      agents.value = await agentsRes.json()
+    }
+    
+    // Fetch sellers
+    const sellersRes = await fetch('/api/dashboard/sellers')
+    if (sellersRes.ok) {
+      sellers.value = await sellersRes.json()
+    }
+    
+    // Fetch products
+    const productsRes = await fetch('/api/dashboard/products')
+    if (productsRes.ok) {
+      products.value = await productsRes.json()
+    }
+  } catch (err) {
+    console.error('Failed to load filter data', err)
+  }
+}
+
 onMounted(async () => {
   await fetchData()
   await fetchRecentHistories()
+  await fetchFilterData()
 })
 
 const fetchRecentHistories = async () => {

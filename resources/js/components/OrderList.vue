@@ -455,13 +455,13 @@ const pageNumbers = computed(() => {
 
 const sellers = ref([])
 // Full list for filter dropdown (can still show all)
-const statuses = ref(['New Order','Confirmed','Confirmed on Date','Unreachable','Postponed','Cancelled','Blacklisted','Out of Stock','Processing','Shipped','Delivered'])
+const statuses = ref(['New Order','Confirmed','Confirmed on Date','Unreachable','Postponed','Cancelled','Blacklisted','Out of Stock','Processing','Shipped','Delivered','Expired'])
 
 // Allowed statuses per section
 const statusConfig = {
   all: ['New Order'],
-  confirmation: ['New Order', 'Confirmed', 'Confirmed on Date', 'Unreachable', 'Postponed', 'Cancelled', 'Blacklisted', 'Out of Stock'],
-  delivery: ['Processing', 'Shipped', 'Unreachable', 'Postponed', 'Cancelled', 'Delivered', 'Out of Stock']
+  confirmation: ['New Order', 'Confirmed', 'Confirmed on Date', 'Unreachable', 'Postponed', 'Cancelled', 'Blacklisted', 'Out of Stock', 'Expired'],
+  delivery: ['Processing', 'Shipped', 'Unreachable', 'Postponed', 'Cancelled', 'Delivered', 'Out of Stock', 'Expired']
 }
 
 const allowedStatuses = computed(() => {
@@ -1004,7 +1004,8 @@ const getStatusColor = (statusName) => {
     'Out of Stock': 'bg-orange-100 text-orange-800 border-orange-200',
     'Processing': 'bg-purple-100 text-purple-800 border-purple-200',
     'Shipped': 'bg-indigo-100 text-indigo-800 border-indigo-200',
-    'Delivered': 'bg-green-200 text-green-900 border-green-300'
+    'Delivered': 'bg-green-200 text-green-900 border-green-300',
+    'Expired': 'bg-red-300 text-red-900 border-red-400'
   }
   return colors[statusName] || 'bg-gray-100 text-gray-800 border-gray-200'
 }

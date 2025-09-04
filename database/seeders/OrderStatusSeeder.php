@@ -23,6 +23,7 @@ class OrderStatusSeeder extends Seeder
             'Processing',
             'Shipped',
             'Delivered',
+            'Expired',
         ];
         foreach ($statuses as $status) {
             OrderStatus::firstOrCreate(['name' => $status]);
