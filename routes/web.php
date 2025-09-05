@@ -20,6 +20,7 @@ use App\Http\Controllers\AccountController;
 use App\Http\Controllers\AiChatController;
 use App\Http\Controllers\OrderAssignmentController;
 use App\Http\Controllers\WarehouseController;
+use App\Http\Controllers\StockGlobaleController;
 use Illuminate\Support\Facades\Route;
 
 // Redirect root to login if not authenticated
@@ -356,6 +357,16 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/stocks/{id}', [\App\Http\Controllers\StockController::class, 'destroy']);
     Route::patch('/stocks/{id}/quantities', [\App\Http\Controllers\StockController::class, 'updateQuantities']);
     Route::post('/stocks/{id}/sync-product', [\App\Http\Controllers\StockController::class, 'syncWithProduct']);
+    
+    // Stock Globale routes
+    Route::get('/stocks-globale', [StockGlobaleController::class, 'index']);
+    Route::get('/stocks-globale/statistics', [StockGlobaleController::class, 'statistics']);
+    Route::get('/stocks-globale/filter-options/products', [StockGlobaleController::class, 'getFilterOptionsProducts']);
+    Route::get('/stocks-globale/filter-options/warehouses', [StockGlobaleController::class, 'getFilterOptionsWarehouses']);
+    Route::get('/stocks-globale/filter-options/sellers', [StockGlobaleController::class, 'getFilterOptionsSellers']);
+    Route::get('/stocks-globale/export', [StockGlobaleController::class, 'export']);
+    Route::put('/stocks-globale/{id}', [StockGlobaleController::class, 'update']);
+    Route::patch('/stocks-globale/{id}/quantities', [StockGlobaleController::class, 'updateQuantities']);
 });
 
 Route::get('/seller-invoices', [\App\Http\Controllers\SellerInvoiceController::class, 'index']);

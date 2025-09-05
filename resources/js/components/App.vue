@@ -118,20 +118,31 @@
             </div>
           </div>
 
-          <!-- Shipments -->
+          <!-- Sourcing -->
           <div>
-            <button type="button" @click="handleShowShipments" class="w-full flex items-center space-x-3 px-4 py-3 text-left text-white rounded-lg hover:bg-blue-800">
-              <TruckIcon class="h-5 w-5 text-white" />
-              <span>Shipments</span>
+            <button @click="toggleSourcingMenu" class="w-full flex items-center justify-between px-4 py-3 text-white rounded-lg hover:bg-blue-800">
+              <div class="flex items-center space-x-3">
+                <TruckIcon class="h-5 w-5 text-white" />
+                <span>Sourcing</span>
+              </div>
+              <ChevronDownIcon :class="['h-4 w-4 text-white transition-transform', isSourcingMenuOpen ? 'rotate-180' : '']" />
             </button>
-          </div>
-
-          <!-- Stock -->
-          <div>
-            <button type="button" @click="handleShowStock" class="w-full flex items-center space-x-3 px-4 py-3 text-left text-white rounded-lg hover:bg-blue-800">
-              <BoxIcon class="h-5 w-5 text-white" />
-              <span>Stock</span>
-            </button>
+            
+            <!-- Sourcing Sub-menu -->
+            <div v-show="isSourcingMenuOpen" class="mt-1 ml-4 space-y-1">
+              <button type="button" @click="handleShowShipments" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
+                <TruckIcon class="h-4 w-4" />
+                <span>Shipments</span>
+              </button>
+              <button type="button" @click="handleShowStock" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
+                <BoxIcon class="h-4 w-4" />
+                <span>Stock</span>
+              </button>
+              <button type="button" @click="handleShowStockGlobale" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
+                <BoxIcon class="h-4 w-4" />
+                <span>Stock Globale</span>
+              </button>
+            </div>
           </div>
 
           <!-- Warehouse -->
@@ -383,6 +394,7 @@
         <AccessRights v-else-if="showAccessRights" />
         <ShipmentsList v-else-if="showShipments" />
         <StockList v-else-if="showStock" />
+        <StockGlobaleList v-else-if="showStockGlobale" />
         <WarehouseCreate v-else-if="showAddWarehouse" @back="handleBackFromAddWarehouse" />
         <WarehouseList v-else-if="showManageWarehouses" @add-warehouse="handleShowAddWarehouse" />
         <WarehouseTransfers v-else-if="showWarehouseTransfers" />
@@ -425,6 +437,7 @@ import AccessRights from './AccessRights.vue'
 import AiChatbot from './AiChatbot.vue'
 import ShipmentsList from './ShipmentsList.vue'
 import StockList from './StockList.vue'
+import StockGlobaleList from './StockGlobaleList.vue'
 import SellerInvoicesList from './SellerInvoicesList.vue'
 import HistoryList from './HistoryList.vue'
 import BalanceView from './BalanceView.vue'
@@ -444,6 +457,7 @@ const isProfileMenuOpen = ref(false)
 const isMobileMenuOpen = ref(false)
 const isSettingsMenuOpen = ref(false)
 const isWarehouseMenuOpen = ref(false)
+const isSourcingMenuOpen = ref(false)
 
 // App settings
 const appLogo = ref(null)
@@ -486,6 +500,7 @@ const showBalance = ref(false)
 const showAddWarehouse = ref(false)
 const showManageWarehouses = ref(false)
 const showWarehouseTransfers = ref(false)
+const showStockGlobale = ref(false)
 
 const toggleDashboardMenu = () => {
   isDashboardMenuOpen.value = !isDashboardMenuOpen.value
@@ -525,6 +540,10 @@ const toggleSettingsMenu = () => {
 
 const toggleWarehouseMenu = () => {
   isWarehouseMenuOpen.value = !isWarehouseMenuOpen.value
+}
+
+const toggleSourcingMenu = () => {
+  isSourcingMenuOpen.value = !isSourcingMenuOpen.value
 }
 
 const closeProfileMenu = () => {
@@ -586,6 +605,7 @@ const resetViews = () => {
   showAccessRights.value = false
   showShipments.value = false
   showStock.value = false
+  showStockGlobale.value = false
   showSellerInvoices.value = false
   showTransfers.value = false
   showHistory.value = false
@@ -797,6 +817,12 @@ const handleShowStock = (e) => {
   if (e) e.preventDefault()
   resetViews()
   showStock.value = true
+}
+
+const handleShowStockGlobale = (e) => {
+  if (e) e.preventDefault()
+  resetViews()
+  showStockGlobale.value = true
 }
 
 const handleShowAddWarehouse = (e) => {
