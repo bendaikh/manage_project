@@ -20,6 +20,7 @@ class ProductController extends Controller
             'sku' => 'nullable|string|max:255',
             'category' => 'nullable|string|max:255',
             'supplier' => 'nullable|string|max:255',
+            'is_company_product' => 'boolean',
             'purchase_price' => 'required|numeric|min:0',
             'selling_price' => 'required|numeric|min:0',
             'stock_quantity' => 'required|integer|min:0',
@@ -32,7 +33,13 @@ class ProductController extends Controller
         ];
 
         if (!auth()->user()->hasRole('seller')) {
-            $rules['seller_id'] = 'required|exists:users,id';
+            // If it's a company product, assigned_sellers is required instead of seller_id
+            if ($request->input('is_company_product')) {
+                $rules['assigned_sellers'] = 'required|array|min:1';
+                $rules['assigned_sellers.*'] = 'exists:users,id';
+            } else {
+                $rules['seller_id'] = 'required|exists:users,id';
+            }
         }
 
         $validator = Validator::make($request->all(), $rules);
@@ -47,19 +54,36 @@ class ProductController extends Controller
         if (auth()->user()->hasRole('seller')) {
             $data['seller_id'] = auth()->user()->id;
             $data['seller'] = auth()->user()->name; // keep readable name
-        }
-
-        // When admin supplies seller_id fetch name too for convenience
-        if (isset($data['seller_id']) && empty($data['seller'])) {
-            $sellerUser = \App\Models\User::find($data['seller_id']);
-            $data['seller'] = $sellerUser?->name;
+        } else {
+            // For non-seller users, handle seller assignment based on product type
+            if ($data['is_company_product']) {
+                // For company products, we don't set a single seller_id
+                // The assigned sellers will be handled via the pivot table
+                $data['seller_id'] = null;
+                $data['seller'] = null;
+            } else {
+                // For regular products, set the seller name for convenience
+                if (isset($data['seller_id']) && empty($data['seller'])) {
+                    $sellerUser = \App\Models\User::find($data['seller_id']);
+                    $data['seller'] = $sellerUser?->name;
+                }
+            }
         }
 
         if (empty($data['sku'])) {
             $data['sku'] = strtoupper(uniqid('SKU'));
         }
 
+        // Handle assigned sellers for company products
+        $assignedSellers = $data['assigned_sellers'] ?? [];
+        unset($data['assigned_sellers']); // Remove from data array as it's not a direct column
+
         $product = Product::create($data);
+
+        // Attach assigned sellers if this is a company product
+        if ($data['is_company_product'] && !empty($assignedSellers)) {
+            $product->assignedSellers()->attach($assignedSellers);
+        }
 
         $this->logAction('Product Created', "Created product: {$product->name}", ['product_id' => $product->id]);
 
@@ -68,7 +92,7 @@ class ProductController extends Controller
 
     public function index(Request $request)
     {
-        $query = Product::with(['seller', 'warehouse']);
+        $query = Product::with(['seller', 'warehouse', 'assignedSellers']);
 
         // Sellers only see their own products
         if (auth()->check() && auth()->user()->hasRole('seller')) {

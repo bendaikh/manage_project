@@ -41,15 +41,56 @@
             <option v-for="warehouse in warehouses" :key="warehouse.id" :value="warehouse.id">{{ warehouse.name }} - {{ warehouse.location }}</option>
           </select>
         </div>
-        <!-- Seller field -->
-        <div class="mb-4" v-if="!isSeller">
+        
+        <!-- Company Product Checkbox -->
+        <div class="mb-4">
+          <label class="flex items-center">
+            <input v-model="form.is_company_product" type="checkbox" class="mr-2 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+            <span class="text-sm font-medium">Company Product</span>
+          </label>
+          <p class="text-xs text-gray-500 mt-1">Check this if this product should be available to multiple sellers</p>
+        </div>
+        
+        <!-- Seller field - Single select (when company product is NOT checked) -->
+        <div class="mb-4" v-if="!isSeller && !form.is_company_product">
           <label class="block text-sm font-medium mb-1">Seller *</label>
           <select v-model="form.seller_id" class="w-full border rounded px-3 py-2 focus:outline-none focus:ring focus:border-blue-300">
             <option value="">Select a seller</option>
             <option v-for="s in sellers" :key="s.id" :value="s.id">{{ s.name }}</option>
           </select>
         </div>
-        <div class="mb-4" v-else>
+        
+        <!-- Seller field - Custom Multiselect (when company product IS checked) -->
+        <div class="mb-4" v-if="!isSeller && form.is_company_product">
+          <label class="block text-sm font-medium mb-1">Assigned Sellers *</label>
+          
+          <!-- Selected Sellers as Tabs/Chips -->
+          <div v-if="selectedSellers.length > 0" class="mb-3">
+            <div class="flex flex-wrap gap-2">
+              <div v-for="seller in selectedSellers" :key="seller.id" class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800 border border-blue-200">
+                <span>{{ seller.name }}</span>
+                <button @click="removeSeller(seller.id)" type="button" class="ml-2 inline-flex items-center justify-center w-4 h-4 rounded-full text-blue-400 hover:text-blue-600 hover:bg-blue-200">
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Add Seller Dropdown -->
+          <div class="relative">
+            <select v-model="selectedSellerToAdd" @change="addSeller" class="w-full border rounded px-3 py-2 focus:outline-none focus:ring focus:border-blue-300">
+              <option value="">Select a seller to add</option>
+              <option v-for="seller in availableSellers" :key="seller.id" :value="seller.id">{{ seller.name }}</option>
+            </select>
+          </div>
+          
+          <p class="text-xs text-gray-500 mt-1">Select sellers from the dropdown to add them. Click the X on tabs to remove them.</p>
+        </div>
+        
+        <!-- Seller field - Readonly (when current user is a seller) -->
+        <div class="mb-4" v-if="isSeller">
           <label class="block text-sm font-medium mb-1">Seller</label>
           <input type="text" :value="window.Laravel?.user?.name" class="w-full border rounded px-3 py-2 bg-gray-100" disabled />
         </div>
@@ -126,7 +167,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 
 const form = ref({
   name: '',
@@ -135,6 +176,8 @@ const form = ref({
   supplier: '',
   seller_id: '',
   warehouse_id: '',
+  is_company_product: false,
+  assigned_sellers: [],
   purchase_price: '',
   selling_price: '',
   stock_quantity: 1,
@@ -151,6 +194,35 @@ const categories = ref([])
 const sellers = ref([])
 const warehouses = ref([])
 const isSeller = ref(false)
+
+// Custom multiselect state
+const selectedSellers = ref([])
+const selectedSellerToAdd = ref('')
+
+// Computed property for available sellers (excluding already selected ones)
+const availableSellers = computed(() => {
+  const selectedIds = selectedSellers.value.map(s => s.id)
+  return sellers.value.filter(seller => !selectedIds.includes(seller.id))
+})
+
+// Methods for custom multiselect
+const addSeller = () => {
+  if (selectedSellerToAdd.value) {
+    const seller = sellers.value.find(s => s.id == selectedSellerToAdd.value)
+    if (seller && !selectedSellers.value.find(s => s.id === seller.id)) {
+      selectedSellers.value.push(seller)
+      // Update the form data
+      form.value.assigned_sellers = selectedSellers.value.map(s => s.id)
+    }
+    selectedSellerToAdd.value = '' // Reset dropdown
+  }
+}
+
+const removeSeller = (sellerId) => {
+  selectedSellers.value = selectedSellers.value.filter(s => s.id !== sellerId)
+  // Update the form data
+  form.value.assigned_sellers = selectedSellers.value.map(s => s.id)
+}
 
 const fetchCategories = async () => {
   const res = await fetch('/categories', { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
@@ -208,8 +280,11 @@ const submitForm = async () => {
     }
     success.value = true
     form.value = {
-      name: '', sku: '', category: '', supplier: '', seller_id: isSeller.value ? (window.Laravel?.user?.id || '') : '', warehouse_id: '', purchase_price: '', selling_price: '', stock_quantity: 1, status: 'In Stock', image_url: '', video_url: '', video_duration: '', description: ''
+      name: '', sku: '', category: '', supplier: '', seller_id: isSeller.value ? (window.Laravel?.user?.id || '') : '', warehouse_id: '', is_company_product: false, assigned_sellers: [], purchase_price: '', selling_price: '', stock_quantity: 1, status: 'In Stock', image_url: '', video_url: '', video_duration: '', description: ''
     }
+    // Reset custom multiselect state
+    selectedSellers.value = []
+    selectedSellerToAdd.value = ''
     // Optionally emit event to parent
     // emit('product-saved')
   } catch (e) {

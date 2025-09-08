@@ -100,13 +100,22 @@ class PdfController extends Controller
         $totalOrders = $orders->count();
         $productTotal = $orders->sum('price');
         $deliveryCostTotal = $totalOrders * $deliveryPrice;
-        $totalAmount = $productTotal - $deliveryCostTotal;
+        
+        // Calculate purchase price total for company products only
+        $purchasePriceTotal = 0;
+        foreach ($orders as $order) {
+            if ($order->product && $order->product->is_company_product) {
+                $purchasePriceTotal += $order->product->purchase_price * $order->quantity;
+            }
+        }
+        
+        $totalAmount = $productTotal - $purchasePriceTotal - $deliveryCostTotal;
         if ($totalAmount < 0) { $totalAmount = 0; }
         $filename = 'delivery-invoice-' . $today . '.pdf';
         $pdfPath = 'invoices/' . $filename;
         
         // Configure PDF options for better encoding support
-        $pdf = Pdf::loadView('pdf.delivery-invoice', compact('orders', 'totalAmount', 'totalOrders', 'today', 'productTotal', 'deliveryCostTotal'))
+        $pdf = Pdf::loadView('pdf.delivery-invoice', compact('orders', 'totalAmount', 'totalOrders', 'today', 'productTotal', 'purchasePriceTotal', 'deliveryCostTotal'))
             ->setPaper('a4', 'portrait')
             ->setOptions([
                 'isHtml5ParserEnabled' => true,
@@ -152,7 +161,16 @@ class PdfController extends Controller
                 $sellerOrderCount   = $sellerOrders->count();
                 $sellerProductTotal = $sellerOrders->sum('price');
                 $sellerDeliveryCostTotal = $sellerOrderCount * $sellerDeliveryPrice;
-                $sellerTotalAmount  = $sellerProductTotal - $sellerDeliveryCostTotal;
+                
+                // Calculate purchase price total for company products only
+                $sellerPurchasePriceTotal = 0;
+                foreach ($sellerOrders as $order) {
+                    if ($order->product && $order->product->is_company_product) {
+                        $sellerPurchasePriceTotal += $order->product->purchase_price * $order->quantity;
+                    }
+                }
+                
+                $sellerTotalAmount = $sellerProductTotal - $sellerPurchasePriceTotal - $sellerDeliveryCostTotal;
                 if ($sellerTotalAmount < 0) { $sellerTotalAmount = 0; }
                 $sellerFileName     = 'seller-invoice-' . Str::slug($sellerName) . '-' . $today . '.pdf';
                 $sellerPdfPath      = 'invoices/sellers/' . $sellerFileName;
@@ -165,6 +183,7 @@ class PdfController extends Controller
                     'totalAmount'          => $sellerTotalAmount,
                     'totalOrders'          => $sellerOrderCount,
                     'productTotal'         => $sellerProductTotal,
+                    'purchasePriceTotal'   => $sellerPurchasePriceTotal,
                     'deliveryCostTotal'    => $sellerDeliveryCostTotal,
                     'today'                => $today,
                 ])->setPaper('a4', 'portrait')->setOptions([

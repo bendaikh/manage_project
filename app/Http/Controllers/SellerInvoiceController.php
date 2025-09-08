@@ -75,7 +75,16 @@ class SellerInvoiceController extends Controller
         $sellerDeliveryPrice = \App\Models\Setting::getSellerDeliveryPrice();
         $sellerProductTotal = $orders->sum('price');
         $sellerDeliveryCostTotal = $totalOrders * $sellerDeliveryPrice;
-        $totalAmount = $sellerProductTotal - $sellerDeliveryCostTotal;
+        
+        // Calculate purchase price total for company products only
+        $sellerPurchasePriceTotal = 0;
+        foreach ($orders as $order) {
+            if ($order->product && $order->product->is_company_product) {
+                $sellerPurchasePriceTotal += $order->product->purchase_price * $order->quantity;
+            }
+        }
+        
+        $totalAmount = $sellerProductTotal - $sellerPurchasePriceTotal - $sellerDeliveryCostTotal;
         if ($totalAmount < 0) { $totalAmount = 0; }
         $today       = $invoice->invoice_date;
 
@@ -87,6 +96,7 @@ class SellerInvoiceController extends Controller
             'totalAmount' => $totalAmount,
             'totalOrders' => $totalOrders,
             'productTotal' => $sellerProductTotal,
+            'purchasePriceTotal' => $sellerPurchasePriceTotal,
             'deliveryCostTotal' => $sellerDeliveryCostTotal,
             'today' => $today,
         ])

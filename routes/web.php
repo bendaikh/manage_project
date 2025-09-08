@@ -78,6 +78,18 @@ Route::get('/products/{product}/edit', [ProductController::class, 'edit']);
 Route::put('/products/{product}', [ProductController::class, 'update']);
 Route::delete('/products/{product}', [ProductController::class, 'destroy']);
 
+// Marketplace routes for sellers
+Route::get('/marketplace', [App\Http\Controllers\MarketplaceController::class, 'index']);
+Route::get('/marketplace/stats', [App\Http\Controllers\MarketplaceController::class, 'stats']);
+
+// Weekly Seller Invoice routes
+Route::get('/weekly-seller-invoices', [App\Http\Controllers\WeeklySellerInvoiceController::class, 'index']);
+Route::post('/weekly-seller-invoices/generate', [App\Http\Controllers\WeeklySellerInvoiceController::class, 'generateWeeklyInvoices']);
+Route::post('/weekly-seller-invoices/{id}/approve', [App\Http\Controllers\WeeklySellerInvoiceController::class, 'approve']);
+Route::post('/weekly-seller-invoices/{id}/reject', [App\Http\Controllers\WeeklySellerInvoiceController::class, 'reject']);
+Route::delete('/weekly-seller-invoices/{id}', [App\Http\Controllers\WeeklySellerInvoiceController::class, 'destroy'])->middleware('role:superadmin');
+Route::get('/weekly-seller-invoices/{id}/download', [App\Http\Controllers\WeeklySellerInvoiceController::class, 'download']);
+
 Route::post('/orders', [OrderController::class, 'store']);
 Route::get('/orders/list', [OrderController::class, 'index']);
 

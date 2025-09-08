@@ -17,6 +17,7 @@ class Product extends Model
         'supplier',
         'seller',
         'seller_id',
+        'is_company_product',
         'purchase_price',
         'selling_price',
         'stock_quantity',
@@ -58,5 +59,14 @@ class Product extends Model
     public function orders(): HasMany
     {
         return $this->hasMany(Order::class);
+    }
+
+    /**
+     * Many-to-many relationship with sellers for company products.
+     */
+    public function assignedSellers()
+    {
+        return $this->belongsToMany(User::class, 'product_seller', 'product_id', 'seller_id')
+                    ->withTimestamps();
     }
 } 

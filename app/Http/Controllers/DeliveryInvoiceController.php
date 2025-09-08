@@ -95,7 +95,16 @@ class DeliveryInvoiceController extends Controller
             $totalOrders = $orders->count();
             $productTotal = $orders->sum('price');
             $deliveryCostTotal = $totalOrders * $deliveryPrice;
-            $totalAmount = $productTotal - $deliveryCostTotal;
+            
+            // Calculate purchase price total for company products only
+            $purchasePriceTotal = 0;
+            foreach ($orders as $order) {
+                if ($order->product && $order->product->is_company_product) {
+                    $purchasePriceTotal += $order->product->purchase_price * $order->quantity;
+                }
+            }
+            
+            $totalAmount = $productTotal - $purchasePriceTotal - $deliveryCostTotal;
             if ($totalAmount < 0) { $totalAmount = 0; }
             $today = $invoice->invoice_date;
             
@@ -103,7 +112,7 @@ class DeliveryInvoiceController extends Controller
             Storage::makeDirectory('invoices');
             
             // Generate PDF
-            $pdf = Pdf::loadView('pdf.delivery-invoice', compact('orders', 'totalAmount', 'totalOrders', 'today', 'productTotal', 'deliveryCostTotal'))
+            $pdf = Pdf::loadView('pdf.delivery-invoice', compact('orders', 'totalAmount', 'totalOrders', 'today', 'productTotal', 'purchasePriceTotal', 'deliveryCostTotal'))
                 ->setPaper('a4', 'portrait')
                 ->setOptions([
                     'isHtml5ParserEnabled' => true,

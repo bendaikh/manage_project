@@ -144,6 +144,7 @@
                 <th>Product</th>
                 <th>Quantity</th>
                 <th>Unit Price</th>
+                <th>Purchase Price</th>
                 <th>Delivery Cost</th>
                 <th>Total Price</th>
                 <th>Delivery Time</th>
@@ -166,6 +167,13 @@
                 </td>
                 <td style="text-align: center;">{{ $order->quantity }}</td>
                 <td class="price">{{ number_format($order->price / $order->quantity, 0, ',', ' ') }} FCFA</td>
+                <td class="price">
+                    @if($order->product && $order->product->is_company_product)
+                        {{ number_format($order->product->purchase_price, 0, ',', ' ') }} FCFA
+                    @else
+                        0 FCFA
+                    @endif
+                </td>
                 <td class="price">{{ number_format(\App\Models\Setting::getDeliveryPrice(), 0, ',', ' ') }} FCFA</td>
                 <td class="price">{{ number_format($order->price, 0, ',', ' ') }} FCFA</td>
                 <td style="text-align: center;">{{ date('H:i', strtotime($order->updated_at)) }}</td>
@@ -189,7 +197,10 @@
     <!-- Totals Summary -->
     <div class="totals" style="margin-top:20px; font-size:12px;">
         <p><strong>Total Products Price:</strong> {{ number_format($productTotal, 0, ',', ' ') }} FCFA</p>
-        <p><strong>Total Delivery Cost:</strong> {{ number_format($deliveryCostTotal, 0, ',', ' ') }} FCFA</p>
+        @if(isset($purchasePriceTotal) && $purchasePriceTotal > 0)
+        <p><strong>Total Purchase Price (Company Products):</strong> -{{ number_format($purchasePriceTotal, 0, ',', ' ') }} FCFA</p>
+        @endif
+        <p><strong>Total Delivery Cost:</strong> -{{ number_format($deliveryCostTotal, 0, ',', ' ') }} FCFA</p>
         <p class="grand-total"><strong>Net Total Amount:</strong> {{ number_format($totalAmount, 0, ',', ' ') }} FCFA</p>
     </div>
 

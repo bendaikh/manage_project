@@ -199,6 +199,16 @@
             </div>
           </div>
 
+          <!-- Marketplace (for sellers only) -->
+          <div v-if="isSeller">
+            <button type="button" @click="handleShowMarketplace" class="w-full flex items-center space-x-3 px-4 py-3 text-white rounded-lg hover:bg-blue-800">
+              <svg class="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+              </svg>
+              <span>Marketplace</span>
+            </button>
+          </div>
+
           <!-- Accounting -->
           <div v-if="hasAccountingPermission">
             <button @click="toggleAccountingMenu" class="w-full flex items-center justify-between px-4 py-3 text-white rounded-lg hover:bg-blue-800">
@@ -399,6 +409,7 @@
         <WarehouseList v-else-if="showManageWarehouses" @add-warehouse="handleShowAddWarehouse" />
         <WarehouseTransfers v-else-if="showWarehouseTransfers" />
         <HistoryList v-else-if="showHistory" />
+        <MarketplaceList v-else-if="showMarketplace" />
         <BalanceView v-else-if="showBalance" />
         <slot v-else></slot>
       </main>
@@ -440,6 +451,7 @@ import StockList from './StockList.vue'
 import StockGlobaleList from './StockGlobaleList.vue'
 import SellerInvoicesList from './SellerInvoicesList.vue'
 import HistoryList from './HistoryList.vue'
+import MarketplaceList from './MarketplaceList.vue'
 import BalanceView from './BalanceView.vue'
 import WarehouseCreate from './WarehouseCreate.vue'
 import WarehouseList from './WarehouseList.vue'
@@ -501,6 +513,7 @@ const showAddWarehouse = ref(false)
 const showManageWarehouses = ref(false)
 const showWarehouseTransfers = ref(false)
 const showStockGlobale = ref(false)
+const showMarketplace = ref(false)
 
 const toggleDashboardMenu = () => {
   isDashboardMenuOpen.value = !isDashboardMenuOpen.value
@@ -606,6 +619,7 @@ const resetViews = () => {
   showShipments.value = false
   showStock.value = false
   showStockGlobale.value = false
+  showMarketplace.value = false
   showSellerInvoices.value = false
   showTransfers.value = false
   showHistory.value = false
@@ -854,6 +868,12 @@ const handleShowHistory = () => {
   closeMobileMenu()
 }
 
+const handleShowMarketplace = () => {
+  resetViews()
+  showMarketplace.value = true
+  closeMobileMenu()
+}
+
 // Fetch app settings
 const fetchAppSettings = async () => {
   try {
@@ -1025,6 +1045,12 @@ const hasHistoryPermission = computed(() => {
   const roles = window.Laravel?.user?.roles || []
   const isSuperadmin = roles.includes('superadmin') || roles.some(r => typeof r === 'object' && r.name === 'superadmin')
   return isSuperadmin || hasPermission('view_history')
+})
+
+// Check if user is a seller
+const isSeller = computed(() => {
+  const roles = window.Laravel?.user?.roles || []
+  return roles.includes('seller') || roles.some(r => typeof r === 'object' && r.name === 'seller')
 })
 
 // Fetch settings on component mount

@@ -200,4 +200,13 @@ class User extends Authenticatable
     {
         return $this->hasRole('superadmin');
     }
+
+    /**
+     * Get products assigned to this seller (for company products).
+     */
+    public function assignedProducts()
+    {
+        return $this->belongsToMany(Product::class, 'product_seller', 'seller_id', 'product_id')
+                    ->withTimestamps();
+    }
 }
