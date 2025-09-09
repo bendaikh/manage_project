@@ -116,4 +116,35 @@ class SellerInvoiceController extends Controller
             'total_amount' => $totalAmount,
         ]);
     }
+
+    /**
+     * Delete a seller invoice (superadmin only)
+     */
+    public function destroy($id)
+    {
+        // Check if user is superadmin
+        if (!Auth::user()->isSuperadmin()) {
+            return response()->json(['error' => 'Unauthorized. Only superadmin can delete seller invoices.'], 403);
+        }
+
+        $invoice = SellerInvoice::findOrFail($id);
+
+        try {
+            // Delete the PDF file if it exists
+            if ($invoice->pdf_path && Storage::exists($invoice->pdf_path)) {
+                Storage::delete($invoice->pdf_path);
+            }
+
+            // Delete the invoice record
+            $invoice->delete();
+
+            return response()->json([
+                'message' => 'Seller invoice deleted successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to delete seller invoice: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to delete seller invoice'], 500);
+        }
+    }
 } 
