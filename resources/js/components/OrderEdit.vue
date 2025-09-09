@@ -11,7 +11,15 @@
     <form @submit.prevent="submitForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div>
         <label class="block text-sm font-medium mb-1">Seller</label>
-        <input v-model="form.seller" type="text" class="w-full border rounded px-3 py-2" />
+        <!-- For admins/managers: show dropdown to select seller -->
+        <select v-if="!isSeller" v-model="form.seller" class="w-full border rounded px-3 py-2">
+          <option value="">Select a seller</option>
+          <option v-for="seller in sellers" :key="seller.id" :value="seller.name">
+            {{ seller.name }} ({{ seller.email }})
+          </option>
+        </select>
+        <!-- For sellers: show read-only field with their info -->
+        <input v-else v-model="form.seller" type="text" class="w-full border rounded px-3 py-2 bg-gray-100" readonly />
       </div>
       <div>
         <label class="block text-sm font-medium mb-1">Product</label>
@@ -178,11 +186,18 @@ const products = ref(props.products || [])
 const error = ref('')
 const success = ref(false)
 const allStatuses = ref([])
+const sellers = ref([])
 
 // Check if user is superadmin
 const isSuperadmin = computed(() => {
   const roles = window.Laravel?.user?.roles || []
   return roles.includes('superadmin') || roles.some(role => typeof role === 'object' && role.name === 'superadmin')
+})
+
+// Check if user is seller
+const isSeller = computed(() => {
+  const roles = window.Laravel?.user?.roles || []
+  return roles.includes('seller') || roles.some(role => typeof role === 'object' && role.name === 'seller')
 })
 
 // Check if price can be edited (superadmin in delivery section)
@@ -215,6 +230,29 @@ const fetchStatuses = async () => {
   const res = await fetch('/order-statuses/list')
   const data = await res.json()
   allStatuses.value = data
+}
+
+const fetchSellers = async () => {
+  if (isSeller.value) return // Don't fetch sellers if current user is a seller
+  
+  try {
+    const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+    const res = await fetch('/users/sellers', { 
+      headers: { 
+        'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+        'X-CSRF-TOKEN': csrf || ''
+      }, 
+      credentials: 'same-origin' 
+    })
+    
+    if (res.ok) {
+      const data = await res.json()
+      sellers.value = data || []
+    }
+  } catch (error) {
+    console.error('Error fetching sellers:', error)
+  }
 }
 
 const submitForm = async () => {
@@ -266,6 +304,7 @@ const submitForm = async () => {
 
 onMounted(() => {
   fetchStatuses()
+  fetchSellers()
 })
 
 // Warehouse selection modal state and logic for confirmation -> Confirmed
