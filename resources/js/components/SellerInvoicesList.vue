@@ -32,10 +32,18 @@
             <td class="px-3 py-2">{{ invoice.order_count }}</td>
             <td class="px-3 py-2 font-bold">{{ formatAmount(invoice.total_amount) }} FCFA</td>
             <td class="px-3 py-2">
-              <button @click="downloadInvoice(invoice, 'daily')" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm flex items-center gap-2">
-                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                Download/View
-              </button>
+              <div class="flex gap-2">
+                <button @click="downloadInvoice(invoice, 'daily')" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm flex items-center gap-2">
+                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                  Download/View
+                </button>
+                <button v-if="isSuperadmin" @click="deleteInvoice(invoice, 'daily')" class="px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-sm flex items-center gap-1" title="Delete Invoice">
+                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                  </svg>
+                  Delete
+                </button>
+              </div>
             </td>
           </tr>
           <tr v-if="dailyInvoices.length === 0">
@@ -110,7 +118,7 @@
                   </svg>
                   Download PDF
                 </button>
-                <button v-if="isSuperadmin" @click="deleteInvoice(invoice)" class="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-xs flex items-center gap-1">
+                <button v-if="isSuperadmin" @click="deleteInvoice(invoice, 'weekly')" class="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-xs flex items-center gap-1" title="Delete Invoice">
                   <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                   </svg>
@@ -363,13 +371,20 @@ const rejectInvoice = async (invoice) => {
   }
 }
 
-const deleteInvoice = async (invoice) => {
-  if (!confirm(`Are you sure you want to delete the weekly invoice for ${invoice.seller} (${invoice.week_period})? This action cannot be undone.`)) {
+const deleteInvoice = async (invoice, type) => {
+  const invoiceType = type === 'weekly' ? 'weekly invoice' : 'daily invoice'
+  const period = type === 'weekly' ? `(${invoice.week_period})` : `(${invoice.invoice_date})`
+  
+  if (!confirm(`Are you sure you want to delete the ${invoiceType} for ${invoice.seller} ${period}? This action cannot be undone.`)) {
     return
   }
 
   try {
-    const response = await fetch(`/weekly-seller-invoices/${invoice.id}`, {
+    const url = type === 'weekly' 
+      ? `/weekly-seller-invoices/${invoice.id}`
+      : `/seller-invoices/${invoice.id}`
+    
+    const response = await fetch(url, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
@@ -378,15 +393,19 @@ const deleteInvoice = async (invoice) => {
     })
 
     if (response.ok) {
-      alert('Weekly invoice deleted successfully')
-      fetchWeeklyInvoices()
+      alert(`${invoiceType.charAt(0).toUpperCase() + invoiceType.slice(1)} deleted successfully`)
+      if (type === 'weekly') {
+        fetchWeeklyInvoices()
+      } else {
+        fetchDailyInvoices()
+      }
     } else {
       const errorData = await response.json()
       alert(`Error: ${errorData.error}`)
     }
   } catch (error) {
     console.error('Delete error:', error)
-    alert('Failed to delete weekly invoice')
+    alert(`Failed to delete ${invoiceType}`)
   }
 }
 
