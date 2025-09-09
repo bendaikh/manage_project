@@ -10,7 +10,7 @@ class PermissionController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('permission:manage_permissions');
+        $this->middleware('permission:manage_permissions')->except(['apiIndex']);
     }
 
     /**
@@ -26,6 +26,15 @@ class PermissionController extends Controller
         }
         
         return view('permissions.index', compact('permissions'));
+    }
+
+    /**
+     * API endpoint for permissions (without permission middleware)
+     */
+    public function apiIndex()
+    {
+        $permissions = Permission::all();
+        return response()->json($permissions);
     }
 
     /**
