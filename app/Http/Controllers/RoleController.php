@@ -11,7 +11,7 @@ class RoleController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('permission:manage_roles');
+        $this->middleware('permission:manage_roles')->except(['apiIndex']);
     }
 
     /**
@@ -31,6 +31,21 @@ class RoleController extends Controller
         }
         
         return view('roles.index', compact('roles'));
+    }
+
+    /**
+     * API endpoint for roles (without permission middleware)
+     */
+    public function apiIndex()
+    {
+        $roles = Role::with('permissions')->get();
+        
+        // Add users count to each role
+        $roles->each(function ($role) {
+            $role->users_count = $role->users()->count();
+        });
+        
+        return response()->json($roles);
     }
 
     /**

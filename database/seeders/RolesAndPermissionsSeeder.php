@@ -175,6 +175,16 @@ class RolesAndPermissionsSeeder extends Seeder
             // Stock permissions
             ['name' => 'view_stock', 'description' => 'Can view stock list'],
             ['name' => 'manage_stock', 'description' => 'Can manage stock (full access)'],
+            
+            // Warehouse permissions
+            ['name' => 'view_warehouses', 'description' => 'Can view warehouses list'],
+            ['name' => 'create_warehouses', 'description' => 'Can create new warehouses'],
+            ['name' => 'edit_warehouses', 'description' => 'Can edit existing warehouses'],
+            ['name' => 'delete_warehouses', 'description' => 'Can delete warehouses'],
+            ['name' => 'view_warehouse_details', 'description' => 'Can view warehouse details'],
+            ['name' => 'manage_warehouse_stock', 'description' => 'Can manage warehouse stock levels'],
+            ['name' => 'transfer_warehouse_stock', 'description' => 'Can transfer stock between warehouses'],
+            ['name' => 'manage_warehouses', 'description' => 'Can manage warehouses (full access)'],
         ];
 
         foreach ($permissions as $permission) {
@@ -270,6 +280,10 @@ class RolesAndPermissionsSeeder extends Seeder
                 'view_shipments', 'create_shipments', 'edit_shipments', 'validate_shipments',
                 'view_stock', 'manage_stock',
                 
+                // Warehouses (full access)
+                'view_warehouses', 'create_warehouses', 'edit_warehouses', 'view_warehouse_details',
+                'manage_warehouse_stock', 'transfer_warehouse_stock',
+                
                 // Reports
                 'view_reports', 'generate_reports', 'export_reports',
                 
@@ -303,6 +317,9 @@ class RolesAndPermissionsSeeder extends Seeder
                 
                 // Shipments (view and validate)
                 'view_shipments', 'validate_shipments', 'view_stock',
+                
+                // Warehouses (view only)
+                'view_warehouses', 'view_warehouse_details',
                 
                 // Support
                 'view_support_tickets', 'create_support_tickets',
@@ -363,6 +380,10 @@ class RolesAndPermissionsSeeder extends Seeder
                 // Shipments (full access)
                 'view_shipments', 'create_shipments', 'edit_shipments', 'validate_shipments',
                 'view_stock', 'manage_stock',
+                
+                // Warehouses (full access)
+                'view_warehouses', 'create_warehouses', 'edit_warehouses', 'view_warehouse_details',
+                'manage_warehouse_stock', 'transfer_warehouse_stock',
                 
                 // Basic accounting (view only)
                 'view_accounting', 'view_incomes', 'view_expenses',

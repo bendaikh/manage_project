@@ -33,15 +33,15 @@
     <!-- Additional Filters -->
     <div class="bg-white p-4 rounded-lg shadow mb-6">
       <h2 class="font-semibold text-lg mb-4">Additional Filters</h2>
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-        <div>
+      <div class="grid grid-cols-1 gap-4 items-end" :class="isSeller ? 'md:grid-cols-2' : 'md:grid-cols-3'">
+        <div v-if="!isSeller">
           <label class="block text-sm font-medium mb-1">Agent</label>
           <select v-model="selectedAgent" class="w-full border rounded px-3 py-2">
             <option value="">All Agents</option>
             <option v-for="agent in agents" :key="agent.id" :value="agent.name">{{ agent.name }}</option>
           </select>
         </div>
-        <div>
+        <div v-if="!isSeller">
           <label class="block text-sm font-medium mb-1">Seller</label>
           <select v-model="selectedSeller" class="w-full border rounded px-3 py-2">
             <option value="">All Sellers</option>
@@ -193,6 +193,12 @@ const quickRanges = [
 const allOrders = ref([])
 const confirmationOrders = ref([])
 const deliveryOrders = ref([])
+
+// Check if user is a seller
+const isSeller = computed(() => {
+  const roles = window.Laravel?.user?.roles || []
+  return roles.includes('seller') || roles.some(r => typeof r === 'object' && r.name === 'seller')
+})
 
 // Expandable sections
 const showConfirmation = ref(true)
@@ -373,9 +379,11 @@ const fetchData = async () => {
       end_date: endDate.value
     })
     
-    // Add filter parameters
-    if (selectedAgent.value) params.append('agent', selectedAgent.value)
-    if (selectedSeller.value) params.append('seller', selectedSeller.value)
+    // Add filter parameters (only for non-sellers)
+    if (!isSeller.value) {
+      if (selectedAgent.value) params.append('agent', selectedAgent.value)
+      if (selectedSeller.value) params.append('seller', selectedSeller.value)
+    }
     if (selectedProduct.value) params.append('product_id', selectedProduct.value)
     
     const url = `/dashboard/overview-data?${params.toString()}`
@@ -429,8 +437,10 @@ const applyAdditionalFilters = () => {
 }
 
 const clearAdditionalFilters = () => {
-  selectedAgent.value = ''
-  selectedSeller.value = ''
+  if (!isSeller.value) {
+    selectedAgent.value = ''
+    selectedSeller.value = ''
+  }
   selectedProduct.value = ''
   fetchData()
 }
@@ -445,19 +455,22 @@ const handleNavigateToDelivery = (options) => {
 
 const fetchFilterData = async () => {
   try {
-    // Fetch agents
-    const agentsRes = await fetch('/api/dashboard/agents')
-    if (agentsRes.ok) {
-      agents.value = await agentsRes.json()
+    // Only fetch agents and sellers for non-sellers
+    if (!isSeller.value) {
+      // Fetch agents
+      const agentsRes = await fetch('/api/dashboard/agents')
+      if (agentsRes.ok) {
+        agents.value = await agentsRes.json()
+      }
+      
+      // Fetch sellers
+      const sellersRes = await fetch('/api/dashboard/sellers')
+      if (sellersRes.ok) {
+        sellers.value = await sellersRes.json()
+      }
     }
     
-    // Fetch sellers
-    const sellersRes = await fetch('/api/dashboard/sellers')
-    if (sellersRes.ok) {
-      sellers.value = await sellersRes.json()
-    }
-    
-    // Fetch products
+    // Fetch products (will be filtered for sellers on the backend)
     const productsRes = await fetch('/api/dashboard/products')
     if (productsRes.ok) {
       products.value = await productsRes.json()

@@ -57,6 +57,13 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/users/sellers', [\App\Http\Controllers\UserController::class, 'getSellers']);
 });
 
+// API routes for roles and permissions (for AccessRights component)
+Route::middleware(['auth', 'verified'])
+    ->group(function () {
+        Route::get('/api/roles', [RoleController::class, 'apiIndex']);
+        Route::get('/api/permissions', [PermissionController::class, 'apiIndex']);
+    });
+
 // Role, Permission, and User management routes (superadmin only)
 Route::middleware(['auth', 'verified', 'role:superadmin'])
     ->group(function () {
@@ -126,9 +133,22 @@ Route::get('/api/dashboard/sellers', function () {
         ->pluck('seller');
 });
 Route::get('/api/dashboard/products', function () {
-    return \App\Models\Product::select('id', 'name')
-        ->orderBy('name')
-        ->get();
+    $query = \App\Models\Product::select('id', 'name');
+    
+    // Filter products for sellers - they should only see their assigned products
+    if (auth()->check() && auth()->user()->hasRole('seller')) {
+        $sellerId = auth()->id();
+        $query->where(function ($q) use ($sellerId) {
+            // Products directly assigned to this seller
+            $q->where('seller_id', $sellerId)
+              // OR products assigned through the many-to-many relationship (company products)
+              ->orWhereHas('assignedSellers', function ($assignedQuery) use ($sellerId) {
+                  $assignedQuery->where('seller_id', $sellerId);
+              });
+        });
+    }
+    
+    return $query->orderBy('name')->get();
 });
 
 Route::get('/categories', [\App\Http\Controllers\CategoryController::class, 'index']);

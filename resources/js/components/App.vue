@@ -119,7 +119,7 @@
           </div>
 
           <!-- Sourcing -->
-          <div>
+          <div v-if="hasShipmentsPermission || hasStockPermission">
             <button @click="toggleSourcingMenu" class="w-full flex items-center justify-between px-4 py-3 text-white rounded-lg hover:bg-blue-800">
               <div class="flex items-center space-x-3">
                 <TruckIcon class="h-5 w-5 text-white" />
@@ -130,15 +130,15 @@
             
             <!-- Sourcing Sub-menu -->
             <div v-show="isSourcingMenuOpen" class="mt-1 ml-4 space-y-1">
-              <button type="button" @click="handleShowShipments" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
+              <button v-if="hasShipmentsPermission" type="button" @click="handleShowShipments" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
                 <TruckIcon class="h-4 w-4" />
                 <span>Shipments</span>
               </button>
-              <button type="button" @click="handleShowStock" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
+              <button v-if="hasStockPermission" type="button" @click="handleShowStock" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
                 <BoxIcon class="h-4 w-4" />
                 <span>Stock</span>
               </button>
-              <button type="button" @click="handleShowStockGlobale" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
+              <button v-if="hasStockPermission" type="button" @click="handleShowStockGlobale" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
                 <BoxIcon class="h-4 w-4" />
                 <span>Stock Globale</span>
               </button>
@@ -146,7 +146,7 @@
           </div>
 
           <!-- Warehouse -->
-          <div>
+          <div v-if="hasWarehousesPermission">
             <button @click="toggleWarehouseMenu" class="w-full flex items-center justify-between px-4 py-3 text-white rounded-lg hover:bg-blue-800">
               <div class="flex items-center space-x-3">
                 <BuildingOfficeIcon class="h-5 w-5 text-white" />
@@ -157,15 +157,15 @@
             
             <!-- Warehouse Sub-menu -->
             <div v-show="isWarehouseMenuOpen" class="mt-1 ml-4 space-y-1">
-              <button type="button" @click="handleShowAddWarehouse" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
+              <button v-if="hasCreateWarehousesPermission" type="button" @click="handleShowAddWarehouse" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
                 <PlusIcon class="h-4 w-4" />
                 <span>Add Warehouse</span>
               </button>
-              <button type="button" @click="handleShowManageWarehouses" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
+              <button v-if="hasManageWarehousesPermission" type="button" @click="handleShowManageWarehouses" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
                 <ListIcon class="h-4 w-4" />
                 <span>Manage Warehouses</span>
               </button>
-              <button type="button" @click="handleShowWarehouseTransfers" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
+              <button v-if="hasWarehouseTransfersPermission" type="button" @click="handleShowWarehouseTransfers" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
                 <ArrowsRightLeftIcon class="h-4 w-4" />
                 <span>Transfers</span>
               </button>
@@ -1037,6 +1037,15 @@ const hasSupportTicketsPermission = computed(() => hasPermission('view_support_t
 const hasCreateSupportTicketsPermission = computed(() => hasPermission('create_support_tickets'))
 const hasRespondToTicketsPermission = computed(() => hasPermission('respond_to_tickets'))
 const hasManageSupportTicketsPermission = computed(() => hasPermission('manage_support_tickets'))
+
+// Warehouse permissions
+const hasWarehousesPermission = computed(() => hasPermission('view_warehouses'))
+const hasCreateWarehousesPermission = computed(() => hasPermission('create_warehouses'))
+const hasEditWarehousesPermission = computed(() => hasPermission('edit_warehouses'))
+const hasDeleteWarehousesPermission = computed(() => hasPermission('delete_warehouses'))
+const hasManageWarehousesPermission = computed(() => hasPermission('manage_warehouses'))
+const hasWarehouseStockPermission = computed(() => hasPermission('manage_warehouse_stock'))
+const hasWarehouseTransfersPermission = computed(() => hasPermission('transfer_warehouse_stock'))
 
 // Legacy permissions for backward compatibility
 const hasClientsPermission = computed(() => false)

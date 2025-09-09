@@ -9,7 +9,7 @@
     <!-- Filter Section -->
     <div class="bg-white p-4 rounded-lg shadow mb-6">
       <h2 class="font-semibold text-lg mb-4">Filters</h2>
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+      <div class="grid grid-cols-1 gap-4 items-end" :class="isSeller ? 'md:grid-cols-3' : 'md:grid-cols-4'">
         <div>
           <label class="block text-sm font-medium mb-1">Date From</label>
           <input v-model="startDate" type="date" class="w-full border rounded px-3 py-2" />
@@ -18,14 +18,14 @@
           <label class="block text-sm font-medium mb-1">Date To</label>
           <input v-model="endDate" type="date" class="w-full border rounded px-3 py-2" />
         </div>
-        <div>
+        <div v-if="!isSeller">
           <label class="block text-sm font-medium mb-1">Agent</label>
           <select v-model="selectedAgent" class="w-full border rounded px-3 py-2">
             <option value="">All Agents</option>
             <option v-for="agent in agents" :key="agent.id" :value="agent.name">{{ agent.name }}</option>
           </select>
         </div>
-        <div>
+        <div v-if="!isSeller">
           <label class="block text-sm font-medium mb-1">Seller</label>
           <select v-model="selectedSeller" class="w-full border rounded px-3 py-2">
             <option value="">All Sellers</option>
@@ -79,7 +79,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 
 const stats = ref({
   revenue: 0,
@@ -98,6 +98,12 @@ const agents = ref([])
 const sellers = ref([])
 const products = ref([])
 
+// Check if user is a seller
+const isSeller = computed(() => {
+  const roles = window.Laravel?.user?.roles || []
+  return roles.includes('seller') || roles.some(r => typeof r === 'object' && r.name === 'seller')
+})
+
 const formatCurrency = (amount) => {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
@@ -113,9 +119,11 @@ const fetchStats = async () => {
       end_date: endDate.value
     })
     
-    // Add filter parameters
-    if (selectedAgent.value) params.append('agent', selectedAgent.value)
-    if (selectedSeller.value) params.append('seller', selectedSeller.value)
+    // Add filter parameters (only for non-sellers)
+    if (!isSeller.value) {
+      if (selectedAgent.value) params.append('agent', selectedAgent.value)
+      if (selectedSeller.value) params.append('seller', selectedSeller.value)
+    }
     if (selectedProduct.value) params.append('product_id', selectedProduct.value)
     
     const response = await fetch(`/dashboard/analytics-data?${params.toString()}`)
@@ -145,27 +153,32 @@ const applyFilters = () => {
 const clearFilters = () => {
   startDate.value = new Date().toISOString().substr(0, 10)
   endDate.value = new Date().toISOString().substr(0, 10)
-  selectedAgent.value = ''
-  selectedSeller.value = ''
+  if (!isSeller.value) {
+    selectedAgent.value = ''
+    selectedSeller.value = ''
+  }
   selectedProduct.value = ''
   fetchStats()
 }
 
 const fetchFilterData = async () => {
   try {
-    // Fetch agents
-    const agentsRes = await fetch('/api/dashboard/agents')
-    if (agentsRes.ok) {
-      agents.value = await agentsRes.json()
+    // Only fetch agents and sellers for non-sellers
+    if (!isSeller.value) {
+      // Fetch agents
+      const agentsRes = await fetch('/api/dashboard/agents')
+      if (agentsRes.ok) {
+        agents.value = await agentsRes.json()
+      }
+      
+      // Fetch sellers
+      const sellersRes = await fetch('/api/dashboard/sellers')
+      if (sellersRes.ok) {
+        sellers.value = await sellersRes.json()
+      }
     }
     
-    // Fetch sellers
-    const sellersRes = await fetch('/api/dashboard/sellers')
-    if (sellersRes.ok) {
-      sellers.value = await sellersRes.json()
-    }
-    
-    // Fetch products
+    // Fetch products (will be filtered for sellers on the backend)
     const productsRes = await fetch('/api/dashboard/products')
     if (productsRes.ok) {
       products.value = await productsRes.json()
