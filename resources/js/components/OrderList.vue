@@ -312,7 +312,7 @@
       </div>
     </nav>
 
-    <OrderDetailsModal v-if="showDetails" :order="selectedOrder" @close="closeDetails" @edit="openEdit" />
+    <OrderDetailsModal v-if="showDetails" :order="selectedOrder" :confirmation="confirmation" :delivery="delivery" @close="closeDetails" @edit="openEdit" />
     
     <!-- Order Edit Modal -->
     <div v-if="showEdit" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" @click.self="closeEdit">

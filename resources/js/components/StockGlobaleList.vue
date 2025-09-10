@@ -155,7 +155,7 @@
               <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
               <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reference</th>
               <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Seller</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Warehouse</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Warehouse Distribution</th>
               <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Initial Qty</th>
               <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Remaining</th>
               <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
@@ -197,9 +197,26 @@
                 </div>
               </td>
               <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
-                <div v-if="stock.warehouse">
-                  <div class="text-sm font-medium text-gray-900">{{ stock.warehouse.name }}</div>
-                  <div class="text-xs text-gray-500">{{ stock.warehouse_location || 'No location' }}</div>
+                <div v-if="stock.warehouse_distribution && stock.warehouse_distribution.length > 0">
+                  <div v-for="warehouse in stock.warehouse_distribution" :key="warehouse.warehouse_id" 
+                       class="mb-2 p-2 bg-gray-50 rounded border">
+                    <div class="flex items-center justify-between">
+                      <div>
+                        <div class="text-sm font-medium text-gray-900">{{ warehouse.warehouse_name }}</div>
+                        <div class="text-xs text-gray-500">{{ warehouse.warehouse_location || 'No location' }}</div>
+                      </div>
+                      <div class="text-right">
+                        <div class="text-sm font-semibold text-blue-600">{{ warehouse.remaining_quantity }}</div>
+                        <div class="text-xs text-gray-400">remaining</div>
+                      </div>
+                    </div>
+                    <div v-if="warehouse.stocks && warehouse.stocks.length > 1" class="mt-1">
+                      <div class="text-xs text-gray-500">
+                        {{ warehouse.stocks.length }} stock{{ warehouse.stocks.length > 1 ? 's' : '' }} 
+                        (Total: {{ warehouse.total_quantity }})
+                      </div>
+                    </div>
+                  </div>
                 </div>
                 <span v-else class="text-gray-400">No warehouse</span>
               </td>

@@ -31,8 +31,22 @@
           </div>
         </div>
         <div class="mb-2">
-          <div class="font-semibold text-gray-600 mb-1">Comment</div>
-          <div class="bg-gray-100 rounded px-3 py-2 text-gray-700">{{ order.comment }}</div>
+          <div class="font-semibold text-gray-600 mb-1">Order Comment</div>
+          <div class="bg-gray-100 rounded px-3 py-2 text-gray-700">{{ order.comment || 'No comment' }}</div>
+        </div>
+        
+        <!-- Show postponed comment if order is postponed and we're in delivery or confirmation section -->
+        <div v-if="(order.status === 'Postponed' || order.postponed_comment) && (confirmation || delivery)" class="mb-2">
+          <div class="font-semibold text-gray-600 mb-1">Postponed Comment</div>
+          <div class="bg-yellow-100 rounded px-3 py-2 text-gray-700">{{ order.postponed_comment || 'No postponed comment' }}</div>
+          <div v-if="order.postponed_date" class="text-xs text-gray-500 mt-1">Postponed Date: {{ formatDate(order.postponed_date) }}</div>
+        </div>
+        
+        <!-- Show confirmation comment if order is confirmed on date and we're in confirmation section -->
+        <div v-if="(order.status === 'Confirmed on Date' || order.confirmation_comment) && confirmation" class="mb-2">
+          <div class="font-semibold text-gray-600 mb-1">Confirmation Comment</div>
+          <div class="bg-green-100 rounded px-3 py-2 text-gray-700">{{ order.confirmation_comment || 'No confirmation comment' }}</div>
+          <div v-if="order.confirmed_date" class="text-xs text-gray-500 mt-1">Confirmed Date: {{ formatDate(order.confirmed_date) }}</div>
         </div>
         <div class="flex justify-end gap-2 mt-6">
           <button @click="$emit('close')" class="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">Close</button>
@@ -44,7 +58,17 @@
 </template>
 
 <script setup>
-const props = defineProps({ order: Object })
+const props = defineProps({ 
+  order: Object,
+  confirmation: {
+    type: Boolean,
+    default: false
+  },
+  delivery: {
+    type: Boolean,
+    default: false
+  }
+})
 const emit = defineEmits(['close', 'edit'])
 
 function formatDate(dateStr) {

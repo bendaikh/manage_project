@@ -514,8 +514,19 @@ class OrderController extends Controller
             return;
         }
 
-        // Find the corresponding stock record using the product's SKU
+        // Find the corresponding stock record using multiple matching strategies
         $stock = \App\Models\Stock::where('reference', $product->sku)->first();
+        
+        // If no exact reference match, try matching by title
+        if (!$stock) {
+            $stock = \App\Models\Stock::where('title', 'like', '%' . $product->name . '%')->first();
+        }
+        
+        // If still no match, try case-insensitive reference matching
+        if (!$stock) {
+            $stock = \App\Models\Stock::whereRaw('LOWER(reference) = LOWER(?)', [$product->sku])->first();
+        }
+        
         if (!$stock) {
             return; // No stock record found for this product
         }
@@ -561,13 +572,16 @@ class OrderController extends Controller
             case 'blacklisted':
             case 'new order':
             case 'pending':
+            case 'expired':
                 // Moving TO statuses that restore stock quantities
                 if ($oldStatusLower === 'processing' || $oldStatusLower === 'shipped') {
-                    // Return from In Progress
+                    // Return from In Progress - restore to remaining quantity
                     $stock->in_progress_quantity = max(0, $stock->in_progress_quantity - $quantity);
+                    // The remaining_quantity will be recalculated automatically
                 } elseif ($oldStatusLower === 'delivered' || $oldStatusLower === 'completed') {
-                    // Return from Delivered
+                    // Return from Delivered - restore to remaining quantity
                     $stock->delivered_quantity = max(0, $stock->delivered_quantity - $quantity);
+                    // The remaining_quantity will be recalculated automatically
                 }
                 break;
         }
@@ -576,51 +590,88 @@ class OrderController extends Controller
         $stock->save();
         $stock->recalculateRemainingQuantity()->save();
 
-        // Update warehouse_stock pivot table if warehouse_id is provided
+        // Update warehouse_stock pivot table
         if ($warehouseId && $stock->warehouses()->where('warehouse_id', $warehouseId)->exists()) {
+            // Update specific warehouse if warehouse_id is provided
             $warehouseStock = $stock->warehouses()->where('warehouse_id', $warehouseId)->first();
             if ($warehouseStock) {
-                // Update the warehouse-specific quantity based on status change
-                $currentWarehouseQuantity = $warehouseStock->pivot->quantity;
+                $this->updateWarehouseQuantity($stock, $warehouseId, $oldStatus, $newStatus, $quantity);
+            }
+        } else {
+            // If no specific warehouse_id, we need to determine which warehouse to update
+            $warehouses = $stock->warehouses;
+            if ($warehouses->count() > 0) {
+                // For all status changes, update the warehouse with the highest quantity
+                // This is a reasonable assumption since orders are typically taken from the warehouse with most stock
+                $targetWarehouse = $warehouses->sortByDesc(function($warehouse) {
+                    return $warehouse->pivot->quantity;
+                })->first();
                 
-                switch (strtolower($newStatus)) {
-                    case 'processing':
-                    case 'shipped':
-                        // Reduce warehouse quantity when order goes to processing/shipped
-                        if (strtolower($oldStatus) !== 'processing' && strtolower($oldStatus) !== 'shipped') {
-                            $newWarehouseQuantity = max(0, $currentWarehouseQuantity - $quantity);
-                            $stock->warehouses()->updateExistingPivot($warehouseId, [
-                                'quantity' => $newWarehouseQuantity
-                            ]);
-                        }
-                        break;
-                    case 'cancelled':
-                    case 'refunded':
-                    case 'unreachable':
-                    case 'postponed':
-                    case 'wrong number':
-                    case 'out of stock':
-                    case 'blacklisted':
-                    case 'new order':
-                    case 'pending':
-                        // Restore warehouse quantity when order is cancelled/refunded
-                        if (strtolower($oldStatus) === 'processing' || strtolower($oldStatus) === 'shipped') {
-                            $newWarehouseQuantity = $currentWarehouseQuantity + $quantity;
-                            $stock->warehouses()->updateExistingPivot($warehouseId, [
-                                'quantity' => $newWarehouseQuantity
-                            ]);
-                        }
-                        break;
-                }
+                $this->updateWarehouseQuantity($stock, $targetWarehouse->id, $oldStatus, $newStatus, $quantity);
             }
         }
 
         // Update the stock's last updated info
         $stock->update([
-            'last_updated_by' => auth()->user()->name,
+            'last_updated_by' => auth()->user() ? auth()->user()->name : 'System',
             'last_updated_at' => now(),
             'notes' => "Updated from order #{$order->id} status change: {$oldStatus} → {$newStatus} on " . now()->format('Y-m-d H:i:s')
         ]);
+    }
+
+    /**
+     * Update warehouse quantity based on order status change
+     */
+    private function updateWarehouseQuantity($stock, $warehouseId, $oldStatus, $newStatus, $quantity)
+    {
+        $warehouseStock = $stock->warehouses()->where('warehouse_id', $warehouseId)->first();
+        if (!$warehouseStock) {
+            return;
+        }
+
+        $currentWarehouseQuantity = $warehouseStock->pivot->quantity;
+        
+        switch (strtolower($newStatus)) {
+            case 'processing':
+            case 'shipped':
+                // Reduce warehouse quantity when order goes to processing/shipped
+                if (strtolower($oldStatus) !== 'processing' && strtolower($oldStatus) !== 'shipped') {
+                    $newWarehouseQuantity = max(0, $currentWarehouseQuantity - $quantity);
+                    $stock->warehouses()->updateExistingPivot($warehouseId, [
+                        'quantity' => $newWarehouseQuantity
+                    ]);
+                }
+                break;
+            case 'delivered':
+            case 'completed':
+                // Reduce warehouse quantity when order goes to delivered/completed
+                if (strtolower($oldStatus) !== 'delivered' && strtolower($oldStatus) !== 'completed') {
+                    $newWarehouseQuantity = max(0, $currentWarehouseQuantity - $quantity);
+                    $stock->warehouses()->updateExistingPivot($warehouseId, [
+                        'quantity' => $newWarehouseQuantity
+                    ]);
+                }
+                break;
+            case 'cancelled':
+            case 'refunded':
+            case 'unreachable':
+            case 'postponed':
+            case 'wrong number':
+            case 'out of stock':
+            case 'blacklisted':
+            case 'new order':
+            case 'pending':
+            case 'expired':
+                // Restore warehouse quantity when order is cancelled/refunded
+                if (strtolower($oldStatus) === 'processing' || strtolower($oldStatus) === 'shipped' || 
+                    strtolower($oldStatus) === 'delivered' || strtolower($oldStatus) === 'completed') {
+                    $newWarehouseQuantity = $currentWarehouseQuantity + $quantity;
+                    $stock->warehouses()->updateExistingPivot($warehouseId, [
+                        'quantity' => $newWarehouseQuantity
+                    ]);
+                }
+                break;
+        }
     }
 
     /**
@@ -721,8 +772,10 @@ class OrderController extends Controller
             case 'blacklisted':
             case 'new order':
             case 'pending':
+            case 'expired':
                 // Moving TO statuses that restore stock quantities
-                if ($oldStatusLower === 'processing' || $oldStatusLower === 'shipped') {
+                if ($oldStatusLower === 'processing' || $oldStatusLower === 'shipped' || 
+                    $oldStatusLower === 'delivered' || $oldStatusLower === 'completed') {
                     // Return stock when order is cancelled/refunded
                     $newStockQuantity = $product->stock_quantity + $quantity;
                     $product->update(['stock_quantity' => $newStockQuantity]);

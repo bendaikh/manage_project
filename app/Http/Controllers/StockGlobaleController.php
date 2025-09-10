@@ -27,11 +27,15 @@ class StockGlobaleController extends Controller
         
         $stocks = $query->orderByDesc('created_at')->paginate(15);
         
-        // Calculate today's quantities for each stock
+        // Calculate today's quantities for each stock and add warehouse distribution
         $stocks->getCollection()->transform(function ($stock) {
             $todayQuantities = $this->calculateTodayQuantities($stock);
             $stock->today_delivered_quantity = $todayQuantities['delivered'];
             $stock->today_in_progress_quantity = $todayQuantities['in_progress'];
+            
+            // Get all warehouses where this product exists
+            $stock->warehouse_distribution = $this->getProductWarehouseDistribution($stock);
+            
             return $stock;
         });
         
@@ -118,6 +122,97 @@ class StockGlobaleController extends Controller
                   ->orWhere('selling_price', '<=', $request->max_price);
             });
         }
+    }
+
+    /**
+     * Get all warehouses where a product is located with quantities from warehouse_stock pivot table
+     */
+    private function getProductWarehouseDistribution($stock)
+    {
+        $warehouseDistribution = [];
+        
+        // If stock has a linked product, get all warehouse quantities for this product
+        if ($stock->product_id) {
+            // Get all stocks for this product and their warehouse quantities from pivot table
+            $productStocks = Stock::where('product_id', $stock->product_id)
+                ->with(['warehouses' => function($query) {
+                    $query->select('warehouses.id', 'warehouses.name', 'warehouses.location')
+                          ->withPivot('quantity');
+                }])
+                ->get();
+            
+            foreach ($productStocks as $productStock) {
+                foreach ($productStock->warehouses as $warehouse) {
+                    $warehouseId = $warehouse->id;
+                    $warehouseName = $warehouse->name;
+                    $pivotQuantity = $warehouse->pivot->quantity;
+                    
+                    if (!isset($warehouseDistribution[$warehouseId])) {
+                        $warehouseDistribution[$warehouseId] = [
+                            'warehouse_id' => $warehouseId,
+                            'warehouse_name' => $warehouseName,
+                            'warehouse_location' => $warehouse->location,
+                            'total_quantity' => 0,
+                            'remaining_quantity' => 0,
+                            'stocks' => []
+                        ];
+                    }
+                    
+                    $warehouseDistribution[$warehouseId]['total_quantity'] += $pivotQuantity;
+                    $warehouseDistribution[$warehouseId]['remaining_quantity'] += $pivotQuantity;
+                    $warehouseDistribution[$warehouseId]['stocks'][] = [
+                        'stock_id' => $productStock->id,
+                        'reference' => $productStock->reference,
+                        'initial_quantity' => $productStock->initial_quantity,
+                        'remaining_quantity' => $pivotQuantity,
+                        'status' => $productStock->status
+                    ];
+                }
+            }
+        } else {
+            // For unlinked stocks, get warehouse quantities from pivot table
+            $stockWithWarehouses = Stock::with(['warehouses' => function($query) {
+                $query->select('warehouses.id', 'warehouses.name', 'warehouses.location')
+                      ->withPivot('quantity');
+            }])->find($stock->id);
+            
+            if ($stockWithWarehouses && $stockWithWarehouses->warehouses->count() > 0) {
+                foreach ($stockWithWarehouses->warehouses as $warehouse) {
+                    $warehouseDistribution[$warehouse->id] = [
+                        'warehouse_id' => $warehouse->id,
+                        'warehouse_name' => $warehouse->name,
+                        'warehouse_location' => $warehouse->location,
+                        'total_quantity' => $warehouse->pivot->quantity,
+                        'remaining_quantity' => $warehouse->pivot->quantity,
+                        'stocks' => [[
+                            'stock_id' => $stock->id,
+                            'reference' => $stock->reference,
+                            'initial_quantity' => $stock->initial_quantity,
+                            'remaining_quantity' => $warehouse->pivot->quantity,
+                            'status' => $stock->status
+                        ]]
+                    ];
+                }
+            } else if ($stock->warehouse) {
+                // Fallback to direct warehouse relationship if no pivot data
+                $warehouseDistribution[$stock->warehouse->id] = [
+                    'warehouse_id' => $stock->warehouse->id,
+                    'warehouse_name' => $stock->warehouse->name,
+                    'warehouse_location' => $stock->warehouse_location,
+                    'total_quantity' => $stock->initial_quantity,
+                    'remaining_quantity' => $stock->remaining_quantity,
+                    'stocks' => [[
+                        'stock_id' => $stock->id,
+                        'reference' => $stock->reference,
+                        'initial_quantity' => $stock->initial_quantity,
+                        'remaining_quantity' => $stock->remaining_quantity,
+                        'status' => $stock->status
+                    ]]
+                ];
+            }
+        }
+        
+        return array_values($warehouseDistribution);
     }
 
     /**
