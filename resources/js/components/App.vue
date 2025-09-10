@@ -119,7 +119,7 @@
           </div>
 
           <!-- Sourcing -->
-          <div v-if="hasShipmentsPermission || hasStockPermission">
+          <div v-if="hasShipmentsPermission || hasStockPermission || hasStockGlobalPermission">
             <button @click="toggleSourcingMenu" class="w-full flex items-center justify-between px-4 py-3 text-white rounded-lg hover:bg-blue-800">
               <div class="flex items-center space-x-3">
                 <TruckIcon class="h-5 w-5 text-white" />
@@ -138,7 +138,7 @@
                 <BoxIcon class="h-4 w-4" />
                 <span>Stock</span>
               </button>
-              <button v-if="hasStockPermission" type="button" @click="handleShowStockGlobale" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
+              <button v-if="hasStockGlobalPermission" type="button" @click="handleShowStockGlobale" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
                 <BoxIcon class="h-4 w-4" />
                 <span>Stock Globale</span>
               </button>

@@ -337,6 +337,32 @@
                   </div>
                 </div>
 
+                <!-- Stock Global Management Section -->
+                <div class="permission-section">
+                  <h4 class="text-sm font-semibold text-gray-800 mb-3 flex items-center">
+                    <span class="w-2 h-2 bg-emerald-500 rounded-full mr-2"></span>
+                    Stock Global Management
+                  </h4>
+                  <div class="grid grid-cols-1 gap-2 ml-4">
+                    <div v-for="permission in getPermissionsBySection('stock_global')" :key="permission.id" class="flex items-center justify-between py-1">
+                      <div class="flex-1">
+                        <label :for="'perm-' + permission.id" class="text-sm text-gray-700 cursor-pointer">
+                          {{ permission.name.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) }}
+                        </label>
+                        <p class="text-xs text-gray-500">{{ permission.description }}</p>
+                      </div>
+                      <input
+                        type="checkbox"
+                        :id="'perm-' + permission.id"
+                        v-model="form.permissions"
+                        :value="permission.id"
+                        :disabled="editingRole?.name === 'superadmin' && permission.name === 'manage_roles'"
+                        class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      />
+                    </div>
+                  </div>
+                </div>
+
                 <!-- Shipment Management Section -->
                 <div class="permission-section">
                   <h4 class="text-sm font-semibold text-gray-800 mb-3 flex items-center">
@@ -662,7 +688,8 @@ const getPermissionsBySection = (section) => {
     'products': ['view_products', 'create_products', 'edit_products', 'delete_products', 'view_product_details', 'view_product_catalog', 'manage_products'],
     'categories': ['view_categories', 'create_categories', 'edit_categories', 'delete_categories', 'manage_categories'],
     'warehouses': ['view_warehouses', 'create_warehouses', 'edit_warehouses', 'delete_warehouses', 'view_warehouse_details', 'manage_warehouse_stock', 'transfer_warehouse_stock', 'manage_warehouses'],
-    'stock': ['view_stock', 'manage_stock', 'view_stock_global', 'manage_stock_global'],
+    'stock': ['view_stock', 'manage_stock'],
+    'stock_global': ['view_stock_global', 'manage_stock_global'],
     'shipments': ['view_shipments', 'create_shipments', 'edit_shipments', 'delete_shipments', 'validate_shipments', 'manage_shipments'],
     'invoices': ['view_invoices', 'create_invoices', 'download_invoices', 'view_delivery_notes', 'create_delivery_notes', 'download_delivery_notes', 'view_delivery_invoices', 'create_delivery_invoices', 'download_delivery_invoices'],
     'accounting': ['view_accounting', 'view_accounting_overview', 'view_incomes', 'create_incomes', 'edit_incomes', 'delete_incomes', 'manage_incomes', 'view_income_categories', 'create_income_categories', 'edit_income_categories', 'delete_income_categories', 'manage_income_categories', 'view_expenses', 'create_expenses', 'edit_expenses', 'delete_expenses', 'manage_expenses', 'view_expense_categories', 'create_expense_categories', 'edit_expense_categories', 'delete_expense_categories', 'manage_expense_categories', 'view_refunds', 'create_refunds', 'edit_refunds', 'delete_refunds', 'manage_refunds', 'view_transfers', 'create_transfers', 'edit_transfers', 'delete_transfers', 'manage_transfers', 'view_user_transfers', 'create_user_transfers', 'edit_user_transfers', 'delete_user_transfers', 'manage_user_transfers', 'view_accounts', 'create_accounts', 'edit_accounts', 'delete_accounts', 'manage_accounts'],

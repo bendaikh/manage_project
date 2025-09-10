@@ -14,6 +14,11 @@ class StockGlobaleController extends Controller
 {
     public function index(Request $request)
     {
+        // Check if user has permission to view stock global
+        if (!Auth::user()->hasPermission('view_stock_global')) {
+            abort(403, 'You do not have permission to view global stock.');
+        }
+        
         $query = Stock::query()->with(['seller', 'shipment', 'product', 'warehouse']);
         
         // Global view - show all stocks regardless of seller (admin/manager view)
@@ -280,6 +285,11 @@ class StockGlobaleController extends Controller
 
     public function update(Request $request, $id)
     {
+        // Check if user has permission to manage stock global
+        if (!Auth::user()->hasPermission('manage_stock_global')) {
+            abort(403, 'You do not have permission to manage global stock.');
+        }
+        
         $stock = Stock::findOrFail($id);
         
         // Check permissions
@@ -312,6 +322,11 @@ class StockGlobaleController extends Controller
      */
     public function updateQuantities(Request $request, $id)
     {
+        // Check if user has permission to manage stock global
+        if (!Auth::user()->hasPermission('manage_stock_global')) {
+            abort(403, 'You do not have permission to manage global stock.');
+        }
+        
         $stock = Stock::findOrFail($id);
         
         // Check permissions
@@ -350,6 +365,11 @@ class StockGlobaleController extends Controller
      */
     public function statistics()
     {
+        // Check if user has permission to view stock global
+        if (!Auth::user()->hasPermission('view_stock_global')) {
+            abort(403, 'You do not have permission to view global stock statistics.');
+        }
+        
         // Base query for seller filtering
         $baseQuery = Stock::query();
         
@@ -391,6 +411,11 @@ class StockGlobaleController extends Controller
      */
     public function getFilterOptionsProducts()
     {
+        // Check if user has permission to view stock global
+        if (!Auth::user()->hasPermission('view_stock_global')) {
+            abort(403, 'You do not have permission to view global stock filter options.');
+        }
+        
         $query = Product::query();
         
         // Only filter by seller if the user has seller role
@@ -421,6 +446,11 @@ class StockGlobaleController extends Controller
      */
     public function getFilterOptionsWarehouses()
     {
+        // Check if user has permission to view stock global
+        if (!Auth::user()->hasPermission('view_stock_global')) {
+            abort(403, 'You do not have permission to view global stock filter options.');
+        }
+        
         $warehouses = Warehouse::select('id', 'name', 'location')
             ->orderBy('name')
             ->get();
@@ -433,6 +463,11 @@ class StockGlobaleController extends Controller
      */
     public function getFilterOptionsSellers()
     {
+        // Check if user has permission to view stock global
+        if (!Auth::user()->hasPermission('view_stock_global')) {
+            abort(403, 'You do not have permission to view global stock filter options.');
+        }
+        
         // Only show sellers if user is admin/manager
         if (Auth::user()->hasRole('seller')) {
             return response()->json([]);
@@ -453,6 +488,11 @@ class StockGlobaleController extends Controller
      */
     public function export(Request $request)
     {
+        // Check if user has permission to view stock global
+        if (!Auth::user()->hasPermission('view_stock_global')) {
+            abort(403, 'You do not have permission to export global stock.');
+        }
+        
         $query = Stock::query()->with(['seller', 'product', 'warehouse']);
         
         // Only filter by seller if the user has seller role
