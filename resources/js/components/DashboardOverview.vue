@@ -133,7 +133,7 @@
     </div>
 
     <!-- Recent Activity -->
-    <div class="bg-white p-6 rounded-lg shadow mb-6">
+    <div v-if="hasHistoryPermission" class="bg-white p-6 rounded-lg shadow mb-6">
       <div class="flex items-center justify-between mb-4">
         <h2 class="text-xl font-semibold text-purple-600">Recent Activity</h2>
       </div>
@@ -169,6 +169,11 @@ import { ref, computed, onMounted } from 'vue'
 import ToDoWork from './ToDoWork.vue'
 
 const emit = defineEmits(['show-full-history', 'navigate-to-confirmation', 'navigate-to-delivery'])
+
+// Permission check for history
+const hasHistoryPermission = computed(() => {
+  return window.Laravel?.user?.permissions?.includes('view_history') || false
+})
 
 const startDate = ref(new Date().toISOString().substr(0, 10))
 const endDate = ref(new Date().toISOString().substr(0, 10))

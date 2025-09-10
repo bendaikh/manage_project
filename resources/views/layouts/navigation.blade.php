@@ -30,7 +30,7 @@
                             {{ __('Settings') }}
                         </x-nav-link>
                     @endif
-                    @if(auth()->check())
+                    @if(auth()->user()->hasPermission('view_history'))
                         <x-nav-link :href="route('history.index')" :active="request()->routeIs('history.*')">
                             {{ __('History') }}
                         </x-nav-link>
@@ -105,7 +105,7 @@
                     {{ __('Settings') }}
                 </x-responsive-nav-link>
             @endif
-            @if(auth()->check())
+            @if(auth()->user()->hasPermission('view_history'))
                 <x-responsive-nav-link :href="route('history.index')" :active="request()->routeIs('history.*')">
                     {{ __('History') }}
                 </x-responsive-nav-link>

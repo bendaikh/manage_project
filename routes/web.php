@@ -406,7 +406,7 @@ Route::get('/seller-invoices/{id}/download', [\App\Http\Controllers\SellerInvoic
 Route::delete('/seller-invoices/{id}', [\App\Http\Controllers\SellerInvoiceController::class, 'destroy'])->middleware('role:superadmin');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('/history', [\App\Http\Controllers\HistoryController::class, 'index'])->name('history.index');
+    Route::get('/history', [\App\Http\Controllers\HistoryController::class, 'index'])->name('history.index')->middleware('permission:view_history');
     Route::get('/api/history', function () {
         $perPage = request('per_page', 20);
         $query = \App\Models\ActionHistory::with('user');
@@ -435,14 +435,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
         }
         
         return $query->orderByDesc('created_at')->paginate($perPage);
-    });
+    })->middleware('permission:view_history');
     Route::get('/api/history/latest', function () {
         $latest = \App\Models\ActionHistory::with('user')->orderByDesc('created_at')->take(10)->get();
         return response()->json($latest);
-    });
+    })->middleware('permission:view_history');
     Route::get('/api/history/users', function () {
         return \App\Models\User::select('id', 'name')->orderBy('name')->get();
-    });
+    })->middleware('permission:view_history');
     
     // Temporary debug route
     Route::get('/debug/orders-today', function () {

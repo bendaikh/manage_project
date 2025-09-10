@@ -1038,6 +1038,20 @@ const hasCreateSupportTicketsPermission = computed(() => hasPermission('create_s
 const hasRespondToTicketsPermission = computed(() => hasPermission('respond_to_tickets'))
 const hasManageSupportTicketsPermission = computed(() => hasPermission('manage_support_tickets'))
 
+// Shipment permissions
+const hasShipmentsPermission = computed(() => hasPermission('view_shipments'))
+const hasCreateShipmentsPermission = computed(() => hasPermission('create_shipments'))
+const hasEditShipmentsPermission = computed(() => hasPermission('edit_shipments'))
+const hasDeleteShipmentsPermission = computed(() => hasPermission('delete_shipments'))
+const hasValidateShipmentsPermission = computed(() => hasPermission('validate_shipments'))
+const hasManageShipmentsPermission = computed(() => hasPermission('manage_shipments'))
+
+// Stock permissions
+const hasStockPermission = computed(() => hasPermission('view_stock'))
+const hasManageStockPermission = computed(() => hasPermission('manage_stock'))
+const hasStockGlobalPermission = computed(() => hasPermission('view_stock_global'))
+const hasManageStockGlobalPermission = computed(() => hasPermission('manage_stock_global'))
+
 // Warehouse permissions
 const hasWarehousesPermission = computed(() => hasPermission('view_warehouses'))
 const hasCreateWarehousesPermission = computed(() => hasPermission('create_warehouses'))
@@ -1050,10 +1064,8 @@ const hasWarehouseTransfersPermission = computed(() => hasPermission('transfer_w
 // Legacy permissions for backward compatibility
 const hasClientsPermission = computed(() => false)
 const hasHistoryPermission = computed(() => {
-  // Show history to superadmins or if user has explicit permission
-  const roles = window.Laravel?.user?.roles || []
-  const isSuperadmin = roles.includes('superadmin') || roles.some(r => typeof r === 'object' && r.name === 'superadmin')
-  return isSuperadmin || hasPermission('view_history')
+  // Show history only if user has explicit permission
+  return hasPermission('view_history')
 })
 
 // Check if user is a seller

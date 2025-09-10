@@ -158,11 +158,6 @@ class RolesAndPermissionsSeeder extends Seeder
             ['name' => 'export_reports', 'description' => 'Can export reports'],
             ['name' => 'manage_reports', 'description' => 'Can manage reports (full access)'],
             
-            // Support permissions
-            ['name' => 'view_support_tickets', 'description' => 'Can view support tickets'],
-            ['name' => 'create_support_tickets', 'description' => 'Can create support tickets'],
-            ['name' => 'respond_to_tickets', 'description' => 'Can respond to support tickets'],
-            ['name' => 'manage_support_tickets', 'description' => 'Can manage support tickets (full access)'],
             
             // Shipment permissions
             ['name' => 'view_shipments', 'description' => 'Can view shipments list'],
@@ -185,6 +180,14 @@ class RolesAndPermissionsSeeder extends Seeder
             ['name' => 'manage_warehouse_stock', 'description' => 'Can manage warehouse stock levels'],
             ['name' => 'transfer_warehouse_stock', 'description' => 'Can transfer stock between warehouses'],
             ['name' => 'manage_warehouses', 'description' => 'Can manage warehouses (full access)'],
+            
+            // Stock Global permissions (for the real sourcing functionality)
+            ['name' => 'view_stock_global', 'description' => 'Can view global stock across all suppliers'],
+            ['name' => 'manage_stock_global', 'description' => 'Can manage global stock across all suppliers'],
+            
+            // History permissions
+            ['name' => 'view_history', 'description' => 'Can view action history'],
+            ['name' => 'manage_history', 'description' => 'Can manage history (full access)'],
         ];
 
         foreach ($permissions as $permission) {
@@ -284,11 +287,15 @@ class RolesAndPermissionsSeeder extends Seeder
                 'view_warehouses', 'create_warehouses', 'edit_warehouses', 'view_warehouse_details',
                 'manage_warehouse_stock', 'transfer_warehouse_stock',
                 
+                // Stock Global (for sourcing functionality)
+                'view_stock_global', 'manage_stock_global',
+                
                 // Reports
                 'view_reports', 'generate_reports', 'export_reports',
                 
-                // Support
-                'view_support_tickets', 'create_support_tickets', 'respond_to_tickets',
+                // History
+                'view_history', 'manage_history',
+                
             ])->get()
         );
 
@@ -321,8 +328,6 @@ class RolesAndPermissionsSeeder extends Seeder
                 // Warehouses (view only)
                 'view_warehouses', 'view_warehouse_details',
                 
-                // Support
-                'view_support_tickets', 'create_support_tickets',
             ])->get()
         );
 
@@ -351,6 +356,9 @@ class RolesAndPermissionsSeeder extends Seeder
                 
                 // Reports
                 'view_reports', 'generate_reports', 'export_reports',
+                
+                // History
+                'view_history',
             ])->get()
         );
 
@@ -385,11 +393,12 @@ class RolesAndPermissionsSeeder extends Seeder
                 'view_warehouses', 'create_warehouses', 'edit_warehouses', 'view_warehouse_details',
                 'manage_warehouse_stock', 'transfer_warehouse_stock',
                 
+                // Stock Global (for sourcing functionality)
+                'view_stock_global',
+                
                 // Basic accounting (view only)
                 'view_accounting', 'view_incomes', 'view_expenses',
                 
-                // Support
-                'view_support_tickets', 'create_support_tickets',
             ])->get()
         );
 
