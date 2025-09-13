@@ -74,6 +74,11 @@ class Stock extends Model
                     ->withTimestamps();
     }
 
+    public function upsells()
+    {
+        return $this->hasMany(Upsell::class)->active()->ordered();
+    }
+
     // Helper method to recalculate remaining quantity
     public function recalculateRemainingQuantity()
     {

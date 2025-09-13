@@ -71,7 +71,7 @@
           </div>
           <div class="ml-4">
             <p class="text-sm font-medium text-purple-600">Total Value</p>
-            <p class="text-2xl font-bold text-purple-900">${{ formatCurrency(stats.total_value) }}</p>
+            <p class="text-2xl font-bold text-purple-900">{{ formatCurrency(stats.total_value) }}</p>
           </div>
         </div>
       </div>
@@ -136,7 +136,6 @@
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock</th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Warehouse</th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
           </tr>
         </thead>
@@ -160,7 +159,7 @@
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ product.sku }}</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ product.category || 'N/A' }}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${{ formatCurrency(product.selling_price) }}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ formatCurrency(product.selling_price) }}</td>
             <td class="px-6 py-4 whitespace-nowrap">
               <span class="text-sm text-gray-900">{{ product.stock_quantity }}</span>
               <span v-if="product.stock_quantity <= 10" class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
@@ -172,10 +171,8 @@
                 {{ product.status }}
               </span>
             </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ product.warehouse?.name || 'N/A' }}</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-              <button @click="viewProduct(product)" class="text-blue-600 hover:text-blue-900 mr-3">View</button>
-              <button @click="editProduct(product)" class="text-green-600 hover:text-green-900">Edit</button>
+              <button @click="viewProduct(product)" class="text-blue-600 hover:text-blue-900">View</button>
             </td>
           </tr>
         </tbody>
@@ -214,7 +211,7 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue'
 
-const emit = defineEmits(['view-product', 'edit-product'])
+const emit = defineEmits(['view-product'])
 
 const products = ref({ data: [] })
 const categories = ref([])
@@ -292,7 +289,11 @@ const changePage = (page) => {
 }
 
 const formatCurrency = (amount) => {
-  return parseFloat(amount).toFixed(2)
+  if (!amount) return 'N/A'
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD'
+  }).format(amount)
 }
 
 const getStatusClass = (status) => {
@@ -311,11 +312,6 @@ const getStatusClass = (status) => {
 const viewProduct = (product) => {
   // Emit event to parent to show product details
   emit('view-product', product)
-}
-
-const editProduct = (product) => {
-  // Emit event to parent to edit product
-  emit('edit-product', product)
 }
 
 // Watch for filter changes

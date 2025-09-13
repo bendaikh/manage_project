@@ -33,6 +33,7 @@ class UserController extends Controller
                     'name' => $u->name,
                     'username' => $u->username,
                     'email' => $u->email,
+                    'is_active' => $u->is_active,
                     'roles' => $u->roles->pluck('name'),
                 ];
             });
@@ -164,6 +165,59 @@ class UserController extends Controller
         })->select('id', 'name', 'email')->orderBy('name')->get();
         
         return response()->json($sellers);
+    }
+
+    /**
+     * Update user information via API
+     */
+    public function updateUser(Request $request, User $user)
+    {
+        if ($request->expectsJson() || $request->wantsJson()) {
+            $validated = $request->validate([
+                'name' => ['required', 'string', 'max:255'],
+                'username' => ['required', 'string', 'max:255', 'unique:users,username,' . $user->id],
+                'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email,' . $user->id],
+                'role' => ['required', 'string'],
+            ]);
+
+            $user->update([
+                'name' => $validated['name'],
+                'username' => $validated['username'],
+                'email' => $validated['email'],
+            ]);
+
+            // Update role
+            $roleName = strtolower($validated['role']);
+            $roleModel = \App\Models\Role::firstOrCreate(['name' => $roleName]);
+            $user->syncRoles([$roleModel]);
+
+            $this->logAction('User Updated', "Updated user: {$user->name}", ['user_id' => $user->id, 'role' => $roleName]);
+
+            return response()->json(['message' => 'User updated successfully', 'user' => $user]);
+        }
+
+        return response()->json(['error' => 'Invalid request'], 400);
+    }
+
+    /**
+     * Toggle user active status
+     */
+    public function toggleStatus(User $user)
+    {
+        if ($user->id === auth()->id()) {
+            return response()->json(['error' => 'You cannot disable your own account.'], 400);
+        }
+
+        $user->update(['is_active' => !$user->is_active]);
+        
+        $status = $user->is_active ? 'enabled' : 'disabled';
+        $this->logAction('User Status Changed', "{$status} user: {$user->name}", ['user_id' => $user->id, 'status' => $status]);
+
+        return response()->json([
+            'message' => "User {$status} successfully",
+            'user' => $user,
+            'is_active' => $user->is_active
+        ]);
     }
 
     /**

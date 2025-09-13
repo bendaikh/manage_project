@@ -45,81 +45,16 @@ class StockController extends Controller
         
         $stocks = $query->orderByDesc('created_at')->paginate(15);
         
-        // Calculate today's quantities for each stock
+        // Use actual stock quantities from the database
         $stocks->getCollection()->transform(function ($stock) {
-            $todayQuantities = $this->calculateTodayQuantities($stock);
-            $stock->today_delivered_quantity = $todayQuantities['delivered'];
-            $stock->today_in_progress_quantity = $todayQuantities['in_progress'];
+            $stock->total_delivered_quantity = $stock->delivered_quantity ?? 0;
+            $stock->total_in_progress_quantity = $stock->in_progress_quantity ?? 0;
             return $stock;
         });
         
         return response()->json($stocks);
     }
 
-    /**
-     * Calculate today's delivered and in-progress quantities for a stock
-     */
-    private function calculateTodayQuantities($stock)
-    {
-        $today = now()->setTimezone('UTC')->toDateString();
-        
-        // Get the seller name from the stock's seller relationship
-        $sellerName = $stock->seller ? $stock->seller->name : null;
-        
-        if (!$sellerName) {
-            return [
-                'delivered' => 0,
-                'in_progress' => 0
-            ];
-        }
-        
-        // Build the query for orders
-        $orderQuery = \App\Models\Order::where('seller', $sellerName);
-        
-        // If stock has a linked product, match by product_id
-        if ($stock->product_id) {
-            $orderQuery->where('product_id', $stock->product_id);
-        } else {
-            // If no linked product, try to match by product name or reference
-            // First, find products that match the stock title or reference
-            $matchingProducts = \App\Models\Product::where(function($q) use ($stock) {
-                $q->where('name', 'like', "%{$stock->title}%")
-                  ->orWhere('sku', 'like', "%{$stock->reference}%")
-                  ->orWhere('name', 'like', "%{$stock->reference}%");
-            })->pluck('id');
-            
-            if ($matchingProducts->count() > 0) {
-                $orderQuery->whereIn('product_id', $matchingProducts);
-            } else {
-                // If no matching products found, return 0
-                return [
-                    'delivered' => 0,
-                    'in_progress' => 0
-                ];
-            }
-        }
-        
-        // For "Delivered Today" - show orders that were delivered TODAY
-        $todayDelivered = (clone $orderQuery)
-            ->whereHas('orderStatus', function($q) {
-                $q->where('name', 'Delivered');
-            })
-            ->whereDate('created_at', $today)
-            ->sum('quantity');
-            
-        // For "In Progress Today" - show orders that were created TODAY and are currently in Shipped or Processing status
-        $todayShipped = (clone $orderQuery)
-            ->whereHas('orderStatus', function($q) {
-                $q->whereIn('name', ['Shipped', 'Processing']);
-            })
-            ->whereDate('created_at', $today)
-            ->sum('quantity');
-            
-        return [
-            'delivered' => $todayDelivered,
-            'in_progress' => $todayShipped
-        ];
-    }
 
     public function store(Request $request)
     {

@@ -112,9 +112,9 @@
               <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Barcode</th>
               <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Initial Qty</th>
               <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Remaining</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Delivered</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Delivered</th>
               <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Damaged</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">In Progress</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total In Progress</th>
               <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
               <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pricing</th>
               <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
@@ -145,9 +145,9 @@
               <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500">{{ stock.barcode || 'N/A' }}</td>
               <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{{ stock.initial_quantity }}</td>
               <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{{ stock.remaining_quantity }}</td>
-              <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500">{{ stock.today_delivered_quantity || 0 }}</td>
+              <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500">{{ stock.total_delivered_quantity || 0 }}</td>
               <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500">{{ stock.damaged_quantity }}</td>
-              <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500">{{ stock.today_in_progress_quantity || 0 }}</td>
+              <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500">{{ stock.total_in_progress_quantity || 0 }}</td>
               <td class="px-4 py-4 whitespace-nowrap">
                 <span :class="getStatusClass(stock.status)" class="px-2 py-1 text-xs font-medium rounded-full">
                   {{ formatStatus(stock.status) }}
@@ -661,8 +661,8 @@ const calculateStatisticsFromStocks = () => {
     out_of_stock: stocks.value.filter(s => s.status === 'out_of_stock').length,
     total_initial_quantity: stocks.value.reduce((sum, s) => sum + (s.initial_quantity || 0), 0),
     total_remaining_quantity: stocks.value.reduce((sum, s) => sum + (s.remaining_quantity || 0), 0),
-    total_delivered_quantity_today: stocks.value.reduce((sum, s) => sum + (s.today_delivered_quantity || 0), 0),
-    total_in_progress_quantity_today: stocks.value.reduce((sum, s) => sum + (s.today_in_progress_quantity || 0), 0),
+    total_delivered_quantity: stocks.value.reduce((sum, s) => sum + (s.total_delivered_quantity || 0), 0),
+    total_in_progress_quantity: stocks.value.reduce((sum, s) => sum + (s.total_in_progress_quantity || 0), 0),
     total_damaged_quantity: stocks.value.reduce((sum, s) => sum + (s.damaged_quantity || 0), 0),
   }
   

@@ -92,7 +92,7 @@
         <!-- Seller field - Readonly (when current user is a seller) -->
         <div class="mb-4" v-if="isSeller">
           <label class="block text-sm font-medium mb-1">Seller</label>
-          <input type="text" :value="window.Laravel?.user?.name" class="w-full border rounded px-3 py-2 bg-gray-100" disabled />
+          <input type="text" :value="getCurrentUserName()" class="w-full border rounded px-3 py-2 bg-gray-100" disabled />
         </div>
         <div class="mb-4 grid grid-cols-2 gap-4">
           <div>
@@ -250,11 +250,37 @@ const fetchSellers = async () => {
   sellers.value = data.users || []
 }
 
-onMounted(() => {
-  isSeller.value = Array.isArray(window.Laravel?.user?.roles) && window.Laravel.user.roles.includes('seller')
-  if (isSeller.value) {
-    form.value.seller_id = window.Laravel?.user?.id || ''
+const getCurrentUserName = () => {
+  try {
+    return window.Laravel?.user?.name || 'Current User'
+  } catch (error) {
+    console.warn('Could not access user name:', error)
+    return 'Current User'
   }
+}
+
+const getCurrentUserId = () => {
+  try {
+    return window.Laravel?.user?.id || ''
+  } catch (error) {
+    console.warn('Could not access user id:', error)
+    return ''
+  }
+}
+
+onMounted(() => {
+  // Safely check if user is a seller
+  try {
+    const userRoles = window.Laravel?.user?.roles
+    isSeller.value = Array.isArray(userRoles) && userRoles.includes('seller')
+  if (isSeller.value) {
+    form.value.seller_id = getCurrentUserId()
+  }
+  } catch (error) {
+    console.warn('Could not access user roles:', error)
+    isSeller.value = false
+  }
+  
   fetchSellers()
 })
 
@@ -280,7 +306,7 @@ const submitForm = async () => {
     }
     success.value = true
     form.value = {
-      name: '', sku: '', category: '', supplier: '', seller_id: isSeller.value ? (window.Laravel?.user?.id || '') : '', warehouse_id: '', is_company_product: false, assigned_sellers: [], purchase_price: '', selling_price: '', stock_quantity: 1, status: 'In Stock', image_url: '', video_url: '', video_duration: '', description: ''
+      name: '', sku: '', category: '', supplier: '', seller_id: isSeller.value ? getCurrentUserId() : '', warehouse_id: '', is_company_product: false, assigned_sellers: [], purchase_price: '', selling_price: '', stock_quantity: 1, status: 'In Stock', image_url: '', video_url: '', video_duration: '', description: ''
     }
     // Reset custom multiselect state
     selectedSellers.value = []

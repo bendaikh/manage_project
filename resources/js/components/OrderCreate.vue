@@ -203,11 +203,22 @@ const handleOrdersImported = (count) => {
 
 onMounted(() => {
   // Determine if user has seller role from data injected in the Blade layout
-  isSeller.value = Array.isArray(window.Laravel?.user?.roles) && window.Laravel.user.roles.includes('seller')
+  try {
+    const userRoles = window.Laravel?.user?.roles
+    isSeller.value = Array.isArray(userRoles) && userRoles.includes('seller')
+  } catch (error) {
+    console.warn('Could not access user roles:', error)
+    isSeller.value = false
+  }
 
   if (isSeller.value) {
     // Pre-fill seller name and disable editing
-    form.value.seller = window.Laravel?.user?.name || ''
+    try {
+      form.value.seller = window.Laravel?.user?.name || ''
+    } catch (error) {
+      console.warn('Could not access user name:', error)
+      form.value.seller = ''
+    }
   }
 
   fetchProducts()

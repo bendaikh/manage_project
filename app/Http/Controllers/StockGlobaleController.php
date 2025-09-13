@@ -6,6 +6,7 @@ use App\Models\Stock;
 use App\Models\Product;
 use App\Models\User;
 use App\Models\Warehouse;
+use App\Models\Upsell;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Response;
@@ -19,7 +20,7 @@ class StockGlobaleController extends Controller
             abort(403, 'You do not have permission to view global stock.');
         }
         
-        $query = Stock::query()->with(['seller', 'shipment', 'product', 'warehouse']);
+        $query = Stock::query()->with(['seller', 'shipment', 'product', 'warehouse', 'upsells']);
         
         // Global view - show all stocks regardless of seller (admin/manager view)
         // Only filter by seller if the user has seller role
@@ -32,11 +33,11 @@ class StockGlobaleController extends Controller
         
         $stocks = $query->orderByDesc('created_at')->paginate(15);
         
-        // Calculate today's quantities for each stock and add warehouse distribution
+        // Use actual stock quantities from the database and add warehouse distribution
         $stocks->getCollection()->transform(function ($stock) {
-            $todayQuantities = $this->calculateTodayQuantities($stock);
-            $stock->today_delivered_quantity = $todayQuantities['delivered'];
-            $stock->today_in_progress_quantity = $todayQuantities['in_progress'];
+            $stock->total_delivered_quantity = $stock->delivered_quantity ?? 0;
+            $stock->total_in_progress_quantity = $stock->in_progress_quantity ?? 0;
+            $stock->total_damaged_quantity = $stock->damaged_quantity ?? 0;
             
             // Get all warehouses where this product exists
             $stock->warehouse_distribution = $this->getProductWarehouseDistribution($stock);
@@ -217,71 +218,14 @@ class StockGlobaleController extends Controller
             }
         }
         
-        return array_values($warehouseDistribution);
+        // Filter out warehouses with 0 quantity
+        $filteredDistribution = array_filter($warehouseDistribution, function($warehouse) {
+            return $warehouse['total_quantity'] > 0;
+        });
+        
+        return array_values($filteredDistribution);
     }
 
-    /**
-     * Calculate today's delivered and in-progress quantities for a stock
-     */
-    private function calculateTodayQuantities($stock)
-    {
-        $today = now()->setTimezone('UTC')->toDateString();
-        
-        // Get the seller name from the stock's seller relationship
-        $sellerName = $stock->seller ? $stock->seller->name : null;
-        
-        if (!$sellerName) {
-            return [
-                'delivered' => 0,
-                'in_progress' => 0
-            ];
-        }
-        
-        // Build the query for orders
-        $orderQuery = \App\Models\Order::where('seller', $sellerName);
-        
-        // If stock has a linked product, match by product_id
-        if ($stock->product_id) {
-            $orderQuery->where('product_id', $stock->product_id);
-        } else {
-            // If no linked product, try to match by product name or reference
-            $matchingProducts = \App\Models\Product::where(function($q) use ($stock) {
-                $q->where('name', 'like', "%{$stock->title}%")
-                  ->orWhere('sku', 'like', "%{$stock->reference}%")
-                  ->orWhere('name', 'like', "%{$stock->reference}%");
-            })->pluck('id');
-            
-            if ($matchingProducts->count() > 0) {
-                $orderQuery->whereIn('product_id', $matchingProducts);
-            } else {
-                return [
-                    'delivered' => 0,
-                    'in_progress' => 0
-                ];
-            }
-        }
-        
-        // For "Delivered Today" - show orders that were delivered TODAY
-        $todayDelivered = (clone $orderQuery)
-            ->whereHas('orderStatus', function($q) {
-                $q->where('name', 'Delivered');
-            })
-            ->whereDate('created_at', $today)
-            ->sum('quantity');
-            
-        // For "In Progress Today" - show orders that were created TODAY and are currently in Shipped or Processing status
-        $todayShipped = (clone $orderQuery)
-            ->whereHas('orderStatus', function($q) {
-                $q->whereIn('name', ['Shipped', 'Processing']);
-            })
-            ->whereDate('created_at', $today)
-            ->sum('quantity');
-            
-        return [
-            'delivered' => $todayDelivered,
-            'in_progress' => $todayShipped
-        ];
-    }
 
     public function update(Request $request, $id)
     {
@@ -380,17 +324,7 @@ class StockGlobaleController extends Controller
         
         $stocks = $baseQuery->get();
         
-        // Calculate today's totals
-        $today = now()->setTimezone('UTC')->toDateString();
-        $todayDeliveredTotal = 0;
-        $todayInProgressTotal = 0;
-        
-        foreach ($stocks as $stock) {
-            $todayQuantities = $this->calculateTodayQuantities($stock);
-            $todayDeliveredTotal += $todayQuantities['delivered'];
-            $todayInProgressTotal += $todayQuantities['in_progress'];
-        }
-        
+        // Calculate total quantities from stock records
         $stats = [
             'total_products' => $stocks->count(),
             'in_stock' => $stocks->where('status', 'in_stock')->count(),
@@ -398,8 +332,8 @@ class StockGlobaleController extends Controller
             'out_of_stock' => $stocks->where('status', 'out_of_stock')->count(),
             'total_initial_quantity' => $stocks->sum('initial_quantity'),
             'total_remaining_quantity' => $stocks->sum('remaining_quantity'),
-            'total_delivered_quantity_today' => $todayDeliveredTotal,
-            'total_in_progress_quantity_today' => $todayInProgressTotal,
+            'total_delivered_quantity' => $stocks->sum('delivered_quantity'),
+            'total_in_progress_quantity' => $stocks->sum('in_progress_quantity'),
             'total_damaged_quantity' => $stocks->sum('damaged_quantity'),
         ];
         
@@ -484,6 +418,267 @@ class StockGlobaleController extends Controller
     }
 
     /**
+     * Update warehouse quantity for a specific stock
+     */
+    public function updateWarehouseQuantity(Request $request, $id)
+    {
+        // Check if user has permission to manage stock global
+        if (!Auth::user()->hasPermission('manage_stock_global')) {
+            abort(403, 'You do not have permission to manage global stock.');
+        }
+        
+        $stock = Stock::findOrFail($id);
+        
+        // Check permissions
+        if (Auth::user()->hasRole('seller') && $stock->seller_id !== Auth::id()) {
+            abort(403);
+        }
+        
+        $data = $request->validate([
+            'warehouse_id' => 'required|exists:warehouses,id',
+            'quantity' => 'required|integer|min:0',
+            'notes' => 'nullable|string',
+        ]);
+        
+        try {
+            // Check if the stock has a many-to-many relationship with warehouses
+            if ($stock->warehouses()->where('warehouse_id', $data['warehouse_id'])->exists()) {
+                // Update the pivot table quantity
+                $stock->warehouses()->updateExistingPivot($data['warehouse_id'], [
+                    'quantity' => $data['quantity'],
+                    'updated_at' => now()
+                ]);
+            } else {
+                // If no pivot relationship exists, create one
+                $stock->warehouses()->attach($data['warehouse_id'], [
+                    'quantity' => $data['quantity'],
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ]);
+            }
+            
+            // Update stock notes if provided
+            if ($request->filled('notes')) {
+                $updateNote = "Warehouse quantity updated on " . now()->format('Y-m-d H:i:s') . " by " . Auth::user()->name;
+                $updateNote .= " - " . $request->notes;
+                $stock->notes = $stock->notes ? $stock->notes . "\n" . $updateNote : $updateNote;
+                $stock->save();
+            }
+            
+            // Recalculate remaining quantity based on all warehouse quantities
+            $totalWarehouseQuantity = $stock->warehouses()->sum('warehouse_stock.quantity');
+            $stock->remaining_quantity = $totalWarehouseQuantity;
+            $stock->last_updated_by = Auth::user()->name;
+            $stock->last_updated_at = now();
+            
+            // Update status based on remaining quantity
+            if ($stock->remaining_quantity <= 0) {
+                $stock->status = 'out_of_stock';
+            } elseif ($stock->remaining_quantity <= 5) {
+                $stock->status = 'low_stock';
+            } else {
+                $stock->status = 'in_stock';
+            }
+            
+            $stock->save();
+            
+            return response()->json([
+                'message' => 'Warehouse quantity updated successfully',
+                'stock' => $stock->fresh(['warehouses'])
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Failed to update warehouse quantity: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Create warehouse transfer
+     */
+    public function createTransfer(Request $request)
+    {
+        // Check if user has permission to manage stock global
+        if (!Auth::user()->hasPermission('manage_stock_global')) {
+            abort(403, 'You do not have permission to create transfers.');
+        }
+        
+        $data = $request->validate([
+            'stock_id' => 'required|exists:stocks,id',
+            'from_warehouse_id' => 'required|exists:warehouses,id',
+            'transfers' => 'required|array|min:1',
+            'transfers.*.to_warehouse_id' => 'required|exists:warehouses,id',
+            'transfers.*.quantity' => 'required|integer|min:1',
+            'notes' => 'nullable|string',
+        ]);
+        
+        $stock = Stock::findOrFail($data['stock_id']);
+        
+        // Check permissions
+        if (Auth::user()->hasRole('seller') && $stock->seller_id !== Auth::id()) {
+            abort(403);
+        }
+        
+        // Get principal warehouse quantity
+        $principalWarehouse = Warehouse::findOrFail($data['from_warehouse_id']);
+        $principalQuantity = $stock->warehouses()
+            ->where('warehouse_id', $data['from_warehouse_id'])
+            ->first();
+        
+        if (!$principalQuantity) {
+            return response()->json([
+                'message' => 'No stock found in the selected principal warehouse'
+            ], 400);
+        }
+        
+        $availableQuantity = $principalQuantity->pivot->quantity;
+        
+        // Validate total transfer quantity doesn't exceed available
+        $totalTransferQuantity = array_sum(array_column($data['transfers'], 'quantity'));
+        
+        if ($totalTransferQuantity > $availableQuantity) {
+            return response()->json([
+                'message' => "Total transfer quantity ({$totalTransferQuantity}) exceeds available quantity ({$availableQuantity}) in principal warehouse"
+            ], 400);
+        }
+        
+        try {
+            \DB::beginTransaction();
+            
+            $createdTransfers = [];
+            
+            foreach ($data['transfers'] as $transfer) {
+                // Create transfer record
+                $warehouseTransfer = \App\Models\WarehouseTransfer::create([
+                    'from_warehouse_id' => $data['from_warehouse_id'],
+                    'to_warehouse_id' => $transfer['to_warehouse_id'],
+                    'stock_id' => $data['stock_id'],
+                    'quantity' => $transfer['quantity'],
+                    'transfer_date' => now(),
+                    'status' => 'completed',
+                    'notes' => $data['notes'] ?? '',
+                    'user_id' => Auth::id(),
+                ]);
+                
+                // Update warehouse quantities
+                // Reduce from principal warehouse
+                $stock->warehouses()->updateExistingPivot($data['from_warehouse_id'], [
+                    'quantity' => $availableQuantity - $transfer['quantity'],
+                    'updated_at' => now()
+                ]);
+                
+                // Add to destination warehouse
+                $destinationWarehouse = $stock->warehouses()
+                    ->where('warehouse_id', $transfer['to_warehouse_id'])
+                    ->first();
+                
+                if ($destinationWarehouse) {
+                    // Update existing quantity
+                    $stock->warehouses()->updateExistingPivot($transfer['to_warehouse_id'], [
+                        'quantity' => $destinationWarehouse->pivot->quantity + $transfer['quantity'],
+                        'updated_at' => now()
+                    ]);
+                } else {
+                    // Create new warehouse relationship
+                    $stock->warehouses()->attach($transfer['to_warehouse_id'], [
+                        'quantity' => $transfer['quantity'],
+                        'created_at' => now(),
+                        'updated_at' => now()
+                    ]);
+                }
+                
+                $createdTransfers[] = $warehouseTransfer;
+                
+                // Update available quantity for next iteration
+                $availableQuantity -= $transfer['quantity'];
+            }
+            
+            // Update stock notes
+            $transferNote = "Transfer created on " . now()->format('Y-m-d H:i:s') . " by " . Auth::user()->name;
+            if ($data['notes']) {
+                $transferNote .= " - " . $data['notes'];
+            }
+            $stock->notes = $stock->notes ? $stock->notes . "\n" . $transferNote : $transferNote;
+            $stock->last_updated_by = Auth::user()->name;
+            $stock->last_updated_at = now();
+            $stock->save();
+            
+            \DB::commit();
+            
+            return response()->json([
+                'message' => 'Transfer created successfully',
+                'transfers' => $createdTransfers,
+                'stock' => $stock->fresh(['warehouses'])
+            ]);
+            
+        } catch (\Exception $e) {
+            \DB::rollback();
+            return response()->json([
+                'message' => 'Failed to create transfer: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get available stocks for transfer
+     */
+    public function getAvailableStocks()
+    {
+        // Check if user has permission to view stock global
+        if (!Auth::user()->hasPermission('view_stock_global')) {
+            abort(403, 'You do not have permission to view stocks.');
+        }
+        
+        $query = Stock::query()->with(['warehouses', 'product']);
+        
+        // Only filter by seller if the user has seller role
+        if (Auth::user()->hasRole('seller')) {
+            $query->where('seller_id', Auth::id());
+        }
+        
+        $stocks = $query->whereHas('warehouses', function($q) {
+            $q->where('warehouse_stock.quantity', '>', 0);
+        })->get();
+        
+        // Transform to include warehouse distribution
+        $stocks->transform(function ($stock) {
+            $stock->warehouse_distribution = $this->getProductWarehouseDistribution($stock);
+            return $stock;
+        });
+        
+        return response()->json($stocks);
+    }
+
+    /**
+     * Get principal warehouse for a stock
+     */
+    public function getPrincipalWarehouse($stockId)
+    {
+        // Check if user has permission to view stock global
+        if (!Auth::user()->hasPermission('view_stock_global')) {
+            abort(403, 'You do not have permission to view stock details.');
+        }
+        
+        $stock = Stock::with(['warehouses' => function($query) {
+            $query->where('is_principal', true);
+        }])->findOrFail($stockId);
+        
+        $principalWarehouse = $stock->warehouses->first();
+        
+        if (!$principalWarehouse) {
+            return response()->json([
+                'message' => 'No principal warehouse found for this stock'
+            ], 404);
+        }
+        
+        return response()->json([
+            'warehouse' => $principalWarehouse,
+            'quantity' => $principalWarehouse->pivot->quantity
+        ]);
+    }
+
+    /**
      * Export stock data to CSV
      */
     public function export(Request $request)
@@ -563,5 +758,178 @@ class StockGlobaleController extends Controller
         };
         
         return Response::stream($callback, 200, $headers);
+    }
+
+    /**
+     * Get upsells for a specific stock
+     */
+    public function getUpsells($stockId)
+    {
+        // Check if user has permission to view stock global
+        if (!Auth::user()->hasPermission('view_stock_global')) {
+            abort(403, 'You do not have permission to view global stock.');
+        }
+
+        $stock = Stock::findOrFail($stockId);
+        
+        // Check if user can access this stock
+        if (Auth::user()->hasRole('seller') && $stock->seller_id !== Auth::id()) {
+            abort(403, 'You do not have permission to view this stock.');
+        }
+
+        $upsells = $stock->upsells()->get();
+        
+        return response()->json($upsells);
+    }
+
+    /**
+     * Store a new upsell for a stock
+     */
+    public function storeUpsell(Request $request, $stockId)
+    {
+        // Check if user has permission to manage stock
+        if (!Auth::user()->hasPermission('manage_stock')) {
+            abort(403, 'You do not have permission to manage stock.');
+        }
+
+        $stock = Stock::findOrFail($stockId);
+        
+        // Check if user can access this stock
+        if (Auth::user()->hasRole('seller') && $stock->seller_id !== Auth::id()) {
+            abort(403, 'You do not have permission to manage this stock.');
+        }
+
+        $request->validate([
+            'name' => 'nullable|string|max:255',
+            'description' => 'nullable|string|max:1000',
+            'quantity' => 'required|integer|min:1',
+            'price' => 'required|numeric|min:0',
+            'is_active' => 'boolean',
+            'sort_order' => 'integer|min:0'
+        ]);
+
+        $upsell = $stock->upsells()->create([
+            'name' => $request->name,
+            'description' => $request->description,
+            'quantity' => $request->quantity,
+            'price' => $request->price,
+            'is_active' => $request->get('is_active', true),
+            'sort_order' => $request->get('sort_order', 0)
+        ]);
+
+        return response()->json([
+            'message' => 'Upsell created successfully',
+            'upsell' => $upsell
+        ], 201);
+    }
+
+    /**
+     * Update an existing upsell
+     */
+    public function updateUpsell(Request $request, $stockId, $upsellId)
+    {
+        // Check if user has permission to manage stock
+        if (!Auth::user()->hasPermission('manage_stock')) {
+            abort(403, 'You do not have permission to manage stock.');
+        }
+
+        $stock = Stock::findOrFail($stockId);
+        
+        // Check if user can access this stock
+        if (Auth::user()->hasRole('seller') && $stock->seller_id !== Auth::id()) {
+            abort(403, 'You do not have permission to manage this stock.');
+        }
+
+        $upsell = $stock->upsells()->findOrFail($upsellId);
+
+        $request->validate([
+            'name' => 'nullable|string|max:255',
+            'description' => 'nullable|string|max:1000',
+            'quantity' => 'required|integer|min:1',
+            'price' => 'required|numeric|min:0',
+            'is_active' => 'boolean',
+            'sort_order' => 'integer|min:0'
+        ]);
+
+        $upsell->update([
+            'name' => $request->name,
+            'description' => $request->description,
+            'quantity' => $request->quantity,
+            'price' => $request->price,
+            'is_active' => $request->get('is_active', true),
+            'sort_order' => $request->get('sort_order', 0)
+        ]);
+
+        return response()->json([
+            'message' => 'Upsell updated successfully',
+            'upsell' => $upsell
+        ]);
+    }
+
+    /**
+     * Delete an upsell
+     */
+    public function deleteUpsell($stockId, $upsellId)
+    {
+        // Check if user has permission to manage stock
+        if (!Auth::user()->hasPermission('manage_stock')) {
+            abort(403, 'You do not have permission to manage stock.');
+        }
+
+        $stock = Stock::findOrFail($stockId);
+        
+        // Check if user can access this stock
+        if (Auth::user()->hasRole('seller') && $stock->seller_id !== Auth::id()) {
+            abort(403, 'You do not have permission to manage this stock.');
+        }
+
+        $upsell = $stock->upsells()->findOrFail($upsellId);
+        $upsell->delete();
+
+        return response()->json([
+            'message' => 'Upsell deleted successfully'
+        ]);
+    }
+
+    /**
+     * Store multiple upsells for a stock
+     */
+    public function storeMultipleUpsells(Request $request, $stockId)
+    {
+        // Check if user has permission to manage stock
+        if (!Auth::user()->hasPermission('manage_stock')) {
+            abort(403, 'You do not have permission to manage stock.');
+        }
+
+        $stock = Stock::findOrFail($stockId);
+        
+        // Check if user can access this stock
+        if (Auth::user()->hasRole('seller') && $stock->seller_id !== Auth::id()) {
+            abort(403, 'You do not have permission to manage this stock.');
+        }
+
+        $request->validate([
+            'upsells' => 'required|array|min:1',
+            'upsells.*.quantity' => 'required|integer|min:1',
+            'upsells.*.price' => 'required|numeric|min:0',
+        ]);
+
+        $createdUpsells = [];
+        foreach ($request->upsells as $index => $upsellData) {
+            $upsell = $stock->upsells()->create([
+                'name' => null,
+                'description' => null,
+                'quantity' => $upsellData['quantity'],
+                'price' => $upsellData['price'],
+                'is_active' => true,
+                'sort_order' => $index
+            ]);
+            $createdUpsells[] = $upsell;
+        }
+
+        return response()->json([
+            'message' => 'Upsells created successfully',
+            'upsells' => $createdUpsells
+        ], 201);
     }
 }

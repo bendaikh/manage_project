@@ -48,7 +48,12 @@
           <tbody class="bg-white divide-y divide-gray-200">
             <tr v-for="warehouse in warehouses" :key="warehouse.id" class="hover:bg-gray-50">
               <td class="px-6 py-4 whitespace-nowrap">
-                <div class="text-sm font-medium text-gray-900">{{ warehouse.name }}</div>
+                <div class="flex items-center">
+                  <div class="text-sm font-medium text-gray-900">{{ warehouse.name }}</div>
+                  <span v-if="warehouse.is_principal" class="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                    Principal
+                  </span>
+                </div>
                 <div class="text-sm text-gray-500">{{ warehouse.description }}</div>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -161,8 +166,7 @@ const changePage = (page) => {
 }
 
 const editWarehouse = (warehouse) => {
-  // TODO: Implement edit functionality
-  console.log('Edit warehouse:', warehouse)
+  emit('edit-warehouse', warehouse)
 }
 
 const viewProducts = async (warehouse) => {
@@ -296,5 +300,5 @@ onMounted(() => {
   fetchWarehouses()
 })
 
-const emit = defineEmits(['add-warehouse'])
+const emit = defineEmits(['add-warehouse', 'edit-warehouse'])
 </script>

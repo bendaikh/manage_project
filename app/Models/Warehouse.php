@@ -16,11 +16,13 @@ class Warehouse extends Model
         'phone',
         'email',
         'status',
+        'is_principal',
         'description',
     ];
 
     protected $casts = [
         'status' => 'string',
+        'is_principal' => 'boolean',
     ];
 
     // Relationships
@@ -56,4 +58,10 @@ class Warehouse extends Model
               ->orWhere('description', 'like', "%{$search}%");
         });
     }
+
+    public function scopePrincipal($query)
+    {
+        return $query->where('is_principal', true);
+    }
+
 }

@@ -126,7 +126,7 @@ class OrderController extends Controller
 
     public function index(Request $request)
     {
-        $query = Order::with(['product', 'orderStatus', 'assignment.assignedTo', 'assignment.assignedBy', 'warehouse']);
+        $query = Order::with(['product', 'stock.upsells', 'orderStatus', 'assignment.assignedTo', 'assignment.assignedBy', 'warehouse']);
 
         // Apply filters
         if ($request->filled('search')) {

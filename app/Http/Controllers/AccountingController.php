@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Income;
 use App\Models\Expense;
-use App\Models\Transfer;
 use App\Models\Account;
 use Carbon\Carbon;
 
@@ -34,7 +33,6 @@ class AccountingController extends Controller
         // Get recent transactions
         $recentIncomes = Income::with('category')->latest()->take(5)->get();
         $recentExpenses = Expense::with('category')->latest()->take(5)->get();
-        $recentTransfers = Transfer::with(['fromAccount', 'toAccount'])->latest()->take(5)->get();
 
         // Get account balances
         $accounts = Account::where('is_active', true)->get();
@@ -49,7 +47,6 @@ class AccountingController extends Controller
             'netIncome',
             'recentIncomes',
             'recentExpenses',
-            'recentTransfers',
             'accounts',
             'yearlyData'
         ));

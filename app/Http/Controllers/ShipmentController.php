@@ -226,8 +226,7 @@ class ShipmentController extends Controller
         if (!$shipment->validated) {
             $request->validate([
                 'shipping_cost' => 'required|numeric|min:0',
-                'transport_cost' => 'required|numeric|min:0',
-                'warehouse_id' => 'nullable|exists:warehouses,id'
+                'transport_cost' => 'required|numeric|min:0'
             ]);
             
             // Update shipment with costs
@@ -241,8 +240,12 @@ class ShipmentController extends Controller
 
         // Comprehensive stock synchronization
         if ($shipment->validated) {
-            $warehouseId = $request->input('warehouse_id');
-            $this->syncShipmentToStock($shipment, $warehouseId);
+            // Automatically use the principal warehouse
+            $principalWarehouse = \App\Models\Warehouse::where('is_principal', true)->first();
+            if (!$principalWarehouse) {
+                return response()->json(['message' => 'No principal warehouse found. Please set a principal warehouse first.'], 422);
+            }
+            $this->syncShipmentToStock($shipment, $principalWarehouse->id);
         } else {
             // If un-validated, remove from stock and products
             Stock::where('shipment_id', $shipment->id)->delete();

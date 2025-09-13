@@ -165,10 +165,6 @@
                 <ListIcon class="h-4 w-4" />
                 <span>Manage Warehouses</span>
               </button>
-              <button v-if="hasWarehouseTransfersPermission" type="button" @click="handleShowWarehouseTransfers" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
-                <ArrowsRightLeftIcon class="h-4 w-4" />
-                <span>Transfers</span>
-              </button>
             </div>
           </div>
 
@@ -271,11 +267,6 @@
                 </div>
               </div>
 
-              <!-- Transfers (Regular subitem) -->
-              <button v-if="hasTransfersPermission" type="button" @click="handleShowTransfers" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
-                <ArrowsRightLeftIcon class="h-4 w-4" />
-                <span>Transfers</span>
-              </button>
 
               <!-- Accounts (Regular subitem) -->
               <button v-if="hasAccountsPermission" type="button" @click="handleShowAccounts" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
@@ -373,6 +364,7 @@
       <main class="p-4 lg:p-8">
         <ProductCreate v-if="showAddProduct" @back="handleBackFromProduct" />
         <ProductEdit v-else-if="showEditProduct" :product-id="editingProduct?.id" @back="handleBackFromEditProduct" @product-updated="handleProductUpdated" />
+        <ProductView v-else-if="showViewProduct" :product="viewingProduct" @back="handleBackFromViewProduct" />
         <OrderCreate v-else-if="showAddOrder" @back="handleBackFromOrder" />
         <ProductList v-else-if="showProductList" @add-product="handleShowAddProduct" @edit-product="handleShowEditProduct" />
         <OrderList v-else-if="showOrderList" @create-order="handleShowAddOrder" />
@@ -398,7 +390,6 @@
         <ExpenseCategoriesList v-else-if="showExpenseCategories" />
         <ExpensesList v-else-if="showExpenses" />
         <RefundsList v-else-if="showRefunds" />
-        <TransfersList v-else-if="showTransfers" />
         <AccountsList v-else-if="showAccounts" />
         <SettingsForm v-else-if="showSettings" />
         <AccessRights v-else-if="showAccessRights" />
@@ -406,10 +397,10 @@
         <StockList v-else-if="showStock" />
         <StockGlobaleList v-else-if="showStockGlobale" />
         <WarehouseCreate v-else-if="showAddWarehouse" @back="handleBackFromAddWarehouse" />
-        <WarehouseList v-else-if="showManageWarehouses" @add-warehouse="handleShowAddWarehouse" />
-        <WarehouseTransfers v-else-if="showWarehouseTransfers" />
+        <WarehouseEdit v-else-if="showEditWarehouse" :warehouse-id="editingWarehouse?.id" @back="handleBackFromEditWarehouse" @warehouse-updated="handleWarehouseUpdated" />
+        <WarehouseList v-else-if="showManageWarehouses" @add-warehouse="handleShowAddWarehouse" @edit-warehouse="handleShowEditWarehouse" />
         <HistoryList v-else-if="showHistory" />
-        <MarketplaceList v-else-if="showMarketplace" />
+        <MarketplaceList v-else-if="showMarketplace" @view-product="handleShowViewProduct" />
         <BalanceView v-else-if="showBalance" />
         <slot v-else></slot>
       </main>
@@ -428,6 +419,7 @@ import { ref, computed } from 'vue'
 import ProductCreate from './ProductCreate.vue'
 import ProductList from './ProductList.vue'
 import ProductEdit from './ProductEdit.vue'
+import ProductView from './ProductView.vue'
 import OrderCreate from './OrderCreate.vue'
 import OrderList from './OrderList.vue'
 import DashboardOverview from './DashboardOverview.vue'
@@ -443,7 +435,6 @@ import AccountsList from './AccountsList.vue'
 import ExpenseCategoriesList from './ExpenseCategoriesList.vue'
 import ExpensesList from './ExpensesList.vue'
 import RefundsList from './RefundsList.vue'
-import TransfersList from './TransfersList.vue'
 import AccessRights from './AccessRights.vue'
 import AiChatbot from './AiChatbot.vue'
 import ShipmentsList from './ShipmentsList.vue'
@@ -454,8 +445,8 @@ import HistoryList from './HistoryList.vue'
 import MarketplaceList from './MarketplaceList.vue'
 import BalanceView from './BalanceView.vue'
 import WarehouseCreate from './WarehouseCreate.vue'
+import WarehouseEdit from './WarehouseEdit.vue'
 import WarehouseList from './WarehouseList.vue'
-import WarehouseTransfers from './WarehouseTransfers.vue'
 
 // Component state
 const isDashboardMenuOpen = ref(false)
@@ -480,7 +471,9 @@ const appDescription = ref('')
 const showAddProduct = ref(false)
 const showProductList = ref(false)
 const showEditProduct = ref(false)
+const showViewProduct = ref(false)
 const editingProduct = ref(null)
+const viewingProduct = ref(null)
 const showAddOrder = ref(false)
 const showOrderList = ref(false)
 const showOverview = ref(true)
@@ -501,7 +494,6 @@ const showAccounts = ref(false)
 const showExpenseCategories = ref(false)
 const showExpenses = ref(false)
 const showRefunds = ref(false)
-const showTransfers = ref(false)
 const showGeneralSettings = ref(false)
 const showAccessRights = ref(false)
 const showShipments = ref(false)
@@ -510,10 +502,12 @@ const showSellerInvoices = ref(false)
 const showHistory = ref(false)
 const showBalance = ref(false)
 const showAddWarehouse = ref(false)
+const showEditWarehouse = ref(false)
+const editingWarehouse = ref(null)
 const showManageWarehouses = ref(false)
-const showWarehouseTransfers = ref(false)
 const showStockGlobale = ref(false)
 const showMarketplace = ref(false)
+const editSource = ref('productList') // Track where edit came from: 'productList' or 'marketplace'
 
 const toggleDashboardMenu = () => {
   isDashboardMenuOpen.value = !isDashboardMenuOpen.value
@@ -621,7 +615,6 @@ const resetViews = () => {
   showStockGlobale.value = false
   showMarketplace.value = false
   showSellerInvoices.value = false
-  showTransfers.value = false
   showHistory.value = false
   showBalance.value = false
   showAddWarehouse.value = false
@@ -648,13 +641,33 @@ const handleBackFromProduct = () => {
 const handleShowEditProduct = (product) => {
   editingProduct.value = product
   showProductList.value = false
+  showMarketplace.value = false
+  editSource.value = 'productList'
   showEditProduct.value = true
+}
+
+const handleShowViewProduct = (product) => {
+  viewingProduct.value = product
+  showMarketplace.value = false
+  showViewProduct.value = true
 }
 
 const handleBackFromEditProduct = () => {
   showEditProduct.value = false
   editingProduct.value = null
-  showProductList.value = true
+  // Check where we came from and go back there
+  if (editSource.value === 'marketplace') {
+    showMarketplace.value = true
+  } else {
+    showProductList.value = true
+  }
+  editSource.value = 'productList' // Reset to default
+}
+
+const handleBackFromViewProduct = () => {
+  showViewProduct.value = false
+  viewingProduct.value = null
+  showMarketplace.value = true
 }
 
 const handleProductUpdated = () => {
@@ -797,11 +810,6 @@ const handleShowRefunds = (e) => {
   showRefunds.value = true
 }
 
-const handleShowTransfers = (e) => {
-  if (e) e.preventDefault()
-  resetViews()
-  showTransfers.value = true
-}
 
 const handleShowBalance = (e) => {
   if (e) e.preventDefault()
@@ -851,15 +859,27 @@ const handleShowManageWarehouses = (e) => {
   showManageWarehouses.value = true
 }
 
-const handleShowWarehouseTransfers = (e) => {
-  if (e) e.preventDefault()
-  resetViews()
-  showWarehouseTransfers.value = true
-}
 
 const handleBackFromAddWarehouse = () => {
   showAddWarehouse.value = false
   showManageWarehouses.value = true
+}
+
+const handleShowEditWarehouse = (warehouse) => {
+  editingWarehouse.value = warehouse
+  showManageWarehouses.value = false
+  showEditWarehouse.value = true
+}
+
+const handleBackFromEditWarehouse = () => {
+  showEditWarehouse.value = false
+  editingWarehouse.value = null
+  showManageWarehouses.value = true
+}
+
+const handleWarehouseUpdated = () => {
+  // This will be called when warehouse is updated
+  // The warehouse list will be refreshed when we go back to it
 }
 
 const handleShowHistory = () => {
@@ -1000,19 +1020,6 @@ const hasEditRefundsPermission = computed(() => hasPermission('edit_refunds'))
 const hasDeleteRefundsPermission = computed(() => hasPermission('delete_refunds'))
 const hasManageRefundsPermission = computed(() => hasPermission('manage_refunds'))
 
-// Transfer permissions
-const hasTransfersPermission = computed(() => hasPermission('view_transfers'))
-const hasCreateTransfersPermission = computed(() => hasPermission('create_transfers'))
-const hasEditTransfersPermission = computed(() => hasPermission('edit_transfers'))
-const hasDeleteTransfersPermission = computed(() => hasPermission('delete_transfers'))
-const hasManageTransfersPermission = computed(() => hasPermission('manage_transfers'))
-
-// User transfer permissions
-const hasUserTransfersPermission = computed(() => hasPermission('view_user_transfers'))
-const hasCreateUserTransfersPermission = computed(() => hasPermission('create_user_transfers'))
-const hasEditUserTransfersPermission = computed(() => hasPermission('edit_user_transfers'))
-const hasDeleteUserTransfersPermission = computed(() => hasPermission('delete_user_transfers'))
-const hasManageUserTransfersPermission = computed(() => hasPermission('manage_user_transfers'))
 
 // Account permissions
 const hasAccountsPermission = computed(() => hasPermission('view_accounts'))
@@ -1059,7 +1066,6 @@ const hasEditWarehousesPermission = computed(() => hasPermission('edit_warehouse
 const hasDeleteWarehousesPermission = computed(() => hasPermission('delete_warehouses'))
 const hasManageWarehousesPermission = computed(() => hasPermission('manage_warehouses'))
 const hasWarehouseStockPermission = computed(() => hasPermission('manage_warehouse_stock'))
-const hasWarehouseTransfersPermission = computed(() => hasPermission('transfer_warehouse_stock'))
 
 // Legacy permissions for backward compatibility
 const hasClientsPermission = computed(() => false)

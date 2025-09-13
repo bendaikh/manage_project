@@ -15,22 +15,30 @@
         <input v-model="filters.search" @keyup.enter="fetchOrders" type="text" placeholder="Search by Order ID, Product, Client, Phone..." class="w-full border rounded px-3 py-2 text-sm lg:text-base" />
       </div>
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
-        <select v-model="filters.seller" class="w-full border rounded px-3 py-2 text-sm lg:text-base">
+        <!-- Seller filter - hidden for sellers -->
+        <select v-if="!isSeller" v-model="filters.seller" class="w-full border rounded px-3 py-2 text-sm lg:text-base">
           <option value="">All Sellers</option>
           <option v-for="seller in sellers" :key="seller" :value="seller">{{ seller }}</option>
         </select>
+        
+        <!-- Status filter - always shown -->
         <select v-model="filters.status" class="w-full border rounded px-3 py-2 text-sm lg:text-base">
           <option value="">All Statuses</option>
           <option v-for="status in allowedStatuses" :key="status" :value="status">{{ status }}</option>
         </select>
-        <select v-model="filters.agent" class="w-full border rounded px-3 py-2 text-sm lg:text-base">
+        
+        <!-- Agent filter - hidden for sellers -->
+        <select v-if="!isSeller" v-model="filters.agent" class="w-full border rounded px-3 py-2 text-sm lg:text-base">
           <option value="">All Agents</option>
           <option v-for="agent in agents" :key="agent" :value="agent">{{ agent }}</option>
         </select>
-        <select v-model="filters.zone" class="w-full border rounded px-3 py-2 text-sm lg:text-base">
+        
+        <!-- Zone filter - hidden for sellers -->
+        <select v-if="!isSeller" v-model="filters.zone" class="w-full border rounded px-3 py-2 text-sm lg:text-base">
           <option value="">All Zones</option>
           <option v-for="zone in zones" :key="zone" :value="zone">{{ zone }}</option>
         </select>
+        
         <div class="flex flex-col sm:flex-row gap-2">
           <button @click="fetchOrders" class="px-3 lg:px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-semibold flex items-center justify-center text-sm lg:text-base">
             <svg class="h-4 w-4 lg:h-5 lg:w-5 mr-1 lg:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 4h13M8 12h13M8 20h13M3 6h.01M3 18h.01"/></svg>
@@ -129,8 +137,8 @@
       </div>
     </div>
     
-    <!-- Invoice Delivery Button (only for delivery page) -->
-    <div v-if="props.delivery" class="flex justify-end mb-4">
+    <!-- Invoice Delivery Button (only for delivery page and not for sellers) -->
+    <div v-if="props.delivery && !isSeller" class="flex justify-end mb-4">
       <button 
         @click="generateDeliveryInvoice" 
         :disabled="!hasDeliveredOrdersToday"
@@ -166,6 +174,7 @@
             <th class="px-2 lg:px-3 py-2 text-left text-xs font-bold hidden lg:table-cell">SELLER</th>
             <th class="px-2 lg:px-3 py-2 text-left text-xs font-bold">PRODUCT</th>
             <th class="px-2 lg:px-3 py-2 text-left text-xs font-bold">PRICE</th>
+            <th v-if="props.confirmation" class="px-2 lg:px-3 py-2 text-left text-xs font-bold">UPSELLS</th>
             <th class="px-2 lg:px-3 py-2 text-left text-xs font-bold hidden md:table-cell">CLIENT</th>
             <th class="px-2 lg:px-3 py-2 text-left text-xs font-bold hidden lg:table-cell">AGENT</th>
             <th class="px-2 lg:px-3 py-2 text-left text-xs font-bold">STATUS</th>
@@ -192,6 +201,16 @@
               </div>
             </td>
             <td class="px-2 lg:px-3 py-2 font-bold text-sm lg:text-base">{{ order.price }} FCFA</td>
+            <td v-if="props.confirmation" class="px-2 lg:px-3 py-2">
+              <div v-if="order.upsells && order.upsells.length > 0" class="space-y-1">
+                <div v-for="upsell in order.upsells" :key="upsell.id" 
+                     class="flex items-center justify-between bg-green-50 px-2 py-1 rounded text-xs">
+                  <span class="font-medium text-green-700">{{ upsell.quantity }}x</span>
+                  <span class="font-semibold text-green-800">{{ formatCurrency(upsell.price) }}</span>
+                </div>
+              </div>
+              <span v-else class="text-gray-400 text-xs">No upsells</span>
+            </td>
             <td class="px-2 lg:px-3 py-2 hidden md:table-cell">
               <div class="text-sm">{{ order.client_name }}</div>
               <div class="text-xs text-gray-500 truncate">{{ order.client_address }}</div>
@@ -626,6 +645,12 @@ const invoicesDownloaded = ref(new Set())
 const isSuperadmin = computed(() => {
   const roles = window.Laravel?.user?.roles || []
   return roles.includes('superadmin') || roles.some(role => typeof role === 'object' && role.name === 'superadmin')
+})
+
+// Check if user is a seller
+const isSeller = computed(() => {
+  const roles = window.Laravel?.user?.roles || []
+  return roles.includes('seller') || roles.some(r => typeof r === 'object' && r.name === 'seller')
 })
 
 const permissions = window.Laravel?.user?.permissions || []
@@ -1202,6 +1227,15 @@ const confirmationStatusBlocks = computed(() => {
 const deliveryStatusBlocks = computed(() => {
   return statusConfig.delivery.map(name => ({ name, count: statusCounts.value[name] || 0 }))
 })
+
+// Helper function to format currency
+const formatCurrency = (amount) => {
+  if (!amount) return 'N/A'
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD'
+  }).format(amount)
+}
 
 // Function to get status color classes
 const getStatusColor = (statusName) => {

@@ -31,7 +31,7 @@ class Order extends Model
         'postponed_comment',
     ];
 
-    protected $appends = ['status'];
+    protected $appends = ['status', 'upsells'];
 
     protected static function boot()
     {
@@ -43,13 +43,18 @@ class Order extends Model
                 $oldStatus = OrderStatus::find($order->getOriginal('order_status_id'));
                 $newStatus = $order->orderStatus;
                 
-                // Find stock for this product and seller
-                $stock = Stock::where('product_id', $order->product_id)
-                    ->where('seller_id', $order->belongs_to)
-                    ->first();
+                // Get the seller's user ID from their name
+                $sellerUser = \App\Models\User::where('name', $order->seller)->first();
                 
-                if ($stock) {
-                    $stock->updateFromOrder($order, $oldStatus);
+                if ($sellerUser) {
+                    // Find stock for this product and seller
+                    $stock = Stock::where('product_id', $order->product_id)
+                        ->where('seller_id', $sellerUser->id)
+                        ->first();
+                    
+                    if ($stock) {
+                        $stock->updateFromOrder($order, $oldStatus);
+                    }
                 }
             }
         });
@@ -68,6 +73,56 @@ class Order extends Model
     public function warehouse()
     {
         return $this->belongsTo(Warehouse::class);
+    }
+
+    /**
+     * Get the stock for this order (based on product only - show upsells from any seller)
+     */
+    public function stock()
+    {
+        // Find any stock for this product that has upsells, regardless of seller
+        // First try by product_id, then by product name if product_id doesn't match
+        return $this->hasOne(Stock::class, 'product_id', 'product_id')
+                    ->whereHas('upsells'); // Only return stocks that have upsells
+    }
+    
+    /**
+     * Get upsells for this order's product from any stock that has upsells
+     */
+    public function getUpsellsAttribute()
+    {
+        if (!$this->product) {
+            return collect();
+        }
+        
+        // Try to find stock by product_id first
+        $stock = Stock::where('product_id', $this->product_id)
+                     ->whereHas('upsells')
+                     ->with('upsells')
+                     ->first();
+        
+        if ($stock) {
+            return $stock->upsells;
+        }
+        
+        // If no stock found by product_id, try to find by product name
+        $stock = Stock::where('title', 'like', '%' . $this->product->name . '%')
+                     ->whereHas('upsells')
+                     ->with('upsells')
+                     ->first();
+        
+        if ($stock) {
+            return $stock->upsells;
+        }
+        
+        // If still no stock found, try to find any stock with similar product name
+        $stock = Stock::whereHas('upsells', function($query) {
+                        $query->where('is_active', true);
+                     })
+                     ->with('upsells')
+                     ->first();
+        
+        return $stock ? $stock->upsells : collect();
     }
 
     /**

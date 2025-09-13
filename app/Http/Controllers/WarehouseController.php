@@ -51,8 +51,22 @@ class WarehouseController extends Controller
             'phone' => 'nullable|string|max:20',
             'email' => 'nullable|email|max:255',
             'status' => 'nullable|in:active,inactive',
+            'is_principal' => 'nullable|boolean',
             'description' => 'nullable|string',
         ]);
+
+        // Check if trying to create a principal warehouse when one already exists
+        if ($validated['is_principal'] ?? false) {
+            $existingPrincipal = Warehouse::where('is_principal', true)->first();
+            if ($existingPrincipal) {
+                return response()->json([
+                    'message' => 'A principal warehouse already exists. Only one principal warehouse is allowed.',
+                    'errors' => [
+                        'is_principal' => ['A principal warehouse already exists. Please unset the existing principal warehouse first or update it instead.']
+                    ]
+                ], 422);
+            }
+        }
 
         $warehouse = Warehouse::create($validated);
 
@@ -90,8 +104,24 @@ class WarehouseController extends Controller
             'phone' => 'nullable|string|max:20',
             'email' => 'nullable|email|max:255',
             'status' => 'nullable|in:active,inactive',
+            'is_principal' => 'nullable|boolean',
             'description' => 'nullable|string',
         ]);
+
+        // Check if trying to set as principal when another warehouse is already principal
+        if ($validated['is_principal'] ?? false) {
+            $existingPrincipal = Warehouse::where('is_principal', true)
+                                         ->where('id', '!=', $warehouse->id)
+                                         ->first();
+            if ($existingPrincipal) {
+                return response()->json([
+                    'message' => 'Another warehouse is already set as principal. Only one principal warehouse is allowed.',
+                    'errors' => [
+                        'is_principal' => ['Another warehouse is already set as principal. Please unset the existing principal warehouse first.']
+                    ]
+                ], 422);
+            }
+        }
 
         $warehouse->update($validated);
 
@@ -117,6 +147,18 @@ class WarehouseController extends Controller
 
         return response()->json([
             'message' => 'Warehouse deleted successfully'
+        ]);
+    }
+
+    /**
+     * Get the principal warehouse
+     */
+    public function getPrincipal(): JsonResponse
+    {
+        $principalWarehouse = Warehouse::principal()->first();
+        
+        return response()->json([
+            'principal_warehouse' => $principalWarehouse
         ]);
     }
 

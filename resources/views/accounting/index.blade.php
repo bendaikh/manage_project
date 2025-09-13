@@ -103,12 +103,6 @@
                             </svg>
                             Add Expense
                         </a>
-                        <a href="{{ route('accounting.transfers.create') }}" class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 focus:bg-blue-700 active:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition ease-in-out duration-150">
-                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
-                            </svg>
-                            Transfer
-                        </a>
                         <a href="{{ route('accounting.refunds.create') }}" class="inline-flex items-center px-4 py-2 bg-yellow-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-yellow-700 focus:bg-yellow-700 active:bg-yellow-900 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 transition ease-in-out duration-150">
                             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path>
@@ -187,32 +181,6 @@
                     </div>
                 </div>
 
-                <!-- Recent Transfers -->
-                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                    <div class="p-6">
-                        <div class="flex items-center justify-between mb-4">
-                            <h3 class="text-lg font-medium text-gray-900">Recent Transfers</h3>
-                            <a href="{{ route('accounting.transfers.index') }}" class="text-sm text-blue-600 hover:text-blue-800">View All</a>
-                        </div>
-                        @if($recentTransfers->count() > 0)
-                            <div class="space-y-3">
-                                @foreach($recentTransfers as $transfer)
-                                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                                        <div>
-                                            <p class="text-sm font-medium text-gray-900">{{ $transfer->fromAccount->name }} → {{ $transfer->toAccount->name }}</p>
-                                            <p class="text-xs text-gray-500">{{ $transfer->date->format('M d, Y') }}</p>
-                                        </div>
-                                        <div class="text-right">
-                                            <p class="text-sm font-semibold text-blue-600">${{ number_format($transfer->amount, 2) }}</p>
-                                        </div>
-                                    </div>
-                                @endforeach
-                            </div>
-                        @else
-                            <p class="text-sm text-gray-500">No recent transfers</p>
-                        @endif
-                    </div>
-                </div>
             </div>
 
             <!-- Account Balances -->

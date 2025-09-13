@@ -717,91 +717,64 @@ const toggleValidate = async (s) => {
 
 const showWarehouseSelection = async (shipment) => {
   try {
-    const response = await fetch('/shipments/warehouses')
-    if (response.ok) {
-      const warehouses = await response.json()
-      
-      // Create a modal-like dialog
-      const modal = document.createElement('div')
-      modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50'
-      modal.innerHTML = `
-        <div class="bg-white rounded-lg p-6 w-full max-w-lg">
-          <h3 class="text-lg font-medium text-gray-900 mb-4">Validate Shipment</h3>
-          <p class="text-sm text-gray-600 mb-4">Complete validation for shipment: "${shipment.title}"</p>
-          
-          <!-- Warehouse Selection -->
-          <div class="mb-6">
-            <label class="block text-sm font-medium text-gray-700 mb-2">Select Warehouse *</label>
-            <div class="space-y-2 max-h-40 overflow-y-auto border rounded-lg p-3">
-              ${warehouses.map(w => `
-                <label class="flex items-center p-2 border rounded-lg hover:bg-gray-50 cursor-pointer">
-                  <input type="radio" name="warehouse" value="${w.id}" class="mr-3" required>
-                  <div>
-                    <div class="font-medium">${w.name}</div>
-                    <div class="text-sm text-gray-500">${w.location}</div>
-                  </div>
-                </label>
-              `).join('')}
-            </div>
+    // Create a modal-like dialog for cost inputs only
+    const modal = document.createElement('div')
+    modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50'
+    modal.innerHTML = `
+      <div class="bg-white rounded-lg p-6 w-full max-w-lg">
+        <h3 class="text-lg font-medium text-gray-900 mb-4">Validate Shipment</h3>
+        <p class="text-sm text-gray-600 mb-4">Complete validation for shipment: "${shipment.title}"</p>
+        <p class="text-sm text-blue-600 mb-4">Stock will be assigned to the principal warehouse automatically.</p>
+        
+        <!-- Cost Inputs -->
+        <div class="grid grid-cols-2 gap-4 mb-6">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Shipping Cost (China to Africa) *</label>
+            <input type="number" name="shipping_cost" step="0.01" min="0" required 
+                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                   placeholder="0.00">
           </div>
-          
-          <!-- Cost Inputs -->
-          <div class="grid grid-cols-2 gap-4 mb-6">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Shipping Cost (China to Africa) *</label>
-              <input type="number" name="shipping_cost" step="0.01" min="0" required 
-                     class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                     placeholder="0.00">
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Transport Cost (Airport to Warehouse) *</label>
-              <input type="number" name="transport_cost" step="0.01" min="0" required 
-                     class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                     placeholder="0.00">
-            </div>
-          </div>
-          
-          <div class="flex justify-end space-x-3">
-            <button type="button" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50" onclick="this.closest('.fixed').remove()">
-              Cancel
-            </button>
-            <button type="button" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700" onclick="window.validateWithSelectedWarehouse(${shipment.id})">
-              Validate Shipment
-            </button>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Transport Cost (Airport to Warehouse) *</label>
+            <input type="number" name="transport_cost" step="0.01" min="0" required 
+                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                   placeholder="0.00">
           </div>
         </div>
-      `
+        
+        <div class="flex justify-end space-x-3">
+          <button type="button" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50" onclick="this.closest('.fixed').remove()">
+            Cancel
+          </button>
+          <button type="button" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700" onclick="window.validateWithCosts(${shipment.id})">
+            Validate Shipment
+          </button>
+        </div>
+      </div>
+    `
+    
+    document.body.appendChild(modal)
+    
+    // Add global function to handle validation
+    window.validateWithCosts = async (shipmentId) => {
+      const shippingCost = document.querySelector('input[name="shipping_cost"]').value
+      const transportCost = document.querySelector('input[name="transport_cost"]').value
       
-      document.body.appendChild(modal)
-      
-      // Add global function to handle validation
-      window.validateWithSelectedWarehouse = async (shipmentId) => {
-        const selectedWarehouse = document.querySelector('input[name="warehouse"]:checked')
-        const shippingCost = document.querySelector('input[name="shipping_cost"]').value
-        const transportCost = document.querySelector('input[name="transport_cost"]').value
-        
-        if (!selectedWarehouse) {
-          alert('Please select a warehouse')
-          return
-        }
-        
-        if (!shippingCost || !transportCost) {
-          alert('Please enter both shipping and transport costs')
-          return
-        }
-        
-        const warehouseId = parseInt(selectedWarehouse.value)
-        modal.remove()
-        await validateShipmentWithWarehouse(shipment, warehouseId, parseFloat(shippingCost), parseFloat(transportCost))
+      if (!shippingCost || !transportCost) {
+        alert('Please enter both shipping and transport costs')
+        return
       }
+      
+      modal.remove()
+      await validateShipmentWithCosts(shipment, parseFloat(shippingCost), parseFloat(transportCost))
     }
   } catch (error) {
-    console.error('Error fetching warehouses:', error)
-    showNotification('Error fetching warehouses', 'error')
+    console.error('Error showing validation modal:', error)
+    showNotification('Error showing validation modal', 'error')
   }
 }
 
-const validateShipmentWithWarehouse = async (s, warehouseId, shippingCost, transportCost) => {
+const validateShipmentWithCosts = async (s, shippingCost, transportCost) => {
   const csrf = document.querySelector('meta[name="csrf-token"]').getAttribute('content')
   const res = await fetch(`/shipments/${s.id}/validate`, { 
     method: 'POST', 
@@ -811,7 +784,6 @@ const validateShipmentWithWarehouse = async (s, warehouseId, shippingCost, trans
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({ 
-      warehouse_id: warehouseId,
       shipping_cost: shippingCost,
       transport_cost: transportCost
     }),

@@ -15,7 +15,6 @@ use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\AccountingController;
 use App\Http\Controllers\IncomesController;
 use App\Http\Controllers\ExpensesController;
-use App\Http\Controllers\TransfersController;
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\AiChatController;
 use App\Http\Controllers\OrderAssignmentController;
@@ -70,6 +69,8 @@ Route::middleware(['auth', 'verified', 'role:superadmin'])
         Route::resource('roles', RoleController::class);
         Route::resource('permissions', PermissionController::class);
         Route::resource('users', UserController::class);
+        Route::put('/users/{user}/update', [UserController::class, 'updateUser']);
+        Route::patch('/users/{user}/toggle-status', [UserController::class, 'toggleStatus']);
     });
 
 Route::middleware('auth')->group(function () {
@@ -160,6 +161,7 @@ Route::delete('/categories/{category}', [\App\Http\Controllers\CategoryControlle
 Route::middleware(['auth'])->group(function () {
     Route::resource('warehouses', WarehouseController::class);
     Route::get('/warehouses/{warehouse}/products', [WarehouseController::class, 'getProducts']);
+    Route::get('/warehouses/principal', [WarehouseController::class, 'getPrincipal']);
 });
 
 // Shipments API routes
@@ -174,15 +176,6 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/shipments/{id}', [\App\Http\Controllers\ShipmentController::class, 'destroy']);
 });
 
-// Warehouse Transfers API routes
-Route::middleware(['auth'])->group(function () {
-    Route::get('/warehouse-transfers', [\App\Http\Controllers\WarehouseTransferController::class, 'index']);
-    Route::post('/warehouse-transfers', [\App\Http\Controllers\WarehouseTransferController::class, 'store']);
-    Route::get('/warehouse-transfers/stocks-by-warehouse', [\App\Http\Controllers\WarehouseTransferController::class, 'getStocksByWarehouse']);
-    Route::get('/warehouse-transfers/{warehouseTransfer}', [\App\Http\Controllers\WarehouseTransferController::class, 'show']);
-    Route::put('/warehouse-transfers/{warehouseTransfer}', [\App\Http\Controllers\WarehouseTransferController::class, 'update']);
-    Route::delete('/warehouse-transfers/{warehouseTransfer}', [\App\Http\Controllers\WarehouseTransferController::class, 'destroy']);
-});
 
 Route::get('/orders/delivery-note', [PdfController::class, 'deliveryNote']);
 Route::get('/orders/invoices', [PdfController::class, 'invoices']);
@@ -243,14 +236,7 @@ Route::middleware(['auth', 'verified'])->prefix('accounting')->name('accounting.
         Route::delete('/refunds/{refund}', [ExpensesController::class, 'destroyRefund'])->name('refunds.destroy');
     });
     
-    // Transfers
-    Route::resource('transfers', TransfersController::class);
     
-    // User Transfers
-    Route::get('/user-transfers', [\App\Http\Controllers\UserTransferController::class, 'index'])->name('user-transfers.index');
-    Route::post('/user-transfers', [\App\Http\Controllers\UserTransferController::class, 'store'])->name('user-transfers.store');
-    Route::put('/user-transfers/{userTransfer}', [\App\Http\Controllers\UserTransferController::class, 'update'])->name('user-transfers.update');
-    Route::delete('/user-transfers/{userTransfer}', [\App\Http\Controllers\UserTransferController::class, 'destroy'])->name('user-transfers.destroy');
     
     // Test route to check if users exist
     Route::get('/test-users', function() {
@@ -263,8 +249,6 @@ Route::middleware(['auth', 'verified'])->prefix('accounting')->name('accounting.
     Route::get('/accounts', [AccountController::class, 'index'])->name('accounts.index');
 });
 
-// API route for getting users by role (outside accounting prefix)
-Route::get('/api/users/by-role/{roleName}', [\App\Http\Controllers\UserTransferController::class, 'getUsersByRole'])->middleware('auth');
 
 // AI Chat API Route
 Route::post('/api/ai-chat', [AiChatController::class, 'chat'])->middleware(['auth', 'verified']);
@@ -399,6 +383,19 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/stocks-globale/export', [StockGlobaleController::class, 'export']);
     Route::put('/stocks-globale/{id}', [StockGlobaleController::class, 'update']);
     Route::patch('/stocks-globale/{id}/quantities', [StockGlobaleController::class, 'updateQuantities']);
+    Route::patch('/stocks-globale/{id}/warehouse-quantity', [StockGlobaleController::class, 'updateWarehouseQuantity']);
+    
+    // Transfer routes
+    Route::get('/stocks-globale/available-stocks', [StockGlobaleController::class, 'getAvailableStocks']);
+    Route::get('/stocks-globale/{id}/principal-warehouse', [StockGlobaleController::class, 'getPrincipalWarehouse']);
+    Route::post('/stocks-globale/transfers', [StockGlobaleController::class, 'createTransfer']);
+    
+    // Upsell routes
+    Route::get('/stocks-globale/{id}/upsells', [StockGlobaleController::class, 'getUpsells']);
+    Route::post('/stocks-globale/{id}/upsells', [StockGlobaleController::class, 'storeUpsell']);
+    Route::post('/stocks-globale/{id}/upsells/bulk', [StockGlobaleController::class, 'storeMultipleUpsells']);
+    Route::put('/stocks-globale/{stockId}/upsells/{upsellId}', [StockGlobaleController::class, 'updateUpsell']);
+    Route::delete('/stocks-globale/{stockId}/upsells/{upsellId}', [StockGlobaleController::class, 'deleteUpsell']);
 });
 
 Route::get('/seller-invoices', [\App\Http\Controllers\SellerInvoiceController::class, 'index']);
