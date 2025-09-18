@@ -33,23 +33,77 @@
           <label class="block text-sm font-medium mb-1">Supplier</label>
           <input v-model="form.supplier" type="text" class="w-full border rounded px-3 py-2 focus:outline-none focus:ring focus:border-blue-300" />
         </div>
-        <!-- Warehouse field -->
+        <!-- Warehouse and Stock Quantity fields -->
         <div class="mb-4">
-          <label class="block text-sm font-medium mb-1">Warehouse *</label>
-          <select v-model="form.warehouse_id" required class="w-full border rounded px-3 py-2 focus:outline-none focus:ring focus:border-blue-300">
-            <option value="">Select a warehouse</option>
-            <option v-for="warehouse in warehouses" :key="warehouse.id" :value="warehouse.id">{{ warehouse.name }} - {{ warehouse.location }}</option>
-          </select>
+          <label class="block text-sm font-medium mb-1">Warehouse & Stock Quantity *</label>
+          <div v-for="(warehouseStock, index) in form.warehouse_stocks" :key="index" class="flex items-center gap-2 mb-2">
+            <select v-model="warehouseStock.warehouse_id" required class="flex-1 border rounded px-3 py-2 focus:outline-none focus:ring focus:border-blue-300">
+              <option value="">Select a warehouse</option>
+              <option v-for="warehouse in warehouses" :key="warehouse.id" :value="warehouse.id">{{ warehouse.name }} - {{ warehouse.location }}</option>
+            </select>
+            <input v-model.number="warehouseStock.quantity" type="number" min="0" required class="w-24 border rounded px-3 py-2 focus:outline-none focus:ring focus:border-blue-300" placeholder="Qty" />
+            <button v-if="form.warehouse_stocks.length > 1" @click="removeWarehouseStock(index)" type="button" class="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+              </svg>
+            </button>
+            <button @click="addWarehouseStock" type="button" class="p-2 text-green-600 hover:text-green-800 hover:bg-green-50 rounded">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+              </svg>
+            </button>
+          </div>
         </div>
-        <!-- Seller field -->
-        <div class="mb-4" v-if="!isSeller">
+        
+        <!-- Company Product Checkbox -->
+        <div class="mb-4">
+          <label class="flex items-center">
+            <input v-model="form.is_company_product" type="checkbox" class="mr-2 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+            <span class="text-sm font-medium">Company Product</span>
+          </label>
+          <p class="text-xs text-gray-500 mt-1">Check this if this product should be available to multiple sellers</p>
+        </div>
+        
+        <!-- Seller field - Single select (when company product is NOT checked) -->
+        <div class="mb-4" v-if="!isSeller && !form.is_company_product">
           <label class="block text-sm font-medium mb-1">Seller *</label>
           <select v-model="form.seller_id" class="w-full border rounded px-3 py-2 focus:outline-none focus:ring focus:border-blue-300">
             <option value="">Select a seller</option>
             <option v-for="s in sellers" :key="s.id" :value="s.id">{{ s.name }}</option>
           </select>
         </div>
-        <div class="mb-4" v-else>
+        
+        <!-- Seller field - Custom Multiselect (when company product IS checked) -->
+        <div class="mb-4" v-if="!isSeller && form.is_company_product">
+          <label class="block text-sm font-medium mb-1">Assigned Sellers *</label>
+          
+          <!-- Selected Sellers as Tabs/Chips -->
+          <div v-if="selectedSellers.length > 0" class="mb-3">
+            <div class="flex flex-wrap gap-2">
+              <div v-for="seller in selectedSellers" :key="seller.id" class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800 border border-blue-200">
+                <span>{{ seller.name }}</span>
+                <button @click="removeSeller(seller.id)" type="button" class="ml-2 inline-flex items-center justify-center w-4 h-4 rounded-full text-blue-400 hover:text-blue-600 hover:bg-blue-200">
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Add Seller Dropdown -->
+          <div class="relative">
+            <select v-model="selectedSellerToAdd" @change="addSeller" class="w-full border rounded px-3 py-2 focus:outline-none focus:ring focus:border-blue-300">
+              <option value="">Select a seller to add</option>
+              <option v-for="seller in availableSellers" :key="seller.id" :value="seller.id">{{ seller.name }}</option>
+            </select>
+          </div>
+          
+          <p class="text-xs text-gray-500 mt-1">Select sellers from the dropdown to add them. Click the X on tabs to remove them.</p>
+        </div>
+        
+        <!-- Seller field - Readonly (when current user is a seller) -->
+        <div class="mb-4" v-if="isSeller">
           <label class="block text-sm font-medium mb-1">Seller</label>
           <input type="text" :value="getCurrentUserName()" class="w-full border rounded px-3 py-2 bg-gray-100" disabled />
         </div>
@@ -68,10 +122,6 @@
               <input v-model.number="form.selling_price" type="number" min="0" step="0.01" required class="w-full border rounded px-3 py-2 focus:outline-none focus:ring focus:border-blue-300" />
             </div>
           </div>
-        </div>
-        <div class="mb-4">
-          <label class="block text-sm font-medium mb-1">Stock Quantity *</label>
-          <input v-model.number="form.stock_quantity" type="number" min="0" required class="w-full border rounded px-3 py-2 focus:outline-none focus:ring focus:border-blue-300" />
         </div>
         <div class="mb-4">
           <label class="block text-sm font-medium mb-1">Status</label>
@@ -117,7 +167,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 
 const props = defineProps({
   productId: {
@@ -132,10 +182,11 @@ const form = ref({
   category: '',
   supplier: '',
   seller_id: '',
-  warehouse_id: '',
+  warehouse_stocks: [{ warehouse_id: '', quantity: 1 }],
+  is_company_product: false,
+  assigned_sellers: [],
   purchase_price: '',
   selling_price: '',
-  stock_quantity: 1,
   status: 'In Stock',
   image_url: '',
   video_url: '',
@@ -149,6 +200,16 @@ const categories = ref([])
 const warehouses = ref([])
 const sellers = ref([])
 const isSeller = ref(false)
+
+// Custom multiselect state
+const selectedSellers = ref([])
+const selectedSellerToAdd = ref('')
+
+// Computed property for available sellers (excluding already selected ones)
+const availableSellers = computed(() => {
+  const selectedIds = selectedSellers.value.map(s => s.id)
+  return sellers.value.filter(seller => !selectedIds.includes(seller.id))
+})
 
 const fetchCategories = async () => {
   const res = await fetch('/categories', { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
@@ -190,6 +251,36 @@ const getCurrentUserId = () => {
   }
 }
 
+// Methods for managing warehouse stocks
+const addWarehouseStock = () => {
+  form.value.warehouse_stocks.push({ warehouse_id: '', quantity: 1 })
+}
+
+const removeWarehouseStock = (index) => {
+  if (form.value.warehouse_stocks.length > 1) {
+    form.value.warehouse_stocks.splice(index, 1)
+  }
+}
+
+// Methods for custom multiselect
+const addSeller = () => {
+  if (selectedSellerToAdd.value) {
+    const seller = sellers.value.find(s => s.id == selectedSellerToAdd.value)
+    if (seller && !selectedSellers.value.find(s => s.id === seller.id)) {
+      selectedSellers.value.push(seller)
+      // Update the form data
+      form.value.assigned_sellers = selectedSellers.value.map(s => s.id)
+    }
+    selectedSellerToAdd.value = '' // Reset dropdown
+  }
+}
+
+const removeSeller = (sellerId) => {
+  selectedSellers.value = selectedSellers.value.filter(s => s.id !== sellerId)
+  // Update the form data
+  form.value.assigned_sellers = selectedSellers.value.map(s => s.id)
+}
+
 const fetchProduct = async () => {
   try {
     const res = await fetch(`/products/${props.productId}`, { 
@@ -201,21 +292,42 @@ const fetchProduct = async () => {
       return
     }
     const product = await res.json()
+    
+    // Convert warehouse relationships to warehouse_stocks format
+    const warehouseStocks = []
+    if (product.warehouses && product.warehouses.length > 0) {
+      product.warehouses.forEach(warehouse => {
+        warehouseStocks.push({
+          warehouse_id: warehouse.id,
+          quantity: warehouse.pivot.quantity
+        })
+      })
+    } else {
+      // Fallback for products without warehouse relationships
+      warehouseStocks.push({ warehouse_id: '', quantity: 1 })
+    }
+    
     form.value = {
       name: product.name || '',
       sku: product.sku || '',
       category: product.category || '',
       supplier: product.supplier || '',
       seller_id: product.seller_id || '',
-      warehouse_id: product.warehouse_id || '',
+      warehouse_stocks: warehouseStocks,
+      is_company_product: product.is_company_product || false,
+      assigned_sellers: product.assigned_sellers ? product.assigned_sellers.map(s => s.id) : [],
       purchase_price: product.purchase_price || '',
       selling_price: product.selling_price || '',
-      stock_quantity: product.stock_quantity || 1,
       status: product.status || 'In Stock',
       image_url: product.image_url || '',
       video_url: product.video_url || '',
       video_duration: product.video_duration || '',
       description: product.description || ''
+    }
+    
+    // Load assigned sellers for display
+    if (product.assigned_sellers && product.assigned_sellers.length > 0) {
+      selectedSellers.value = product.assigned_sellers
     }
   } catch (e) {
     error.value = 'Failed to load product'

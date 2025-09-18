@@ -137,7 +137,7 @@ class WarehouseController extends Controller
     public function destroy(Warehouse $warehouse): JsonResponse
     {
         // Check if warehouse has associated stocks or products
-        if ($warehouse->stocks()->count() > 0 || $warehouse->products()->count() > 0) {
+        if ($warehouse->stocks()->count() > 0 || $warehouse->productWarehouses()->count() > 0) {
             return response()->json([
                 'message' => 'Cannot delete warehouse. It has associated stocks or products.'
             ], 422);
@@ -179,14 +179,14 @@ class WarehouseController extends Controller
                                return $stock;
                            });
 
-        // Get products (directly assigned to warehouse)
-        $products = $warehouse->products()
+        // Get products (from product_warehouse pivot table)
+        $products = $warehouse->productWarehouses()
                              ->with(['seller'])
                              ->orderBy('name')
                              ->get()
                              ->map(function ($product) {
                                  $product->type = 'product';
-                                 $product->warehouse_quantity = $product->stock_quantity;
+                                 $product->warehouse_quantity = $product->pivot->quantity;
                                  return $product;
                              });
 

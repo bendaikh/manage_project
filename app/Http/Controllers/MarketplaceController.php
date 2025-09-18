@@ -33,7 +33,9 @@ class MarketplaceController extends Controller
             $query->where('status', $request->status);
         }
         if ($request->filled('warehouse_id')) {
-            $query->where('warehouse_id', $request->warehouse_id);
+            $query->whereHas('warehouses', function ($q) use ($request) {
+                $q->where('warehouse_id', $request->warehouse_id);
+            });
         }
         if ($request->filled('search')) {
             $search = $request->search;

@@ -38,6 +38,13 @@ class Warehouse extends Model
         return $this->hasMany(Product::class);
     }
 
+    public function productWarehouses()
+    {
+        return $this->belongsToMany(Product::class, 'product_warehouse')
+                    ->withPivot('quantity')
+                    ->withTimestamps();
+    }
+
     // Scopes
     public function scopeActive($query)
     {

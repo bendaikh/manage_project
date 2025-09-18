@@ -33,13 +33,26 @@
           <label class="block text-sm font-medium mb-1">Supplier</label>
           <input v-model="form.supplier" type="text" class="w-full border rounded px-3 py-2 focus:outline-none focus:ring focus:border-blue-300" />
         </div>
-        <!-- Warehouse field -->
+        <!-- Warehouse and Stock Quantity fields -->
         <div class="mb-4">
-          <label class="block text-sm font-medium mb-1">Warehouse *</label>
-          <select v-model="form.warehouse_id" required class="w-full border rounded px-3 py-2 focus:outline-none focus:ring focus:border-blue-300">
-            <option value="">Select a warehouse</option>
-            <option v-for="warehouse in warehouses" :key="warehouse.id" :value="warehouse.id">{{ warehouse.name }} - {{ warehouse.location }}</option>
-          </select>
+          <label class="block text-sm font-medium mb-1">Warehouse & Stock Quantity *</label>
+          <div v-for="(warehouseStock, index) in form.warehouse_stocks" :key="index" class="flex items-center gap-2 mb-2">
+            <select v-model="warehouseStock.warehouse_id" required class="flex-1 border rounded px-3 py-2 focus:outline-none focus:ring focus:border-blue-300">
+              <option value="">Select a warehouse</option>
+              <option v-for="warehouse in warehouses" :key="warehouse.id" :value="warehouse.id">{{ warehouse.name }} - {{ warehouse.location }}</option>
+            </select>
+            <input v-model.number="warehouseStock.quantity" type="number" min="0" required class="w-24 border rounded px-3 py-2 focus:outline-none focus:ring focus:border-blue-300" placeholder="Qty" />
+            <button v-if="form.warehouse_stocks.length > 1" @click="removeWarehouseStock(index)" type="button" class="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+              </svg>
+            </button>
+            <button @click="addWarehouseStock" type="button" class="p-2 text-green-600 hover:text-green-800 hover:bg-green-50 rounded">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+              </svg>
+            </button>
+          </div>
         </div>
         
         <!-- Company Product Checkbox -->
@@ -111,10 +124,6 @@
           </div>
         </div>
         <div class="mb-4">
-          <label class="block text-sm font-medium mb-1">Stock Quantity *</label>
-          <input v-model.number="form.stock_quantity" type="number" min="0" required class="w-full border rounded px-3 py-2 focus:outline-none focus:ring focus:border-blue-300" />
-        </div>
-        <div class="mb-4">
           <label class="block text-sm font-medium mb-1">Status</label>
           <select v-model="form.status" class="w-full border rounded px-3 py-2 focus:outline-none focus:ring focus:border-blue-300">
             <option value="In Stock">In Stock</option>
@@ -175,12 +184,11 @@ const form = ref({
   category: '',
   supplier: '',
   seller_id: '',
-  warehouse_id: '',
+  warehouse_stocks: [{ warehouse_id: '', quantity: 1 }],
   is_company_product: false,
   assigned_sellers: [],
   purchase_price: '',
   selling_price: '',
-  stock_quantity: 1,
   status: 'In Stock',
   image_url: '',
   video_url: '',
@@ -222,6 +230,17 @@ const removeSeller = (sellerId) => {
   selectedSellers.value = selectedSellers.value.filter(s => s.id !== sellerId)
   // Update the form data
   form.value.assigned_sellers = selectedSellers.value.map(s => s.id)
+}
+
+// Methods for managing warehouse stocks
+const addWarehouseStock = () => {
+  form.value.warehouse_stocks.push({ warehouse_id: '', quantity: 1 })
+}
+
+const removeWarehouseStock = (index) => {
+  if (form.value.warehouse_stocks.length > 1) {
+    form.value.warehouse_stocks.splice(index, 1)
+  }
 }
 
 const fetchCategories = async () => {
@@ -306,7 +325,7 @@ const submitForm = async () => {
     }
     success.value = true
     form.value = {
-      name: '', sku: '', category: '', supplier: '', seller_id: isSeller.value ? getCurrentUserId() : '', warehouse_id: '', is_company_product: false, assigned_sellers: [], purchase_price: '', selling_price: '', stock_quantity: 1, status: 'In Stock', image_url: '', video_url: '', video_duration: '', description: ''
+      name: '', sku: '', category: '', supplier: '', seller_id: isSeller.value ? getCurrentUserId() : '', warehouse_stocks: [{ warehouse_id: '', quantity: 1 }], is_company_product: false, assigned_sellers: [], purchase_price: '', selling_price: '', status: 'In Stock', image_url: '', video_url: '', video_duration: '', description: ''
     }
     // Reset custom multiselect state
     selectedSellers.value = []

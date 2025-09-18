@@ -23,13 +23,14 @@ class ProductController extends Controller
             'is_company_product' => 'boolean',
             'purchase_price' => 'required|numeric|min:0',
             'selling_price' => 'required|numeric|min:0',
-            'stock_quantity' => 'required|integer|min:0',
             'status' => 'required|string|max:255',
             'image_url' => 'nullable|url|max:1024',
             'video_url' => 'nullable|url|max:1024',
             'video_duration' => 'nullable|string|max:255',
             'description' => 'nullable|string|max:2000',
-            'warehouse_id' => 'required|exists:warehouses,id',
+            'warehouse_stocks' => 'required|array|min:1',
+            'warehouse_stocks.*.warehouse_id' => 'required|exists:warehouses,id',
+            'warehouse_stocks.*.quantity' => 'required|integer|min:0',
         ];
 
         if (!auth()->user()->hasRole('seller')) {
@@ -78,11 +79,24 @@ class ProductController extends Controller
         $assignedSellers = $data['assigned_sellers'] ?? [];
         unset($data['assigned_sellers']); // Remove from data array as it's not a direct column
 
+        // Handle warehouse stocks
+        $warehouseStocks = $data['warehouse_stocks'] ?? [];
+        unset($data['warehouse_stocks']); // Remove from data array as it's not a direct column
+
         $product = Product::create($data);
 
         // Attach assigned sellers if this is a company product
         if ($data['is_company_product'] && !empty($assignedSellers)) {
             $product->assignedSellers()->attach($assignedSellers);
+        }
+
+        // Attach warehouse stocks
+        if (!empty($warehouseStocks)) {
+            $warehouseData = [];
+            foreach ($warehouseStocks as $warehouseStock) {
+                $warehouseData[$warehouseStock['warehouse_id']] = ['quantity' => $warehouseStock['quantity']];
+            }
+            $product->warehouses()->attach($warehouseData);
         }
 
         $this->logAction('Product Created', "Created product: {$product->name}", ['product_id' => $product->id]);
@@ -92,7 +106,7 @@ class ProductController extends Controller
 
     public function index(Request $request)
     {
-        $query = Product::with(['seller', 'warehouse', 'assignedSellers']);
+        $query = Product::with(['seller', 'warehouse', 'warehouses', 'assignedSellers']);
 
         // Sellers only see their own products
         if (auth()->check() && auth()->user()->hasRole('seller')) {
@@ -106,7 +120,9 @@ class ProductController extends Controller
             $query->where('status', $request->status);
         }
         if ($request->filled('warehouse_id')) {
-            $query->where('warehouse_id', $request->warehouse_id);
+            $query->whereHas('warehouses', function ($q) use ($request) {
+                $q->where('warehouse_id', $request->warehouse_id);
+            });
         }
         if ($request->filled('search')) {
             $search = $request->search;
@@ -162,12 +178,12 @@ class ProductController extends Controller
 
     public function show(Product $product)
     {
-        return response()->json($product->load(['seller', 'warehouse']));
+        return response()->json($product->load(['seller', 'warehouse', 'warehouses', 'assignedSellers']));
     }
 
     public function edit(Product $product)
     {
-        return response()->json($product->load(['seller', 'warehouse']));
+        return response()->json($product->load(['seller', 'warehouse', 'warehouses', 'assignedSellers']));
     }
 
     public function update(Request $request, Product $product)
@@ -177,19 +193,27 @@ class ProductController extends Controller
             'sku' => 'nullable|string|max:255',
             'category' => 'nullable|string|max:255',
             'supplier' => 'nullable|string|max:255',
+            'is_company_product' => 'boolean',
             'purchase_price' => 'required|numeric|min:0',
             'selling_price' => 'required|numeric|min:0',
-            'stock_quantity' => 'required|integer|min:0',
             'status' => 'required|string|max:255',
             'image_url' => 'nullable|url|max:1024',
             'video_url' => 'nullable|url|max:1024',
             'video_duration' => 'nullable|string|max:255',
             'description' => 'nullable|string|max:2000',
-            'warehouse_id' => 'required|exists:warehouses,id',
+            'warehouse_stocks' => 'required|array|min:1',
+            'warehouse_stocks.*.warehouse_id' => 'required|exists:warehouses,id',
+            'warehouse_stocks.*.quantity' => 'required|integer|min:0',
         ];
 
         if (!auth()->user()->hasRole('seller')) {
-            $updateRules['seller_id'] = 'required|exists:users,id';
+            // If it's a company product, assigned_sellers is required instead of seller_id
+            if ($request->input('is_company_product', false)) {
+                $updateRules['assigned_sellers'] = 'required|array|min:1';
+                $updateRules['assigned_sellers.*'] = 'exists:users,id';
+            } else {
+                $updateRules['seller_id'] = 'required|exists:users,id';
+            }
         }
 
         $validator = Validator::make($request->all(), $updateRules);
@@ -200,17 +224,49 @@ class ProductController extends Controller
 
         $data = $validator->validated();
 
+        // Force seller assignment for seller role users
         if (auth()->user()->hasRole('seller')) {
             $data['seller_id'] = auth()->user()->id;
             $data['seller'] = auth()->user()->name;
+        } else {
+            // For non-seller users, handle seller assignment based on product type
+            if (isset($data['is_company_product']) && $data['is_company_product']) {
+                // For company products, we don't set a single seller_id
+                // The assigned sellers will be handled via the pivot table
+                $data['seller_id'] = null;
+                $data['seller'] = null;
+            } else {
+                // For regular products, set the seller name for convenience
+                if (isset($data['seller_id']) && empty($data['seller'])) {
+                    $sellerUser = \App\Models\User::find($data['seller_id']);
+                    $data['seller'] = $sellerUser?->name;
+                }
+            }
         }
 
-        if (isset($data['seller_id']) && empty($data['seller'])) {
-            $sellerUser = \App\Models\User::find($data['seller_id']);
-            $data['seller'] = $sellerUser?->name;
-        }
+        // Handle assigned sellers for company products
+        $assignedSellers = $data['assigned_sellers'] ?? [];
+        unset($data['assigned_sellers']); // Remove from data array as it's not a direct column
+
+        // Handle warehouse stocks
+        $warehouseStocks = $data['warehouse_stocks'] ?? [];
+        unset($data['warehouse_stocks']); // Remove from data array as it's not a direct column
 
         $product->update($data);
+
+        // Update assigned sellers if this is a company product
+        if (isset($data['is_company_product']) && $data['is_company_product'] && !empty($assignedSellers)) {
+            $product->assignedSellers()->sync($assignedSellers);
+        }
+
+        // Update warehouse stocks
+        if (!empty($warehouseStocks)) {
+            $warehouseData = [];
+            foreach ($warehouseStocks as $warehouseStock) {
+                $warehouseData[$warehouseStock['warehouse_id']] = ['quantity' => $warehouseStock['quantity']];
+            }
+            $product->warehouses()->sync($warehouseData);
+        }
 
         $this->logAction('Product Updated', "Updated product: {$product->name}", ['product_id' => $product->id]);
 

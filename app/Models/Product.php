@@ -38,11 +38,21 @@ class Product extends Model
     }
 
     /**
-     * Warehouse relation.
+     * Warehouse relation (legacy - for backward compatibility).
      */
     public function warehouse()
     {
         return $this->belongsTo(Warehouse::class);
+    }
+
+    /**
+     * Many-to-many relationship with warehouses.
+     */
+    public function warehouses()
+    {
+        return $this->belongsToMany(Warehouse::class, 'product_warehouse')
+                    ->withPivot('quantity')
+                    ->withTimestamps();
     }
 
     /**
