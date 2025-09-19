@@ -97,4 +97,15 @@ class Product extends Model
     {
         return $this->warehouses()->sum('product_warehouse.quantity');
     }
+
+    /**
+     * Convert relative image URL to full URL
+     */
+    public function getFullImageUrlAttribute()
+    {
+        if ($this->image_url && !filter_var($this->image_url, FILTER_VALIDATE_URL)) {
+            return url($this->image_url);
+        }
+        return $this->image_url;
+    }
 } 

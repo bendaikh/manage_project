@@ -136,6 +136,8 @@ class WarehouseTransferController extends Controller
             $stock->warehouse_id = $warehouseTransfer->to_warehouse_id;
             $stock->save();
             
+            // Sync warehouse changes to product_warehouse table
+            $this->syncStockToProductWarehouse($stock);
 
         }
 
@@ -184,5 +186,46 @@ class WarehouseTransferController extends Controller
                     });
 
         return response()->json($stocks);
+    }
+    
+    /**
+     * Sync warehouse changes from stock to product_warehouse table
+     */
+    private function syncStockToProductWarehouse($stock)
+    {
+        // Find the corresponding product
+        $product = \App\Models\Product::where('sku', $stock->reference)
+                                    ->where('seller_id', $stock->seller_id)
+                                    ->first();
+        
+        if ($product) {
+            // Get all warehouse relationships from the stock
+            $warehouseQuantities = [];
+            $stockWarehouses = $stock->warehouses()->get();
+            
+            foreach ($stockWarehouses as $warehouseStock) {
+                $warehouseId = $warehouseStock->id;
+                $quantity = $warehouseStock->pivot->quantity;
+                
+                // Check if warehouse exists and has quantity > 0
+                $warehouse = \App\Models\Warehouse::find($warehouseId);
+                if ($warehouse && $quantity > 0) {
+                    $warehouseQuantities[$warehouseId] = $quantity;
+                }
+            }
+            
+            // Sync to product_warehouse table
+            if (!empty($warehouseQuantities)) {
+                $product->warehouses()->detach();
+                foreach ($warehouseQuantities as $warehouseId => $quantity) {
+                    $product->warehouses()->attach($warehouseId, ['quantity' => $quantity]);
+                }
+                $product->updateStockQuantity();
+            } else {
+                // If no warehouses have quantity, remove all relationships
+                $product->warehouses()->detach();
+                $product->update(['stock_quantity' => 0]);
+            }
+        }
     }
 }

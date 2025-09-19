@@ -365,13 +365,13 @@ class ShipmentController extends Controller
         }
 
         // Also create/update product in the products table
-        $this->syncShipmentToProduct($shipment);
+        $this->syncShipmentToProduct($shipment, $warehouseId);
     }
 
     /**
      * Sync shipment data to product table
      */
-    private function syncShipmentToProduct($shipment)
+    private function syncShipmentToProduct($shipment, $warehouseId = null)
     {
         // Get seller name
         $sellerName = $shipment->seller ? $shipment->seller->name : 'Unknown Seller';
@@ -402,9 +402,21 @@ class ShipmentController extends Controller
                 'video_duration' => null,
                 'description' => $shipment->description,
             ]);
+            
+            // Sync warehouse relationships from stock records to product_warehouse table
+            if ($warehouseId) {
+                // Use the correct warehouse_id directly
+                $existingProduct->warehouses()->syncWithoutDetaching([
+                    $warehouseId => ['quantity' => $totalStockQuantity]
+                ]);
+                $existingProduct->updateStockQuantity();
+            } else {
+                // Fallback to sync service if no warehouse_id provided
+                \App\Services\QuantitySyncService::syncProductWarehouseFromStock($existingProduct, $shipment->reference, $shipment->seller_id);
+            }
         } else {
             // Create new product
-            \App\Models\Product::create([
+            $product = \App\Models\Product::create([
                 'name' => $shipment->title,
                 'sku' => $shipment->reference,
                 'category' => 'Shipment Products', // Default category
@@ -420,6 +432,18 @@ class ShipmentController extends Controller
                 'video_duration' => null,
                 'description' => $shipment->description,
             ]);
+            
+            // Sync warehouse relationships from stock records to product_warehouse table
+            if ($warehouseId) {
+                // Use the correct warehouse_id directly
+                $product->warehouses()->syncWithoutDetaching([
+                    $warehouseId => ['quantity' => $shipment->quantity]
+                ]);
+                $product->updateStockQuantity();
+            } else {
+                // Fallback to sync service if no warehouse_id provided
+                \App\Services\QuantitySyncService::syncProductWarehouseFromStock($product, $shipment->reference, $shipment->seller_id);
+            }
         }
     }
 } 

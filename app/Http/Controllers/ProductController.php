@@ -161,6 +161,12 @@ class ProductController extends Controller
 
         $products = $query->get();
 
+        // Convert relative image URLs to full URLs for all products
+        $products->transform(function ($product) {
+            $product->image_url = $product->full_image_url;
+            return $product;
+        });
+
         // Categories should also respect seller constraint
         $categories = $query->clone()->select('category')->distinct()->pluck('category')->filter()->values();
 
@@ -182,12 +188,22 @@ class ProductController extends Controller
 
     public function show(Product $product)
     {
-        return response()->json($product->load(['seller', 'warehouse', 'warehouses', 'assignedSellers']));
+        $product = $product->load(['seller', 'warehouse', 'warehouses', 'assignedSellers']);
+        
+        // Convert relative image URLs to full URLs
+        $product->image_url = $product->full_image_url;
+        
+        return response()->json($product);
     }
 
     public function edit(Product $product)
     {
-        return response()->json($product->load(['seller', 'warehouse', 'warehouses', 'assignedSellers']));
+        $product = $product->load(['seller', 'warehouse', 'warehouses', 'assignedSellers']);
+        
+        // Convert relative image URLs to full URLs
+        $product->image_url = $product->full_image_url;
+        
+        return response()->json($product);
     }
 
     public function update(Request $request, Product $product)
@@ -265,11 +281,11 @@ class ProductController extends Controller
 
         // Update warehouse stocks
         if (!empty($warehouseStocks)) {
-            $warehouseData = [];
+            // Clear existing relationships and add new ones
+            $product->warehouses()->detach();
             foreach ($warehouseStocks as $warehouseStock) {
-                $warehouseData[$warehouseStock['warehouse_id']] = ['quantity' => $warehouseStock['quantity']];
+                $product->warehouses()->attach($warehouseStock['warehouse_id'], ['quantity' => $warehouseStock['quantity']]);
             }
-            $product->warehouses()->sync($warehouseData);
             
             // Sync all quantities across the system
             QuantitySyncService::syncAllProductWarehouses($product->id);

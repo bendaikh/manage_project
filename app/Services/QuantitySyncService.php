@@ -25,9 +25,13 @@ class QuantitySyncService
         }
 
         // Update product_warehouse pivot table
-        $product->warehouses()->updateExistingPivot($warehouseId, [
-            'quantity' => $newQuantity
-        ]);
+        if ($product->warehouses()->where('warehouse_id', $warehouseId)->exists()) {
+            $product->warehouses()->updateExistingPivot($warehouseId, [
+                'quantity' => $newQuantity
+            ]);
+        } else {
+            $product->warehouses()->attach($warehouseId, ['quantity' => $newQuantity]);
+        }
 
         // Update product total stock quantity
         $product->updateStockQuantity();
@@ -36,9 +40,13 @@ class QuantitySyncService
         $stock = self::findMatchingStock($product);
         if ($stock) {
             // Update warehouse_stock pivot table
-            $stock->warehouses()->updateExistingPivot($warehouseId, [
-                'quantity' => $newQuantity
-            ]);
+            if ($stock->warehouses()->where('warehouse_id', $warehouseId)->exists()) {
+                $stock->warehouses()->updateExistingPivot($warehouseId, [
+                    'quantity' => $newQuantity
+                ]);
+            } else {
+                $stock->warehouses()->attach($warehouseId, ['quantity' => $newQuantity]);
+            }
 
             // Recalculate stock remaining quantity
             $stock->recalculateRemainingQuantity()->save();
@@ -64,12 +72,10 @@ class QuantitySyncService
         $stock = self::findMatchingStock($product);
         if ($stock) {
             // Sync all warehouse quantities from product to stock
-            $warehouseData = [];
+            $stock->warehouses()->detach();
             foreach ($product->warehouses as $warehouse) {
-                $warehouseData[$warehouse->id] = ['quantity' => $warehouse->pivot->quantity];
+                $stock->warehouses()->attach($warehouse->id, ['quantity' => $warehouse->pivot->quantity]);
             }
-
-            $stock->warehouses()->sync($warehouseData);
             $stock->recalculateRemainingQuantity()->save();
         }
 
@@ -164,14 +170,65 @@ class QuantitySyncService
         $product = self::findMatchingProduct($stock);
         if ($product) {
             // Update product_warehouse pivot table
-            $product->warehouses()->updateExistingPivot($warehouseId, [
-                'quantity' => $newQuantity
-            ]);
+            if ($product->warehouses()->where('warehouse_id', $warehouseId)->exists()) {
+                $product->warehouses()->updateExistingPivot($warehouseId, [
+                    'quantity' => $newQuantity
+                ]);
+            } else {
+                $product->warehouses()->attach($warehouseId, ['quantity' => $newQuantity]);
+            }
 
             // Update product total stock quantity
             $product->updateStockQuantity();
         }
 
         return true;
+    }
+
+    /**
+     * Sync warehouse relationships from stock records to product_warehouse table
+     * This is specifically for products created from shipments
+     */
+    public static function syncProductWarehouseFromStock($product, $reference = null, $sellerId = null)
+    {
+        if (!$product) {
+            return false;
+        }
+
+        $reference = $reference ?: $product->sku;
+        $sellerId = $sellerId ?: $product->seller_id;
+
+        // Get all stock records for this product reference
+        $stockRecords = Stock::where('reference', $reference)
+                            ->where('seller_id', $sellerId)
+                            ->get();
+
+        $warehouseQuantities = [];
+
+        foreach ($stockRecords as $stock) {
+            // Get warehouse relationships from warehouse_stock table
+            $warehouseStocks = $stock->warehouses()->get();
+
+            foreach ($warehouseStocks as $warehouseStock) {
+                $warehouseId = $warehouseStock->id;
+                $quantity = $warehouseStock->pivot->quantity;
+
+                // Accumulate quantities for the same warehouse
+                if (isset($warehouseQuantities[$warehouseId])) {
+                    $warehouseQuantities[$warehouseId] += $quantity;
+                } else {
+                    $warehouseQuantities[$warehouseId] = $quantity;
+                }
+            }
+        }
+
+        // Sync to product_warehouse table
+        if (!empty($warehouseQuantities)) {
+            $product->warehouses()->sync($warehouseQuantities);
+            $product->updateStockQuantity();
+            return true;
+        }
+
+        return false;
     }
 }

@@ -82,8 +82,16 @@ class Stock extends Model
     // Helper method to recalculate remaining quantity
     public function recalculateRemainingQuantity()
     {
-        $this->remaining_quantity = $this->initial_quantity - 
-            ($this->delivered_quantity + $this->damaged_quantity + $this->in_progress_quantity);
+        // Calculate remaining quantity as sum of all warehouse distribution quantities
+        $totalWarehouseQuantity = $this->warehouses()->sum('warehouse_stock.quantity');
+        
+        // If no warehouse distributions, fall back to old calculation
+        if ($totalWarehouseQuantity > 0) {
+            $this->remaining_quantity = $totalWarehouseQuantity;
+        } else {
+            $this->remaining_quantity = $this->initial_quantity - 
+                ($this->delivered_quantity + $this->damaged_quantity + $this->in_progress_quantity);
+        }
         
         // Update status based on remaining quantity
         if ($this->remaining_quantity <= 0) {
