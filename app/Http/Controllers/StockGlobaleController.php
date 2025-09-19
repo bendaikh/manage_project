@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Models\Warehouse;
 use App\Models\Upsell;
 use Illuminate\Http\Request;
+use App\Services\QuantitySyncService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Response;
 
@@ -465,21 +466,12 @@ class StockGlobaleController extends Controller
                 $stock->save();
             }
             
-            // Recalculate remaining quantity based on all warehouse quantities
-            $totalWarehouseQuantity = $stock->warehouses()->sum('warehouse_stock.quantity');
-            $stock->remaining_quantity = $totalWarehouseQuantity;
+            // Sync all quantities across the system
+            QuantitySyncService::syncAllStockWarehouses($stock->id);
+            
+            // Update last updated info
             $stock->last_updated_by = Auth::user()->name;
             $stock->last_updated_at = now();
-            
-            // Update status based on remaining quantity
-            if ($stock->remaining_quantity <= 0) {
-                $stock->status = 'out_of_stock';
-            } elseif ($stock->remaining_quantity <= 5) {
-                $stock->status = 'low_stock';
-            } else {
-                $stock->status = 'in_stock';
-            }
-            
             $stock->save();
             
             return response()->json([

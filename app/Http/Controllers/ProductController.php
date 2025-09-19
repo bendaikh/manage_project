@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Validator;
 use App\Models\Product;
 use Illuminate\Support\Facades\Storage;
 use App\Traits\LogsActionHistory;
+use App\Services\QuantitySyncService;
 
 class ProductController extends Controller
 {
@@ -97,6 +98,9 @@ class ProductController extends Controller
                 $warehouseData[$warehouseStock['warehouse_id']] = ['quantity' => $warehouseStock['quantity']];
             }
             $product->warehouses()->attach($warehouseData);
+            
+            // Sync all quantities across the system
+            QuantitySyncService::syncAllProductWarehouses($product->id);
         }
 
         $this->logAction('Product Created', "Created product: {$product->name}", ['product_id' => $product->id]);
@@ -266,6 +270,9 @@ class ProductController extends Controller
                 $warehouseData[$warehouseStock['warehouse_id']] = ['quantity' => $warehouseStock['quantity']];
             }
             $product->warehouses()->sync($warehouseData);
+            
+            // Sync all quantities across the system
+            QuantitySyncService::syncAllProductWarehouses($product->id);
         }
 
         $this->logAction('Product Updated', "Updated product: {$product->name}", ['product_id' => $product->id]);
@@ -282,6 +289,27 @@ class ProductController extends Controller
             return response()->json(['message' => 'Product deleted successfully']);
         } catch (\Exception $e) {
             return response()->json(['message' => 'Failed to delete product'], 500);
+        }
+    }
+
+    /**
+     * Update stock quantity for a specific product
+     */
+    public function updateStockQuantity(Product $product)
+    {
+        try {
+            $oldQuantity = $product->stock_quantity;
+            $newQuantity = $product->updateStockQuantity();
+            
+            $this->logAction('Stock Quantity Updated', "Updated stock quantity for {$product->name}: {$oldQuantity} → {$newQuantity}", ['product_id' => $product->id]);
+            
+            return response()->json([
+                'message' => 'Stock quantity updated successfully',
+                'old_quantity' => $oldQuantity,
+                'new_quantity' => $newQuantity
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Failed to update stock quantity'], 500);
         }
     }
 } 

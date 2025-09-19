@@ -161,10 +161,31 @@
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ product.category || 'N/A' }}</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ formatCurrency(product.selling_price) }}</td>
             <td class="px-6 py-4 whitespace-nowrap">
-              <span class="text-sm text-gray-900">{{ product.stock_quantity }}</span>
-              <span v-if="product.stock_quantity <= 10" class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                Low Stock
-              </span>
+              <div v-if="product.warehouses && product.warehouses.length > 0" class="space-y-1">
+                <div v-for="warehouse in product.warehouses" :key="warehouse.id" class="flex items-center justify-between">
+                  <span class="bg-blue-100 text-blue-600 px-1 py-0.5 rounded text-xs">🏢 {{ warehouse.name }}</span>
+                  <span class="font-medium text-sm">{{ warehouse.pivot.quantity }}</span>
+                </div>
+                <div class="text-center pt-1 border-t border-gray-200">
+                  <span class="font-semibold text-gray-700 text-sm">Total: {{ product.stock_quantity }}</span>
+                </div>
+                <span v-if="product.stock_quantity <= 10" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                  Low Stock
+                </span>
+              </div>
+              <div v-else-if="product.warehouse" class="flex items-center justify-between">
+                <span class="bg-purple-100 text-purple-600 px-1 py-0.5 rounded text-xs">🏢 {{ product.warehouse.name }}</span>
+                <span class="font-medium text-sm">{{ product.stock_quantity }}</span>
+                <span v-if="product.stock_quantity <= 10" class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                  Low Stock
+                </span>
+              </div>
+              <div v-else>
+                <span class="text-sm text-gray-900">{{ product.stock_quantity }}</span>
+                <span v-if="product.stock_quantity <= 10" class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                  Low Stock
+                </span>
+              </div>
             </td>
             <td class="px-6 py-4 whitespace-nowrap">
               <span :class="getStatusClass(product.status)" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium">

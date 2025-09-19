@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Validator;
 use App\Models\Order;
 use App\Traits\LogsActionHistory;
 use Carbon\Carbon;
+use App\Services\QuantitySyncService;
 
 class OrderController extends Controller
 {
@@ -590,6 +591,9 @@ class OrderController extends Controller
         $stock->save();
         $stock->recalculateRemainingQuantity()->save();
 
+        // Sync stock quantities to product warehouse quantities
+        QuantitySyncService::syncAllStockWarehouses($stock->id);
+
         // Update warehouse_stock pivot table
         if ($warehouseId && $stock->warehouses()->where('warehouse_id', $warehouseId)->exists()) {
             // Update specific warehouse if warehouse_id is provided
@@ -706,6 +710,28 @@ class OrderController extends Controller
             }
         }
 
+        // Check if product has warehouse quantities in the product_warehouse pivot table
+        $warehouseStock = $product->warehouses()
+            ->where('warehouse_id', $warehouseId)
+            ->first();
+
+        if ($warehouseStock) {
+            $availableQuantity = $warehouseStock->pivot->quantity;
+            $requiredQuantity = $order->quantity;
+
+            if ($availableQuantity >= $requiredQuantity) {
+                return [
+                    'valid' => true,
+                    'message' => 'Stock validation passed (product warehouse assignment)'
+                ];
+            } else {
+                return [
+                    'valid' => false,
+                    'message' => "Insufficient stock in warehouse. Available: {$availableQuantity}, Required: {$requiredQuantity}"
+                ];
+            }
+        }
+
         // If not directly assigned, check for stock records (for products created through shipments)
         $stock = \App\Models\Stock::where('reference', $product->sku)->first();
         if (!$stock) {
@@ -760,6 +786,15 @@ class OrderController extends Controller
                 if ($oldStatusLower !== 'processing' && $oldStatusLower !== 'shipped') {
                     $newStockQuantity = max(0, $product->stock_quantity - $quantity);
                     $product->update(['stock_quantity' => $newStockQuantity]);
+                    
+                    // Also update warehouse quantities if product has warehouse assignments
+                    if ($order->warehouse_id) {
+                        $warehouseStock = $product->warehouses()->where('warehouse_id', $order->warehouse_id)->first();
+                        if ($warehouseStock) {
+                            $newQuantity = max(0, $warehouseStock->pivot->quantity - $quantity);
+                            QuantitySyncService::syncWarehouseQuantities($product->id, $order->warehouse_id, $newQuantity);
+                        }
+                    }
                 }
                 break;
 
@@ -779,6 +814,15 @@ class OrderController extends Controller
                     // Return stock when order is cancelled/refunded
                     $newStockQuantity = $product->stock_quantity + $quantity;
                     $product->update(['stock_quantity' => $newStockQuantity]);
+                    
+                    // Also restore warehouse quantities if product has warehouse assignments
+                    if ($order->warehouse_id) {
+                        $warehouseStock = $product->warehouses()->where('warehouse_id', $order->warehouse_id)->first();
+                        if ($warehouseStock) {
+                            $newQuantity = $warehouseStock->pivot->quantity + $quantity;
+                            QuantitySyncService::syncWarehouseQuantities($product->id, $order->warehouse_id, $newQuantity);
+                        }
+                    }
                 }
                 break;
         }
@@ -791,4 +835,5 @@ class OrderController extends Controller
             'new_stock_quantity' => $product->stock_quantity
         ]);
     }
+
 } 

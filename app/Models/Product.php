@@ -79,4 +79,22 @@ class Product extends Model
         return $this->belongsToMany(User::class, 'product_seller', 'product_id', 'seller_id')
                     ->withTimestamps();
     }
+
+    /**
+     * Calculate and update total stock quantity from all warehouses
+     */
+    public function updateStockQuantity()
+    {
+        $totalQuantity = $this->warehouses()->sum('product_warehouse.quantity');
+        $this->update(['stock_quantity' => $totalQuantity]);
+        return $totalQuantity;
+    }
+
+    /**
+     * Get total stock quantity from all warehouses (without updating the field)
+     */
+    public function getTotalStockQuantity()
+    {
+        return $this->warehouses()->sum('product_warehouse.quantity');
+    }
 } 

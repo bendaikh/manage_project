@@ -85,6 +85,7 @@ Route::get('/products/{product}', [ProductController::class, 'show']);
 Route::get('/products/{product}/edit', [ProductController::class, 'edit']);
 Route::put('/products/{product}', [ProductController::class, 'update']);
 Route::delete('/products/{product}', [ProductController::class, 'destroy']);
+Route::patch('/products/{product}/update-stock-quantity', [ProductController::class, 'updateStockQuantity']);
 
 // Marketplace routes for sellers
 Route::get('/marketplace', [App\Http\Controllers\MarketplaceController::class, 'index']);

@@ -178,9 +178,25 @@
         </div>
         <div class="font-semibold truncate mb-1">{{ product.name }}</div>
         <div class="text-xs text-gray-500 mb-1">SKU: {{ product.sku }}</div>
-        <div class="text-xs text-gray-500 mb-1">{{ product.stock_quantity }} units</div>
-        <div class="text-xs text-gray-500 mb-1" v-if="product.warehouse">
-          <span class="bg-purple-100 text-purple-600 px-1 py-0.5 rounded text-xs">🏢 {{ product.warehouse.name }}</span>
+        
+        <!-- Stock quantities display -->
+        <div class="text-xs text-gray-500 mb-1">
+          <div v-if="product.warehouses && product.warehouses.length > 0" class="space-y-1">
+            <div v-for="warehouse in product.warehouses" :key="warehouse.id" class="flex items-center justify-between">
+              <span class="bg-blue-100 text-blue-600 px-1 py-0.5 rounded text-xs">🏢 {{ warehouse.name }}</span>
+              <span class="font-medium">{{ warehouse.pivot.quantity }} units</span>
+            </div>
+            <div class="text-center pt-1 border-t border-gray-200">
+              <span class="font-semibold text-gray-700">Total: {{ product.stock_quantity }} units</span>
+            </div>
+          </div>
+          <div v-else-if="product.warehouse" class="flex items-center justify-between">
+            <span class="bg-purple-100 text-purple-600 px-1 py-0.5 rounded text-xs">🏢 {{ product.warehouse.name }}</span>
+            <span class="font-medium">{{ product.stock_quantity }} units</span>
+          </div>
+          <div v-else class="text-gray-400">
+            {{ product.stock_quantity }} units
+          </div>
         </div>
         <div class="text-lg font-bold text-gray-800 mb-1">Price<br><span class="text-black">FCFA{{ product.selling_price }}</span></div>
         <div class="text-xs text-gray-400">Cost: FCFA{{ product.purchase_price }}</div>
@@ -214,9 +230,8 @@
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SKU</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock & Warehouses</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Warehouse</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
@@ -254,14 +269,27 @@
                 <span v-else-if="product.status === 'Out of Stock'" class="bg-red-100 text-red-600 text-xs px-2 py-1 rounded">Out of Stock</span>
                 <span v-else class="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded">{{ product.status }}</span>
               </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ product.stock_quantity }}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                <div v-if="product.warehouses && product.warehouses.length > 0" class="space-y-1">
+                  <div v-for="warehouse in product.warehouses" :key="warehouse.id" class="flex items-center justify-between">
+                    <span class="bg-blue-100 text-blue-600 px-1 py-0.5 rounded text-xs">🏢 {{ warehouse.name }}</span>
+                    <span class="font-medium text-sm">{{ warehouse.pivot.quantity }}</span>
+                  </div>
+                  <div class="text-center pt-1 border-t border-gray-200">
+                    <span class="font-semibold text-gray-700 text-sm">Total: {{ product.stock_quantity }}</span>
+                  </div>
+                </div>
+                <div v-else-if="product.warehouse" class="flex items-center justify-between">
+                  <span class="bg-purple-100 text-purple-600 px-1 py-0.5 rounded text-xs">🏢 {{ product.warehouse.name }}</span>
+                  <span class="font-medium text-sm">{{ product.stock_quantity }}</span>
+                </div>
+                <div v-else class="text-gray-400">
+                  {{ product.stock_quantity }}
+                </div>
+              </td>
               <td class="px-6 py-4 whitespace-nowrap">
                 <div class="text-sm font-medium text-gray-900">FCFA{{ product.selling_price }}</div>
                 <div class="text-xs text-gray-500">Cost: FCFA{{ product.purchase_price }}</div>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                <span v-if="product.warehouse" class="bg-purple-100 text-purple-600 px-2 py-1 rounded text-xs">🏢 {{ product.warehouse.name }}</span>
-                <span v-else class="text-gray-400">No warehouse</span>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                 <div class="flex space-x-2">
@@ -324,7 +352,24 @@
                   </div>
                   <div>
                     <span class="text-gray-500">Stock:</span>
-                    <span class="ml-1 font-medium">{{ product.stock_quantity }} units</span>
+                    <div class="ml-1">
+                      <div v-if="product.warehouses && product.warehouses.length > 0" class="space-y-1">
+                        <div v-for="warehouse in product.warehouses" :key="warehouse.id" class="flex items-center justify-between">
+                          <span class="bg-blue-100 text-blue-600 px-1 py-0.5 rounded text-xs">🏢 {{ warehouse.name }}</span>
+                          <span class="font-medium text-sm">{{ warehouse.pivot.quantity }}</span>
+                        </div>
+                        <div class="text-center pt-1 border-t border-gray-200">
+                          <span class="font-semibold text-gray-700 text-sm">Total: {{ product.stock_quantity }}</span>
+                        </div>
+                      </div>
+                      <div v-else-if="product.warehouse" class="flex items-center justify-between">
+                        <span class="bg-purple-100 text-purple-600 px-1 py-0.5 rounded text-xs">🏢 {{ product.warehouse.name }}</span>
+                        <span class="font-medium text-sm">{{ product.stock_quantity }}</span>
+                      </div>
+                      <div v-else class="text-gray-400">
+                        {{ product.stock_quantity }} units
+                      </div>
+                    </div>
                   </div>
                   <div>
                     <span class="text-gray-500">Supplier:</span>
