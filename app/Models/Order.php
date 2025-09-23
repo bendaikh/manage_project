@@ -76,14 +76,12 @@ class Order extends Model
     }
 
     /**
-     * Get the stock for this order (based on product only - show upsells from any seller)
+     * Get a stock record for this product (regardless of upsells).
+     * This ensures we can access shipment metadata like product_link.
      */
     public function stock()
     {
-        // Find any stock for this product that has upsells, regardless of seller
-        // First try by product_id, then by product name if product_id doesn't match
-        return $this->hasOne(Stock::class, 'product_id', 'product_id')
-                    ->whereHas('upsells'); // Only return stocks that have upsells
+        return $this->hasOne(Stock::class, 'product_id', 'product_id');
     }
     
     /**

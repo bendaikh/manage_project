@@ -26,6 +26,7 @@ class Product extends Model
         'video_url',
         'video_duration',
         'description',
+        'product_link',
         'warehouse_id',
     ];
 

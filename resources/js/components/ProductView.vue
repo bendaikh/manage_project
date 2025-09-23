@@ -72,15 +72,6 @@
               </p>
             </div>
             
-            <div v-if="product.supplier">
-              <label class="text-sm font-medium text-gray-600">Supplier</label>
-              <p class="text-lg">{{ product.supplier }}</p>
-            </div>
-            
-            <div v-if="product.seller">
-              <label class="text-sm font-medium text-gray-600">Seller</label>
-              <p class="text-lg">{{ product.seller }}</p>
-            </div>
             
             <div v-if="product.warehouse">
               <label class="text-sm font-medium text-gray-600">Warehouse</label>

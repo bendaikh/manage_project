@@ -119,8 +119,22 @@ class OrderController extends Controller
 
         $order = Order::create($data);
 
-        // Log action
-        $this->logAction('Order Created', 'Order #' . $order->id . ' created', ['order_id' => $order->id]);
+        // Log detailed order creation
+        $product = \App\Models\Product::find($order->product_id);
+        $status = \App\Models\OrderStatus::find($order->order_status_id);
+        $description = "New order #" . $order->id . " created by " . auth()->user()->name . 
+                      " for {$product->name} (Qty: {$order->quantity}) " .
+                      "for client {$order->client_name} - Status: {$status->name}";
+        
+        $this->logAction('Order Created', $description, [
+            'order_id' => $order->id,
+            'product_name' => $product->name,
+            'quantity' => $order->quantity,
+            'client_name' => $order->client_name,
+            'seller' => $order->seller,
+            'status' => $status->name,
+            'created_by' => auth()->user()->name
+        ]);
 
         return response()->json(['message' => 'Order created successfully', 'order' => $order], 201);
     }
@@ -395,6 +409,7 @@ class OrderController extends Controller
         }
 
         $oldStatus = $order->status; // Get the old status before updating
+        $oldData = $order->toArray(); // Store original data
         $order->update($data);
         
         // Update stock quantities if status changed
@@ -405,8 +420,8 @@ class OrderController extends Controller
             }
         }
         
-        // Log action
-        $this->logAction('Order Updated', 'Order #' . $order->id . ' updated', ['order_id' => $order->id]);
+        // Log detailed action
+        $this->logDetailedOrderUpdate($order, $oldData, $data);
         
         // Return appropriate message based on status conversion
         $message = 'Order updated successfully';
@@ -834,6 +849,76 @@ class OrderController extends Controller
             'quantity_change' => $quantity,
             'new_stock_quantity' => $product->stock_quantity
         ]);
+    }
+
+    /**
+     * Log detailed order update with specific changes
+     */
+    private function logDetailedOrderUpdate($order, $oldData, $newData)
+    {
+        $changes = [];
+        $descriptions = [];
+        
+        // Track which fields changed
+        $fieldMap = [
+            'seller' => 'Seller',
+            'product_id' => 'Product',
+            'quantity' => 'Quantity',
+            'client_name' => 'Client Name',
+            'price' => 'Price',
+            'client_address' => 'Client Address',
+            'zone' => 'Zone',
+            'client_phone' => 'Client Phone',
+            'comment' => 'Comment',
+            'agent' => 'Agent',
+            'order_status_id' => 'Status',
+            'belongs_to' => 'Section',
+            'confirmed_date' => 'Confirmation Date',
+            'confirmation_comment' => 'Confirmation Comment',
+            'postponed_date' => 'Postponed Date',
+            'postponed_comment' => 'Postponed Comment',
+            'warehouse_id' => 'Warehouse'
+        ];
+
+        foreach ($newData as $field => $newValue) {
+            $oldValue = $oldData[$field] ?? null;
+            
+            if ($oldValue != $newValue) {
+                $fieldName = $fieldMap[$field] ?? $field;
+                
+                // Special handling for certain fields
+                if ($field === 'product_id') {
+                    $oldProduct = $oldValue ? \App\Models\Product::find($oldValue)?->name : 'None';
+                    $newProduct = $newValue ? \App\Models\Product::find($newValue)?->name : 'None';
+                    $descriptions[] = "{$fieldName}: {$oldProduct} → {$newProduct}";
+                    $changes[$field] = ['from' => $oldValue, 'to' => $newValue, 'from_name' => $oldProduct, 'to_name' => $newProduct];
+                } elseif ($field === 'order_status_id') {
+                    $oldStatus = $oldValue ? \App\Models\OrderStatus::find($oldValue)?->name : 'None';
+                    $newStatus = $newValue ? \App\Models\OrderStatus::find($newValue)?->name : 'None';
+                    $descriptions[] = "{$fieldName}: {$oldStatus} → {$newStatus}";
+                    $changes[$field] = ['from' => $oldValue, 'to' => $newValue, 'from_name' => $oldStatus, 'to_name' => $newStatus];
+                } elseif ($field === 'warehouse_id') {
+                    $oldWarehouse = $oldValue ? \App\Models\Warehouse::find($oldValue)?->name : 'None';
+                    $newWarehouse = $newValue ? \App\Models\Warehouse::find($newValue)?->name : 'None';
+                    $descriptions[] = "{$fieldName}: {$oldWarehouse} → {$newWarehouse}";
+                    $changes[$field] = ['from' => $oldValue, 'to' => $newValue, 'from_name' => $oldWarehouse, 'to_name' => $newWarehouse];
+                } else {
+                    $oldDisplay = $oldValue ?: 'Empty';
+                    $newDisplay = $newValue ?: 'Empty';
+                    $descriptions[] = "{$fieldName}: {$oldDisplay} → {$newDisplay}";
+                    $changes[$field] = ['from' => $oldValue, 'to' => $newValue];
+                }
+            }
+        }
+
+        if (!empty($changes)) {
+            $description = 'Order #' . $order->id . ' updated: ' . implode(', ', $descriptions);
+            $this->logAction('Order Modified', $description, [
+                'order_id' => $order->id,
+                'changes' => $changes,
+                'changed_fields' => array_keys($changes)
+            ]);
+        }
     }
 
 } 

@@ -96,6 +96,7 @@ class ShipmentController extends Controller
             'customs_fees' => 'nullable|numeric|min:0',
             'stock_id' => 'nullable|exists:stocks,id', // New field for stock selection
             'seller_id' => 'nullable|exists:users,id', // New field for seller selection
+            'is_company_product' => 'nullable|boolean',
         ]);
         
         // Set seller_id based on user role
@@ -107,6 +108,9 @@ class ShipmentController extends Controller
         
         $data['status'] = 'Processing';
         $data['validated'] = false;
+        $data['is_company_product'] = Auth::user()->hasAnyRole(['admin','manager','superadmin'])
+            ? (bool)($request->input('is_company_product', false))
+            : false;
         
         // Handle photo upload
         if ($request->hasFile('photo')) {
@@ -160,6 +164,7 @@ class ShipmentController extends Controller
             'customs_fees' => 'nullable|numeric|min:0',
             'stock_id' => 'nullable|exists:stocks,id', // New field for stock selection
             'seller_id' => 'nullable|exists:users,id', // New field for seller selection
+            'is_company_product' => 'nullable|boolean',
         ]);
         
         // Set seller_id based on user role
@@ -189,6 +194,11 @@ class ShipmentController extends Controller
             }
         }
         
+        // Only privileged roles can toggle company product
+        if (!(Auth::user()->hasAnyRole(['admin','manager','superadmin']))) {
+            unset($data['is_company_product']);
+        }
+
         $shipment->update($data);
         $shipment->refresh(); // Refresh the model to get the latest data
         return response()->json(['message' => 'Shipment updated', 'shipment' => $shipment]);
@@ -246,6 +256,10 @@ class ShipmentController extends Controller
                 return response()->json(['message' => 'No principal warehouse found. Please set a principal warehouse first.'], 422);
             }
             $this->syncShipmentToStock($shipment, $principalWarehouse->id);
+            // If marked as company product, also flag the corresponding product and assign to all sellers
+            if ($shipment->is_company_product) {
+                $this->activateCompanyProductForMarketplace($shipment);
+            }
         } else {
             // If un-validated, remove from stock and products
             Stock::where('shipment_id', $shipment->id)->delete();
@@ -444,6 +458,28 @@ class ShipmentController extends Controller
                 // Fallback to sync service if no warehouse_id provided
                 \App\Services\QuantitySyncService::syncProductWarehouseFromStock($product, $shipment->reference, $shipment->seller_id);
             }
+        }
+    }
+
+    /**
+     * When a shipment is validated and marked as company product, ensure product is flagged
+     * and visible in marketplace (assign to all sellers by default).
+     */
+    private function activateCompanyProductForMarketplace(Shipment $shipment): void
+    {
+        $product = \App\Models\Product::where('sku', $shipment->reference)->first();
+        if (!$product) {
+            return;
+        }
+        $product->is_company_product = true;
+        $product->save();
+
+        // Assign to all sellers for visibility in marketplace
+        $sellerIds = \App\Models\User::whereHas('roles', function($q){
+            $q->where('name', 'seller');
+        })->pluck('id');
+        if ($sellerIds->isNotEmpty()) {
+            $product->assignedSellers()->syncWithoutDetaching($sellerIds->all());
         }
     }
 } 

@@ -24,6 +24,7 @@ class Shipment extends Model
         'transport_cost',
         'status',
         'validated',
+        'is_company_product',
     ];
 
     protected $casts = [
@@ -32,6 +33,7 @@ class Shipment extends Model
         'shipping_cost' => 'decimal:2',
         'transport_cost' => 'decimal:2',
         'validated' => 'boolean',
+        'is_company_product' => 'boolean',
     ];
 
     public function seller(): BelongsTo

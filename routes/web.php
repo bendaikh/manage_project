@@ -20,6 +20,7 @@ use App\Http\Controllers\AiChatController;
 use App\Http\Controllers\OrderAssignmentController;
 use App\Http\Controllers\WarehouseController;
 use App\Http\Controllers\StockGlobaleController;
+use App\Http\Controllers\ProductOffersController;
 use Illuminate\Support\Facades\Route;
 
 // Redirect root to login if not authenticated
@@ -86,10 +87,17 @@ Route::get('/products/{product}/edit', [ProductController::class, 'edit']);
 Route::put('/products/{product}', [ProductController::class, 'update']);
 Route::delete('/products/{product}', [ProductController::class, 'destroy']);
 Route::patch('/products/{product}/update-stock-quantity', [ProductController::class, 'updateStockQuantity']);
+Route::patch('/products/{product}/update-product-link', [ProductController::class, 'updateProductLink']);
 
 // Marketplace routes for sellers
 Route::get('/marketplace', [App\Http\Controllers\MarketplaceController::class, 'index']);
 Route::get('/marketplace/stats', [App\Http\Controllers\MarketplaceController::class, 'stats']);
+
+// Product Offers routes (admin/manager/superadmin)
+Route::middleware(['auth'])->group(function () {
+    Route::get('/product-offers', [ProductOffersController::class, 'index']);
+    Route::post('/product-offers/{product}/toggle', [ProductOffersController::class, 'toggle']);
+});
 
 // Weekly Seller Invoice routes
 Route::get('/weekly-seller-invoices', [App\Http\Controllers\WeeklySellerInvoiceController::class, 'index']);
@@ -441,6 +449,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/api/history/users', function () {
         return \App\Models\User::select('id', 'name')->orderBy('name')->get();
     })->middleware('permission:view_history');
+    Route::get('/api/history/analytics', [\App\Http\Controllers\HistoryAnalyticsController::class, 'analytics'])->middleware('role:superadmin');
+    Route::get('/api/history/agents', [\App\Http\Controllers\HistoryAnalyticsController::class, 'availableAgents'])->middleware('role:superadmin');
+    Route::get('/api/history/agent-analysis', [\App\Http\Controllers\HistoryAnalyticsController::class, 'agentAnalysis'])->middleware('role:superadmin');
     
     // Temporary debug route
     Route::get('/debug/orders-today', function () {

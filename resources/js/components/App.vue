@@ -76,6 +76,10 @@
                 <ChartPieIcon class="h-4 w-4" />
                 <span>Analytics</span>
               </button>
+              <button v-if="isSuperadmin" type="button" @click="handleShowHistoryOverview" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
+                <ClockIcon class="h-4 w-4" />
+                <span>History Overview</span>
+              </button>
             </div>
           </div>
 
@@ -119,7 +123,7 @@
           </div>
 
           <!-- Sourcing -->
-          <div v-if="hasShipmentsPermission || hasStockPermission || hasStockGlobalPermission">
+          <div v-if="hasShipmentsPermission || hasStockGlobalPermission">
             <button @click="toggleSourcingMenu" class="w-full flex items-center justify-between px-4 py-3 text-white rounded-lg hover:bg-blue-800">
               <div class="flex items-center space-x-3">
                 <TruckIcon class="h-5 w-5 text-white" />
@@ -134,15 +138,19 @@
                 <TruckIcon class="h-4 w-4" />
                 <span>Shipments</span>
               </button>
-              <button v-if="hasStockPermission" type="button" @click="handleShowStock" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
-                <BoxIcon class="h-4 w-4" />
-                <span>Stock</span>
-              </button>
               <button v-if="hasStockGlobalPermission" type="button" @click="handleShowStockGlobale" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
                 <BoxIcon class="h-4 w-4" />
                 <span>Stock Globale</span>
               </button>
             </div>
+          </div>
+
+          <!-- Product Offers (not for sellers) -->
+          <div v-if="!isSeller">
+            <button type="button" @click="handleShowProductOffers" class="w-full flex items-center space-x-3 px-4 py-3 text-white rounded-lg hover:bg-blue-800">
+              <ListIcon class="h-5 w-5 text-white" />
+              <span>Product Offers</span>
+            </button>
           </div>
 
           <!-- Warehouse -->
@@ -164,33 +172,6 @@
               <button v-if="hasManageWarehousesPermission" type="button" @click="handleShowManageWarehouses" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
                 <ListIcon class="h-4 w-4" />
                 <span>Manage Warehouses</span>
-              </button>
-            </div>
-          </div>
-
-          <!-- Products -->
-          <div v-if="hasProductsPermission">
-            <button @click="toggleProductsMenu" class="w-full flex items-center justify-between px-4 py-3 text-white rounded-lg hover:bg-blue-800">
-              <div class="flex items-center space-x-3">
-                <BoxIcon class="h-5 w-5 text-white" />
-                <span>Products</span>
-              </div>
-              <ChevronDownIcon :class="['h-4 w-4 text-white transition-transform', isProductsMenuOpen ? 'rotate-180' : '']" />
-            </button>
-            
-            <!-- Products Sub-menu -->
-            <div v-show="isProductsMenuOpen" class="mt-1 ml-4 space-y-1">
-              <button v-if="hasProductsPermission" type="button" @click="handleShowProductList" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
-                <ListIcon class="h-4 w-4" />
-                <span>All Products</span>
-              </button>
-              <button v-if="hasCreateProductsPermission" type="button" @click="handleShowAddProduct" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
-                <PlusIcon class="h-4 w-4" />
-                <span>Add Product</span>
-              </button>
-              <button v-if="hasCategoriesPermission" type="button" @click="handleShowCategories" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
-                <TagIcon class="h-4 w-4" />
-                <span>Categories</span>
               </button>
             </div>
           </div>
@@ -379,6 +360,7 @@
           @navigate-to-delivery="handleNavigateToDeliveryFromOverview"
         />
         <DashboardAnalytics v-else-if="showAnalytics" />
+        <HistoryOverview v-else-if="showHistoryOverview" />
         <AddUser v-else-if="showAddUser" @back="handleBackFromAddUser" />
         <UserList v-else-if="showAgentsList" role="agent" />
         <UserList v-else-if="showManagersList" role="manager" />
@@ -395,7 +377,8 @@
         <AccessRights v-else-if="showAccessRights" />
         <ShipmentsList v-else-if="showShipments" />
         <StockList v-else-if="showStock" />
-        <StockGlobaleList v-else-if="showStockGlobale" />
+        <StockGlobaleList v-else-if="showStockGlobale" @edit-product="handleShowEditProduct" />
+        <ProductOffersList v-else-if="showProductOffers" />
         <WarehouseCreate v-else-if="showAddWarehouse" @back="handleBackFromAddWarehouse" />
         <WarehouseEdit v-else-if="showEditWarehouse" :warehouse-id="editingWarehouse?.id" @back="handleBackFromEditWarehouse" @warehouse-updated="handleWarehouseUpdated" />
         <WarehouseList v-else-if="showManageWarehouses" @add-warehouse="handleShowAddWarehouse" @edit-warehouse="handleShowEditWarehouse" />
@@ -424,6 +407,7 @@ import OrderCreate from './OrderCreate.vue'
 import OrderList from './OrderList.vue'
 import DashboardOverview from './DashboardOverview.vue'
 import DashboardAnalytics from './DashboardAnalytics.vue'
+import HistoryOverview from './HistoryOverview.vue'
 import AddUser from './AddUser.vue'
 import UserList from './UserList.vue'
 import CategoryList from './CategoryList.vue'
@@ -440,6 +424,7 @@ import AiChatbot from './AiChatbot.vue'
 import ShipmentsList from './ShipmentsList.vue'
 import StockList from './StockList.vue'
 import StockGlobaleList from './StockGlobaleList.vue'
+import ProductOffersList from './ProductOffersList.vue'
 import SellerInvoicesList from './SellerInvoicesList.vue'
 import HistoryList from './HistoryList.vue'
 import MarketplaceList from './MarketplaceList.vue'
@@ -478,6 +463,7 @@ const showAddOrder = ref(false)
 const showOrderList = ref(false)
 const showOverview = ref(true)
 const showAnalytics = ref(false)
+const showHistoryOverview = ref(false)
 const showConfirmationOrders = ref(false)
 const showDeliveryOrders = ref(false)
 const showAddUser = ref(false)
@@ -507,7 +493,8 @@ const editingWarehouse = ref(null)
 const showManageWarehouses = ref(false)
 const showStockGlobale = ref(false)
 const showMarketplace = ref(false)
-const editSource = ref('productList') // Track where edit came from: 'productList' or 'marketplace'
+const showProductOffers = ref(false)
+const editSource = ref('productList') // Track where edit came from: 'productList', 'marketplace', or 'stockGlobale'
 
 const toggleDashboardMenu = () => {
   isDashboardMenuOpen.value = !isDashboardMenuOpen.value
@@ -519,6 +506,11 @@ const toggleOrdersMenu = () => {
 
 const toggleProductsMenu = () => {
   isProductsMenuOpen.value = !isProductsMenuOpen.value
+}
+
+const handleShowProductOffers = () => {
+  resetViews()
+  showProductOffers.value = true
 }
 
 const toggleUsersMenu = () => {
@@ -592,6 +584,7 @@ const resetViews = () => {
   showOrderList.value = false
   showOverview.value = false
   showAnalytics.value = false
+  showHistoryOverview.value = false
   showConfirmationOrders.value = false
   showDeliveryOrders.value = false
   showAddUser.value = false
@@ -619,6 +612,7 @@ const resetViews = () => {
   showBalance.value = false
   showAddWarehouse.value = false
   showManageWarehouses.value = false
+  showProductOffers.value = false
 }
 
 const handleShowAddProduct = (e) => {
@@ -640,9 +634,18 @@ const handleBackFromProduct = () => {
 
 const handleShowEditProduct = (product) => {
   editingProduct.value = product
+  // Set edit source based on which view is currently active BEFORE hiding them
+  if (showStockGlobale.value) {
+    editSource.value = 'stockGlobale'
+  } else if (showMarketplace.value) {
+    editSource.value = 'marketplace'
+  } else {
+    editSource.value = 'productList'
+  }
+  // Now hide all views
   showProductList.value = false
   showMarketplace.value = false
-  editSource.value = 'productList'
+  showStockGlobale.value = false
   showEditProduct.value = true
 }
 
@@ -656,7 +659,9 @@ const handleBackFromEditProduct = () => {
   showEditProduct.value = false
   editingProduct.value = null
   // Check where we came from and go back there
-  if (editSource.value === 'marketplace') {
+  if (editSource.value === 'stockGlobale') {
+    showStockGlobale.value = true
+  } else if (editSource.value === 'marketplace') {
     showMarketplace.value = true
   } else {
     showProductList.value = true
@@ -750,6 +755,12 @@ const handleShowAnalytics = (e) => {
   if (e) e.preventDefault()
   resetViews()
   showAnalytics.value = true
+}
+
+const handleShowHistoryOverview = (e) => {
+  if (e) e.preventDefault()
+  resetViews()
+  showHistoryOverview.value = true
 }
 
 const handleShowAddUser = (e) => {
@@ -1079,6 +1090,12 @@ const isSeller = computed(() => {
   const roles = window.Laravel?.user?.roles || []
   return roles.includes('seller') || roles.some(r => typeof r === 'object' && r.name === 'seller')
 })
+
+// Role helpers for admin/manager/superadmin
+const userRoles = computed(() => window.Laravel?.user?.roles || [])
+const roleNames = computed(() => userRoles.value.map(r => (typeof r === 'string' ? r : (r.name || '')).toLowerCase()))
+const isAdmin = computed(() => roleNames.value.includes('admin') || roleNames.value.includes('superadmin'))
+const isSuperadmin = computed(() => roleNames.value.includes('superadmin'))
 
 // Fetch settings on component mount
 fetchAppSettings()

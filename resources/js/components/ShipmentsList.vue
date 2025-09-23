@@ -300,6 +300,15 @@
                      class="w-full border rounded px-3 py-2 text-sm" />
             </div>
           </div>
+
+          <!-- Company Product (Admin/Manager/SuperAdmin only) -->
+          <div v-if="isAdmin || roleNames.includes('manager')">
+            <label class="inline-flex items-center space-x-2">
+              <input type="checkbox" v-model="form.is_company_product" class="rounded border-gray-300">
+              <span class="text-sm">Company Product</span>
+            </label>
+            <p class="text-xs text-gray-500 mt-1">If checked on validation, product appears in Product Offers and Marketplace.</p>
+          </div>
           
           <div>
             <label class="block text-sm font-medium mb-1">Description</label>
@@ -404,7 +413,8 @@ const form = ref({
   shipment_date: '',
   customs_fees: '',
   stock_id: '',
-  seller_id: ''
+  seller_id: '',
+  is_company_product: false
 })
 
 // User roles
@@ -572,7 +582,8 @@ const openCreate = () => {
     shipment_date: '',
     customs_fees: '',
     stock_id: '',
-    seller_id: isSeller ? currentUser.value.id : ''
+    seller_id: isSeller ? currentUser.value.id : '',
+    is_company_product: false
   }
   showModal.value = true
 }
@@ -590,7 +601,8 @@ const openEdit = (s) => {
     shipment_date: formattedDate,
     photo: null,
     stock_id: '',
-    seller_id: s.seller_id || (isSeller ? currentUser.value.id : '')
+    seller_id: s.seller_id || (isSeller ? currentUser.value.id : ''),
+    is_company_product: !!s.is_company_product
   }
   showModal.value = true
 }
@@ -636,6 +648,9 @@ const submitForm = async () => {
       fd.append(k, v)
     }
   })
+
+  // Always send is_company_product explicitly for roles allowed; backend enforces
+  fd.append('is_company_product', form.value.is_company_product ? '1' : '0')
   
   const csrf = document.querySelector('meta[name="csrf-token"]').getAttribute('content')
   const opts = { 
@@ -709,6 +724,13 @@ const toggleValidate = async (s) => {
     showNotification(message, 'success')
     shipments.value = [] // Clear the current data first
     fetchShipments(1) // Refresh from first page
+    
+    // Dispatch event to notify Product Offers component
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('shipment-validated', { 
+        detail: { shipment: s, action: s.validated ? 'revoked' : 'validated' }
+      }))
+    }
   } else {
     const error = await res.json()
     showNotification(error.message || 'An error occurred', 'error')
@@ -794,6 +816,13 @@ const validateShipmentWithCosts = async (s, shippingCost, transportCost) => {
     showNotification('Shipment validated successfully!', 'success')
     shipments.value = [] // Clear the current data first
     fetchShipments(1) // Refresh from first page
+    
+    // Dispatch event to notify Product Offers component
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('shipment-validated', { 
+        detail: { shipment: s, action: 'validated' }
+      }))
+    }
   } else {
     const error = await res.json()
     showNotification(error.message || 'An error occurred', 'error')

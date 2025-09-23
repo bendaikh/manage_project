@@ -199,6 +199,17 @@
                 <div class="text-xs text-gray-500">Qty: {{ order.quantity }}</div>
                 <div class="text-xs text-gray-400 hidden sm:block">SKU: {{ order.product ? order.product.sku : '' }}</div>
               </div>
+              <button 
+                v-if="order.product" 
+                @click="showProductDetails(order)"
+                class="p-1 text-gray-400 hover:text-blue-600 transition-colors duration-200"
+                title="View product details"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+              </button>
             </td>
             <td class="px-2 lg:px-3 py-2 font-bold text-sm lg:text-base">{{ order.price }} FCFA</td>
             <td v-if="props.confirmation" class="px-2 lg:px-3 py-2">
@@ -477,6 +488,119 @@
       </div>
     </div>
 
+    <!-- Product Details Modal -->
+    <div v-if="showProductModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" @click.self="closeProductModal">
+      <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-xl font-semibold">Product Details</h3>
+          <button @click="closeProductModal" class="text-gray-400 hover:text-gray-600">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        
+        <div v-if="selectedProduct" class="space-y-6">
+          <!-- Product Image and Basic Info -->
+          <div class="flex flex-col md:flex-row gap-6">
+            <div class="flex-shrink-0">
+              <div class="w-full md:w-64 h-64 bg-gray-100 rounded-lg overflow-hidden">
+                <img 
+                  v-if="selectedProduct.image_url" 
+                  :src="selectedProduct.image_url" 
+                  :alt="selectedProduct.name" 
+                  class="w-full h-full object-cover"
+                  @error="handleImageError"
+                />
+                <div v-else class="w-full h-full flex items-center justify-center">
+                  <svg class="h-16 w-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+            
+            <div class="flex-1 space-y-4">
+              <div>
+                <h4 class="text-2xl font-bold text-gray-900">{{ selectedProduct.name }}</h4>
+                <p class="text-gray-600">SKU: {{ selectedProduct.sku }}</p>
+              </div>
+              
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <span class="font-semibold text-gray-700">Category:</span>
+                  <p class="text-gray-600">{{ selectedProduct.category || 'N/A' }}</p>
+                </div>
+                <div>
+                  <span class="font-semibold text-gray-700">Supplier:</span>
+                  <p class="text-gray-600">{{ selectedProduct.supplier || 'N/A' }}</p>
+                </div>
+                <div>
+                  <span class="font-semibold text-gray-700">Purchase Price:</span>
+                  <p class="text-gray-600">{{ selectedProduct.purchase_price ? selectedProduct.purchase_price + ' FCFA' : 'N/A' }}</p>
+                </div>
+                <div>
+                  <span class="font-semibold text-gray-700">Selling Price:</span>
+                  <p class="text-gray-600">{{ selectedProduct.selling_price ? selectedProduct.selling_price + ' FCFA' : 'N/A' }}</p>
+                </div>
+                <div>
+                  <span class="font-semibold text-gray-700">Stock Quantity:</span>
+                  <p class="text-gray-600">{{ selectedProduct.stock_quantity || 'N/A' }}</p>
+                </div>
+                <div>
+                  <span class="font-semibold text-gray-700">Status:</span>
+                  <span :class="getStatusClass(selectedProduct.status)" class="px-2 py-1 rounded text-xs">
+                    {{ selectedProduct.status || 'N/A' }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Product Description -->
+          <div v-if="selectedProduct.description">
+            <h5 class="font-semibold text-gray-700 mb-2">Description:</h5>
+            <p class="text-gray-600">{{ selectedProduct.description }}</p>
+          </div>
+          
+          <!-- Product Link -->
+          <div v-if="selectedProduct.product_link">
+            <h5 class="font-semibold text-gray-700 mb-2">Product Link:</h5>
+            <a 
+              :href="selectedProduct.product_link" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              class="text-blue-600 hover:text-blue-800 underline break-all"
+            >
+              {{ selectedProduct.product_link }}
+            </a>
+            <p class="text-xs text-gray-500 mt-1">Click to view product details</p>
+          </div>
+          
+          <!-- Video if available -->
+          <div v-if="selectedProduct.video_url">
+            <h5 class="font-semibold text-gray-700 mb-2">Product Video:</h5>
+            <div class="aspect-video bg-gray-100 rounded-lg overflow-hidden">
+              <video 
+                :src="selectedProduct.video_url" 
+                controls 
+                class="w-full h-full"
+                v-if="selectedProduct.video_url"
+              >
+                Your browser does not support the video tag.
+              </video>
+            </div>
+          </div>
+        </div>
+        
+        <div class="flex justify-end mt-6">
+          <button @click="closeProductModal" class="px-6 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Toast inline -->
     <div v-if="toastMessage" :class="'toast px-4 py-2 rounded text-white '+(toastType==='success'?'bg-green-600':'bg-red-600')">
       {{ toastMessage }}
@@ -636,6 +760,10 @@ const assignmentForm = ref({
   agentId: '',
   notes: ''
 })
+
+// Product details modal refs
+const showProductModal = ref(false)
+const selectedProduct = ref(null)
 
 // Delivery note tracking for invoice download restriction
 const deliveryNotesDownloaded = ref(new Set())
@@ -1296,6 +1424,32 @@ onMounted(() => {
 watch(currentPage, () => {
   goToPage.value = ''
 })
+
+// Product modal functions
+const showProductDetails = (order) => {
+  const product = order?.product || {}
+  const merged = { ...product }
+  if (!merged.product_link && order?.stock && order.stock.product_link) {
+    merged.product_link = order.stock.product_link
+  }
+  if (!merged.description && order?.stock && order.stock.description) {
+    merged.description = order.stock.description
+  }
+  selectedProduct.value = merged
+  showProductModal.value = true
+}
+
+const closeProductModal = () => {
+  showProductModal.value = false
+  selectedProduct.value = null
+}
+
+
+const handleImageError = (event) => {
+  event.target.style.display = 'none'
+  event.target.nextElementSibling.style.display = 'flex'
+}
+
 </script>
 
 <style scoped>

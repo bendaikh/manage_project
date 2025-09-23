@@ -2,7 +2,9 @@
   <div class="max-w-7xl mx-auto p-4 lg:p-6">
     <!-- Header -->
     <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-      <h2 class="text-xl lg:text-2xl font-bold">Stock Globale - Global Inventory Management</h2>
+      <div>
+        <h2 class="text-xl lg:text-2xl font-bold">Stock Globale - Global Inventory Management</h2>
+      </div>
       <button @click="openTransferModal" 
               class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -181,12 +183,12 @@
               <td class="px-4 py-4 whitespace-nowrap">
                 <div class="flex items-center">
                   <img v-if="stock.photo" :src="storageUrl(stock.photo)" 
-                       class="w-10 h-10 object-cover rounded mr-3" />
+                       class="w-10 h-10 object-cover rounded mr-3" 
+                       @error="$event.target.style.display='none'" />
                   <div>
                     <div class="text-sm font-medium text-gray-900">
                       {{ stock.product ? stock.product.name : stock.title }}
                     </div>
-                    <div class="text-sm text-gray-500">{{ stock.description || 'No description' }}</div>
                     <div v-if="stock.product" class="text-xs text-blue-600">
                       SKU: {{ stock.product.sku || 'N/A' }} | Category: {{ stock.product.category || 'N/A' }}
                     </div>
@@ -272,7 +274,17 @@
                 <div class="text-xs text-gray-400">by {{ stock.last_updated_by }}</div>
               </td>
               <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
-                <div class="flex gap-2">
+                <div class="flex gap-2 flex-wrap">
+                  <!-- Product modification action - Edit only -->
+                  <button v-if="isAdmin && stock.product" @click="editProduct(stock.product)" 
+                          class="p-2 text-violet-500 hover:text-violet-700 hover:bg-violet-50 rounded transition-colors" 
+                          title="Edit Product">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                    </svg>
+                  </button>
+                  
+                  <!-- Stock-specific actions -->
                   <button @click="openUpsellModal(stock)" 
                           class="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors"
                           title="Add Upsell">
@@ -746,7 +758,10 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch, computed } from 'vue'
+import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
+
+// Define emits
+const emit = defineEmits(['edit-product'])
 
 // Reactive data
 const stocks = ref([])
@@ -1357,10 +1372,34 @@ const deleteUpsell = async (upsellId) => {
   }
 }
 
+// Product modification methods (same as in ProductList)
+const editProduct = (product) => {
+  // Emit event to parent to handle editing
+  emit('edit-product', product)
+}
+
+// Listen for shipment validation events to refresh stock data
+const handleShipmentValidated = (event) => {
+  // Refresh stock data when a shipment is validated
+  fetchStocks()
+  fetchStatistics()
+  
+  // Show a notification to inform user that stock has been updated
+  showNotification('Stock data updated after shipment validation', 'success')
+}
+
 // Initialize
 onMounted(() => {
   fetchStocks()
   fetchStatistics()
   fetchFilterOptions()
+  
+  // Listen for shipment validation events
+  window.addEventListener('shipment-validated', handleShipmentValidated)
+})
+
+// Cleanup event listener on unmount
+onUnmounted(() => {
+  window.removeEventListener('shipment-validated', handleShipmentValidated)
 })
 </script>

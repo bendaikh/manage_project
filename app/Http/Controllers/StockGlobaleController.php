@@ -36,12 +36,19 @@ class StockGlobaleController extends Controller
         
         // Use actual stock quantities from the database and add warehouse distribution
         $stocks->getCollection()->transform(function ($stock) {
+            // Add computed properties (not database columns)
             $stock->total_delivered_quantity = $stock->delivered_quantity ?? 0;
             $stock->total_in_progress_quantity = $stock->in_progress_quantity ?? 0;
             $stock->total_damaged_quantity = $stock->damaged_quantity ?? 0;
             
             // Get all warehouses where this product exists
             $stock->warehouse_distribution = $this->getProductWarehouseDistribution($stock);
+            
+            // Ensure stock is linked to a product (but don't save the model yet)
+            if (!$stock->product_id) {
+                $this->syncStockWithProduct($stock);
+                $stock->load('product'); // Reload the product relationship
+            }
             
             return $stock;
         });
@@ -967,5 +974,57 @@ class StockGlobaleController extends Controller
                 $product->update(['stock_quantity' => 0]);
             }
         }
+    }
+
+    /**
+     * Sync stock with product - create or link to existing product
+     */
+    private function syncStockWithProduct($stock)
+    {
+        \Log::info("Syncing stock with product", [
+            'stock_id' => $stock->id,
+            'stock_title' => $stock->title,
+            'stock_reference' => $stock->reference,
+            'current_product_id' => $stock->product_id
+        ]);
+        
+        // Try to find existing product by SKU/reference
+        $product = Product::where('sku', $stock->reference)->first();
+        
+        if (!$product) {
+            // Try to find by name
+            $product = Product::where('name', $stock->title)->first();
+        }
+        
+        if (!$product) {
+            // Create new product from stock data
+            $sellerName = $stock->seller ? $stock->seller->name : 'Unknown Seller';
+            
+            $product = Product::create([
+                'name' => $stock->title,
+                'sku' => $stock->reference,
+                'category' => 'Stock Products',
+                'supplier' => $sellerName,
+                'seller_id' => $stock->seller_id,
+                'seller' => $sellerName,
+                'purchase_price' => $stock->purchase_price ?? 0,
+                'selling_price' => $stock->selling_price ?? 0,
+                'stock_quantity' => $stock->remaining_quantity ?? 0,
+                'status' => 'In Stock',
+                'image_url' => $stock->photo ? "/storage/{$stock->photo}" : null,
+                'description' => $stock->description,
+            ]);
+            
+            \Log::info("Created new product", ['product_id' => $product->id, 'product_name' => $product->name]);
+        } else {
+            \Log::info("Found existing product", ['product_id' => $product->id, 'product_name' => $product->name]);
+        }
+        
+        // Link stock to product (only update the product_id field)
+        \DB::table('stocks')->where('id', $stock->id)->update(['product_id' => $product->id]);
+        
+        \Log::info("Linked stock to product", ['stock_id' => $stock->id, 'product_id' => $product->id]);
+        
+        return $product;
     }
 }

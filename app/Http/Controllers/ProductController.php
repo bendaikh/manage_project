@@ -328,4 +328,28 @@ class ProductController extends Controller
             return response()->json(['message' => 'Failed to update stock quantity'], 500);
         }
     }
+
+    /**
+     * Update product link for a specific product
+     */
+    public function updateProductLink(Request $request, Product $product)
+    {
+        $validator = Validator::make($request->all(), [
+            'product_link' => 'nullable|url|max:1024'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['message' => $validator->errors()->first()], 422);
+        }
+
+        $oldLink = $product->product_link;
+        $product->update(['product_link' => $request->product_link]);
+        
+        $this->logAction('Product Link Updated', "Updated product link for {$product->name}: {$oldLink} → {$request->product_link}", ['product_id' => $product->id]);
+
+        return response()->json([
+            'message' => 'Product link updated successfully',
+            'product' => $product
+        ]);
+    }
 } 
