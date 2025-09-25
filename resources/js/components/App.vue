@@ -145,6 +145,31 @@
             </div>
           </div>
 
+          <!-- Products (not for sellers) -->
+          <div v-if="hasProductsPermission && !isSeller">
+            <button @click="toggleProductsMenu" class="w-full flex items-center justify-between px-4 py-3 text-white rounded-lg hover:bg-blue-800">
+              <div class="flex items-center space-x-3">
+                <svg class="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                </svg>
+                <span>Products</span>
+              </div>
+              <ChevronDownIcon :class="['h-4 w-4 text-white transition-transform', isProductsMenuOpen ? 'rotate-180' : '']" />
+            </button>
+            
+            <!-- Products Sub-menu -->
+            <div v-show="isProductsMenuOpen" class="mt-1 ml-4 space-y-1">
+              <button v-if="hasCreateProductsPermission" type="button" @click="handleShowAddProduct" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
+                <PlusIcon class="h-4 w-4" />
+                <span>Create Product</span>
+              </button>
+              <button v-if="hasProductsPermission" type="button" @click="handleShowProductList" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
+                <ListIcon class="h-4 w-4" />
+                <span>All Products</span>
+              </button>
+            </div>
+          </div>
+
           <!-- Product Offers (not for sellers) -->
           <div v-if="!isSeller">
             <button type="button" @click="handleShowProductOffers" class="w-full flex items-center space-x-3 px-4 py-3 text-white rounded-lg hover:bg-blue-800">
