@@ -14,7 +14,15 @@
 
     <!-- Daily Invoices Tab (only for non-sellers) -->
     <div v-if="!isSeller && activeTab === 'daily'" class="bg-white rounded-lg shadow p-4 overflow-x-auto">
-      <h3 class="text-lg font-semibold mb-4">Daily Invoices</h3>
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-semibold">Daily Invoices</h3>
+        <div class="flex gap-2">
+          <select v-model="dailySellerFilter" @change="fetchDailyInvoices" class="px-3 py-2 border rounded-md text-sm">
+            <option value="">All Sellers</option>
+            <option v-for="seller in dailySellers" :key="seller" :value="seller">{{ seller }}</option>
+          </select>
+        </div>
+      </div>
       <table class="min-w-full bg-white rounded-lg shadow">
         <thead class="bg-gray-100">
           <tr>
@@ -22,6 +30,7 @@
             <th class="px-3 py-2 text-left text-xs font-bold">Invoice Date</th>
             <th class="px-3 py-2 text-left text-xs font-bold">Delivered Orders</th>
             <th class="px-3 py-2 text-left text-xs font-bold">Total Amount</th>
+            <th class="px-3 py-2 text-left text-xs font-bold">Status</th>
             <th class="px-3 py-2 text-left text-xs font-bold">Actions</th>
           </tr>
         </thead>
@@ -32,10 +41,19 @@
             <td class="px-3 py-2">{{ invoice.order_count }}</td>
             <td class="px-3 py-2 font-bold">{{ formatAmount(invoice.total_amount) }} FCFA</td>
             <td class="px-3 py-2">
+              <span :class="invoice.is_paid ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'" class="px-2 py-1 rounded-full text-xs font-medium">
+                {{ invoice.is_paid ? 'Paid' : 'Unpaid' }}
+              </span>
+            </td>
+            <td class="px-3 py-2">
               <div class="flex gap-2">
                 <button @click="downloadInvoice(invoice, 'daily')" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm flex items-center gap-2">
                   <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                   Download/View
+                </button>
+                <button v-if="!invoice.is_paid" @click="markAsPaid(invoice, 'daily')" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm flex items-center gap-2">
+                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                  Mark as Paid
                 </button>
                 <button v-if="isSuperadmin" @click="deleteInvoice(invoice, 'daily')" class="px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-sm flex items-center gap-1" title="Delete Invoice">
                   <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -47,7 +65,7 @@
             </td>
           </tr>
           <tr v-if="dailyInvoices.length === 0">
-            <td colspan="5" class="text-center py-6 text-gray-400">No daily invoices found.</td>
+            <td colspan="6" class="text-center py-6 text-gray-400">No daily invoices found.</td>
           </tr>
         </tbody>
       </table>
@@ -71,9 +89,15 @@
     <div v-if="activeTab === 'weekly'" class="bg-white rounded-lg shadow p-4 overflow-x-auto">
       <div class="flex justify-between items-center mb-4">
         <h3 class="text-lg font-semibold">Weekly Invoices</h3>
-        <button v-if="!isSeller" @click="showGenerateModal = true" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm">
-          Generate Weekly Invoices
-        </button>
+        <div class="flex gap-2">
+          <select v-model="weeklySellerFilter" @change="fetchWeeklyInvoices" class="px-3 py-2 border rounded-md text-sm">
+            <option value="">All Sellers</option>
+            <option v-for="seller in weeklySellers" :key="seller" :value="seller">{{ seller }}</option>
+          </select>
+          <button v-if="!isSeller" @click="showGenerateModal = true" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm">
+            Generate Weekly Invoices
+          </button>
+        </div>
       </div>
       
       <table class="min-w-full bg-white rounded-lg shadow">
@@ -84,6 +108,7 @@
             <th class="px-3 py-2 text-left text-xs font-bold">Orders</th>
             <th class="px-3 py-2 text-left text-xs font-bold">Total Amount</th>
             <th class="px-3 py-2 text-left text-xs font-bold">Status</th>
+            <th class="px-3 py-2 text-left text-xs font-bold">Payment</th>
             <th class="px-3 py-2 text-left text-xs font-bold">Actions</th>
           </tr>
         </thead>
@@ -96,6 +121,11 @@
             <td class="px-3 py-2">
               <span :class="getStatusClass(invoice.status)" class="px-2 py-1 rounded-full text-xs font-medium">
                 {{ invoice.status }}
+              </span>
+            </td>
+            <td class="px-3 py-2">
+              <span :class="invoice.is_paid ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'" class="px-2 py-1 rounded-full text-xs font-medium">
+                {{ invoice.is_paid ? 'Paid' : 'Unpaid' }}
               </span>
             </td>
             <td class="px-3 py-2">
@@ -118,6 +148,12 @@
                   </svg>
                   Download PDF
                 </button>
+                <button v-if="invoice.status === 'approved' && !invoice.is_paid" @click="markAsPaid(invoice, 'weekly')" class="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-xs flex items-center gap-1">
+                  <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                  </svg>
+                  Mark as Paid
+                </button>
                 <button v-if="isSuperadmin" @click="deleteInvoice(invoice, 'weekly')" class="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-xs flex items-center gap-1" title="Delete Invoice">
                   <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
@@ -128,7 +164,7 @@
             </td>
           </tr>
           <tr v-if="weeklyInvoices.length === 0">
-            <td colspan="6" class="text-center py-6 text-gray-400">No weekly invoices found.</td>
+            <td colspan="7" class="text-center py-6 text-gray-400">No weekly invoices found.</td>
           </tr>
         </tbody>
       </table>
@@ -193,6 +229,10 @@ const isSuperadmin = computed(() => {
 })
 const dailyInvoices = ref([])
 const weeklyInvoices = ref([])
+const dailySellers = ref([])
+const weeklySellers = ref([])
+const dailySellerFilter = ref('')
+const weeklySellerFilter = ref('')
 const showGenerateModal = ref(false)
 const generateForm = ref({
   weekStart: '',
@@ -223,7 +263,11 @@ const weeklyPageNumbers = computed(() => {
 
 // Methods
 const fetchDailyInvoices = async () => {
-  const res = await fetch(`/seller-invoices?page=${dailyCurrentPage.value}&per_page=${perPage.value}`)
+  let url = `/seller-invoices?page=${dailyCurrentPage.value}&per_page=${perPage.value}`
+  if (dailySellerFilter.value) {
+    url += `&seller=${encodeURIComponent(dailySellerFilter.value)}`
+  }
+  const res = await fetch(url)
   if (res.ok) {
     const data = await res.json()
     dailyInvoices.value = data.data
@@ -233,7 +277,11 @@ const fetchDailyInvoices = async () => {
 }
 
 const fetchWeeklyInvoices = async () => {
-  const res = await fetch(`/weekly-seller-invoices?page=${weeklyCurrentPage.value}&per_page=${perPage.value}`)
+  let url = `/weekly-seller-invoices?page=${weeklyCurrentPage.value}&per_page=${perPage.value}`
+  if (weeklySellerFilter.value) {
+    url += `&seller=${encodeURIComponent(weeklySellerFilter.value)}`
+  }
+  const res = await fetch(url)
   if (res.ok) {
     const data = await res.json()
     weeklyInvoices.value = data.data
@@ -255,6 +303,55 @@ const changeWeeklyPage = (page) => {
 }
 
 const formatAmount = (n) => Number(n).toLocaleString()
+
+const fetchDailySellers = async () => {
+  const res = await fetch('/seller-invoices/sellers')
+  if (res.ok) {
+    dailySellers.value = await res.json()
+  }
+}
+
+const fetchWeeklySellers = async () => {
+  const res = await fetch('/weekly-seller-invoices/sellers')
+  if (res.ok) {
+    weeklySellers.value = await res.json()
+  }
+}
+
+const markAsPaid = async (invoice, type) => {
+  if (!confirm(`Are you sure you want to mark this ${type} invoice as paid?`)) {
+    return
+  }
+
+  try {
+    const endpoint = type === 'weekly' 
+      ? `/weekly-seller-invoices/${invoice.id}/mark-paid`
+      : `/seller-invoices/${invoice.id}/mark-paid`
+    
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+      }
+    })
+
+    if (response.ok) {
+      alert(`${type.charAt(0).toUpperCase() + type.slice(1)} invoice marked as paid successfully`)
+      if (type === 'weekly') {
+        fetchWeeklyInvoices()
+      } else {
+        fetchDailyInvoices()
+      }
+    } else {
+      const errorData = await response.json()
+      alert(`Error: ${errorData.error}`)
+    }
+  } catch (error) {
+    console.error('Mark as paid error:', error)
+    alert(`Failed to mark ${type} invoice as paid`)
+  }
+}
 
 const getStatusClass = (status) => {
   switch (status) {
@@ -425,6 +522,8 @@ onMounted(() => {
     fetchWeeklyInvoices()
   } else {
     fetchDailyInvoices()
+    fetchDailySellers()
   }
+  fetchWeeklySellers()
 })
 </script> 

@@ -16,10 +16,15 @@ class SellerInvoice extends Model
         'order_count',
         'total_amount',
         'pdf_path',
+        'is_paid',
+        'paid_at',
+        'paid_by',
     ];
 
     protected $casts = [
         'invoice_date' => 'date',
+        'is_paid' => 'boolean',
+        'paid_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
@@ -42,5 +47,21 @@ class SellerInvoice extends Model
     public function getInvoiceDateAttribute($value)
     {
         return $value ? Carbon::parse($value)->toDateString() : null;
+    }
+
+    /**
+     * Get the user who marked this invoice as paid
+     */
+    public function paidBy()
+    {
+        return $this->belongsTo(User::class, 'paid_by');
+    }
+
+    /**
+     * Check if the invoice is paid
+     */
+    public function isPaid()
+    {
+        return $this->is_paid;
     }
 } 

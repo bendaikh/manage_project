@@ -101,9 +101,11 @@ Route::middleware(['auth'])->group(function () {
 
 // Weekly Seller Invoice routes
 Route::get('/weekly-seller-invoices', [App\Http\Controllers\WeeklySellerInvoiceController::class, 'index']);
+Route::get('/weekly-seller-invoices/sellers', [App\Http\Controllers\WeeklySellerInvoiceController::class, 'getSellers']);
 Route::post('/weekly-seller-invoices/generate', [App\Http\Controllers\WeeklySellerInvoiceController::class, 'generateWeeklyInvoices']);
 Route::post('/weekly-seller-invoices/{id}/approve', [App\Http\Controllers\WeeklySellerInvoiceController::class, 'approve']);
 Route::post('/weekly-seller-invoices/{id}/reject', [App\Http\Controllers\WeeklySellerInvoiceController::class, 'reject']);
+Route::post('/weekly-seller-invoices/{id}/mark-paid', [App\Http\Controllers\WeeklySellerInvoiceController::class, 'markAsPaid']);
 Route::delete('/weekly-seller-invoices/{id}', [App\Http\Controllers\WeeklySellerInvoiceController::class, 'destroy'])->middleware('role:superadmin');
 Route::get('/weekly-seller-invoices/{id}/download', [App\Http\Controllers\WeeklySellerInvoiceController::class, 'download']);
 
@@ -408,7 +410,9 @@ Route::middleware(['auth'])->group(function () {
 });
 
 Route::get('/seller-invoices', [\App\Http\Controllers\SellerInvoiceController::class, 'index']);
+Route::get('/seller-invoices/sellers', [\App\Http\Controllers\SellerInvoiceController::class, 'getSellers']);
 Route::get('/seller-invoices/{id}/download', [\App\Http\Controllers\SellerInvoiceController::class, 'download']);
+Route::post('/seller-invoices/{id}/mark-paid', [\App\Http\Controllers\SellerInvoiceController::class, 'markAsPaid']);
 Route::delete('/seller-invoices/{id}', [\App\Http\Controllers\SellerInvoiceController::class, 'destroy'])->middleware('role:superadmin');
 
 Route::middleware(['auth', 'verified'])->group(function () {

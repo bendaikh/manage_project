@@ -21,12 +21,17 @@ class WeeklySellerInvoice extends Model
         'notes',
         'approved_by',
         'approved_at',
+        'is_paid',
+        'paid_at',
+        'paid_by',
     ];
 
     protected $casts = [
         'week_start_date' => 'date',
         'week_end_date' => 'date',
         'approved_at' => 'datetime',
+        'is_paid' => 'boolean',
+        'paid_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
@@ -111,5 +116,21 @@ class WeeklySellerInvoice extends Model
     public function isRejected()
     {
         return $this->status === 'rejected';
+    }
+
+    /**
+     * Get the user who marked this invoice as paid
+     */
+    public function paidBy()
+    {
+        return $this->belongsTo(User::class, 'paid_by');
+    }
+
+    /**
+     * Check if the invoice is paid
+     */
+    public function isPaid()
+    {
+        return $this->is_paid;
     }
 }

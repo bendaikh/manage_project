@@ -21,6 +21,7 @@ class WeeklySellerInvoiceController extends Controller
     public function index(Request $request)
     {
         $perPage = $request->input('per_page', 10);
+        $sellerFilter = $request->input('seller');
 
         $query = WeeklySellerInvoice::with('approver')->orderByDesc('week_start_date');
 
@@ -28,6 +29,11 @@ class WeeklySellerInvoiceController extends Controller
         if (Auth::check() && Auth::user()->hasRole('seller')) {
             $query->where('seller', Auth::user()->name)
                   ->where('status', 'approved');
+        }
+
+        // Apply seller filter if provided
+        if ($sellerFilter) {
+            $query->where('seller', $sellerFilter);
         }
 
         // Get paginated results and append week_period attribute
@@ -38,6 +44,20 @@ class WeeklySellerInvoiceController extends Controller
         });
         
         return response()->json($invoices);
+    }
+
+    /**
+     * Get list of unique sellers for filter dropdown
+     */
+    public function getSellers()
+    {
+        $sellers = WeeklySellerInvoice::distinct()
+            ->pluck('seller')
+            ->filter()
+            ->sort()
+            ->values();
+
+        return response()->json($sellers);
     }
 
     /**
@@ -230,6 +250,39 @@ class WeeklySellerInvoiceController extends Controller
         }
 
         return response()->download(Storage::path($invoice->pdf_path));
+    }
+
+    /**
+     * Mark a weekly invoice as paid
+     */
+    public function markAsPaid($id)
+    {
+        $invoice = WeeklySellerInvoice::findOrFail($id);
+
+        if ($invoice->is_paid) {
+            return response()->json(['error' => 'Invoice is already marked as paid'], 400);
+        }
+
+        if ($invoice->status !== 'approved') {
+            return response()->json(['error' => 'Only approved invoices can be marked as paid'], 400);
+        }
+
+        try {
+            $invoice->update([
+                'is_paid' => true,
+                'paid_at' => now(),
+                'paid_by' => Auth::id(),
+            ]);
+
+            return response()->json([
+                'message' => 'Invoice marked as paid successfully',
+                'invoice' => $invoice->load(['approver', 'paidBy'])
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to mark weekly invoice as paid: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to mark invoice as paid'], 500);
+        }
     }
 
     /**
