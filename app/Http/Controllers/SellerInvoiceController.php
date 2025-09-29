@@ -167,6 +167,35 @@ class SellerInvoiceController extends Controller
     }
 
     /**
+     * Revoke payment status of a seller invoice
+     */
+    public function revokePayment($id)
+    {
+        $invoice = SellerInvoice::findOrFail($id);
+
+        if (!$invoice->is_paid) {
+            return response()->json(['error' => 'Invoice is not marked as paid'], 400);
+        }
+
+        try {
+            $invoice->update([
+                'is_paid' => false,
+                'paid_at' => null,
+                'paid_by' => null,
+            ]);
+
+            return response()->json([
+                'message' => 'Payment status revoked successfully',
+                'invoice' => $invoice
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to revoke payment for seller invoice: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to revoke payment status'], 500);
+        }
+    }
+
+    /**
      * Delete a seller invoice (superadmin only)
      */
     public function destroy($id)

@@ -286,6 +286,35 @@ class WeeklySellerInvoiceController extends Controller
     }
 
     /**
+     * Revoke payment status of a weekly invoice
+     */
+    public function revokePayment($id)
+    {
+        $invoice = WeeklySellerInvoice::findOrFail($id);
+
+        if (!$invoice->is_paid) {
+            return response()->json(['error' => 'Invoice is not marked as paid'], 400);
+        }
+
+        try {
+            $invoice->update([
+                'is_paid' => false,
+                'paid_at' => null,
+                'paid_by' => null,
+            ]);
+
+            return response()->json([
+                'message' => 'Payment status revoked successfully',
+                'invoice' => $invoice->load(['approver', 'paidBy'])
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to revoke payment for weekly invoice: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to revoke payment status'], 500);
+        }
+    }
+
+    /**
      * Delete a weekly invoice (superadmin only)
      */
     public function destroy($id)

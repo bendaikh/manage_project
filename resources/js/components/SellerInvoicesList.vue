@@ -55,6 +55,10 @@
                   <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                   Mark as Paid
                 </button>
+                <button v-if="invoice.is_paid" @click="revokePayment(invoice, 'daily')" class="px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 text-sm flex items-center gap-2">
+                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                  Revoke Payment
+                </button>
                 <button v-if="isSuperadmin" @click="deleteInvoice(invoice, 'daily')" class="px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-sm flex items-center gap-1" title="Delete Invoice">
                   <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
@@ -153,6 +157,12 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                   </svg>
                   Mark as Paid
+                </button>
+                <button v-if="invoice.status === 'approved' && invoice.is_paid" @click="revokePayment(invoice, 'weekly')" class="px-3 py-1 bg-orange-600 text-white rounded hover:bg-orange-700 text-xs flex items-center gap-1">
+                  <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                  </svg>
+                  Revoke Payment
                 </button>
                 <button v-if="isSuperadmin" @click="deleteInvoice(invoice, 'weekly')" class="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-xs flex items-center gap-1" title="Delete Invoice">
                   <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -350,6 +360,41 @@ const markAsPaid = async (invoice, type) => {
   } catch (error) {
     console.error('Mark as paid error:', error)
     alert(`Failed to mark ${type} invoice as paid`)
+  }
+}
+
+const revokePayment = async (invoice, type) => {
+  if (!confirm(`Are you sure you want to revoke the payment status for this ${type} invoice? This will mark it as unpaid.`)) {
+    return
+  }
+
+  try {
+    const endpoint = type === 'weekly' 
+      ? `/weekly-seller-invoices/${invoice.id}/revoke-payment`
+      : `/seller-invoices/${invoice.id}/revoke-payment`
+    
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+      }
+    })
+
+    if (response.ok) {
+      alert(`${type.charAt(0).toUpperCase() + type.slice(1)} invoice payment status revoked successfully`)
+      if (type === 'weekly') {
+        fetchWeeklyInvoices()
+      } else {
+        fetchDailyInvoices()
+      }
+    } else {
+      const errorData = await response.json()
+      alert(`Error: ${errorData.error}`)
+    }
+  } catch (error) {
+    console.error('Revoke payment error:', error)
+    alert(`Failed to revoke payment status for ${type} invoice`)
   }
 }
 
