@@ -20,6 +20,11 @@ class WeeklySellerInvoiceController extends Controller
      */
     public function index(Request $request)
     {
+        // Check if user has permission to view seller invoices
+        if (!Auth::user()->hasPermission('view_seller_invoices')) {
+            return response()->json(['error' => 'Unauthorized. You do not have permission to view seller invoices.'], 403);
+        }
+
         $perPage = $request->input('per_page', 10);
         $sellerFilter = $request->input('seller');
 
@@ -65,6 +70,11 @@ class WeeklySellerInvoiceController extends Controller
      */
     public function generateWeeklyInvoices(Request $request)
     {
+        // Check if user has permission to generate seller invoices
+        if (!Auth::user()->hasPermission('generate_seller_invoices')) {
+            return response()->json(['error' => 'Unauthorized. You do not have permission to generate seller invoices.'], 403);
+        }
+
         $weekStart = $request->input('week_start');
         $weekEnd = $request->input('week_end');
 
@@ -160,6 +170,11 @@ class WeeklySellerInvoiceController extends Controller
      */
     public function approve(Request $request, $id)
     {
+        // Check if user has permission to approve seller invoices
+        if (!Auth::user()->hasPermission('approve_seller_invoices')) {
+            return response()->json(['error' => 'Unauthorized. You do not have permission to approve seller invoices.'], 403);
+        }
+
         $invoice = WeeklySellerInvoice::findOrFail($id);
         
         if ($invoice->status !== 'pending') {
@@ -194,6 +209,11 @@ class WeeklySellerInvoiceController extends Controller
      */
     public function reject(Request $request, $id)
     {
+        // Check if user has permission to reject seller invoices
+        if (!Auth::user()->hasPermission('reject_seller_invoices')) {
+            return response()->json(['error' => 'Unauthorized. You do not have permission to reject seller invoices.'], 403);
+        }
+
         $invoice = WeeklySellerInvoice::findOrFail($id);
         
         if ($invoice->status !== 'pending') {
@@ -218,6 +238,11 @@ class WeeklySellerInvoiceController extends Controller
      */
     public function download($id)
     {
+        // Check if user has permission to download seller invoices
+        if (!Auth::user()->hasPermission('download_seller_invoices')) {
+            return response()->json(['error' => 'Unauthorized. You do not have permission to download seller invoices.'], 403);
+        }
+
         $invoice = WeeklySellerInvoice::findOrFail($id);
 
         // Allow download for approved invoices or for preview (pending invoices)
@@ -257,6 +282,11 @@ class WeeklySellerInvoiceController extends Controller
      */
     public function markAsPaid($id)
     {
+        // Check if user has permission to mark seller invoices as paid
+        if (!Auth::user()->hasPermission('mark_seller_invoices_paid')) {
+            return response()->json(['error' => 'Unauthorized. You do not have permission to mark seller invoices as paid.'], 403);
+        }
+
         $invoice = WeeklySellerInvoice::findOrFail($id);
 
         if ($invoice->is_paid) {
@@ -290,6 +320,11 @@ class WeeklySellerInvoiceController extends Controller
      */
     public function revokePayment($id)
     {
+        // Check if user has permission to mark seller invoices as paid (same permission for revoke)
+        if (!Auth::user()->hasPermission('mark_seller_invoices_paid')) {
+            return response()->json(['error' => 'Unauthorized. You do not have permission to revoke payment status.'], 403);
+        }
+
         $invoice = WeeklySellerInvoice::findOrFail($id);
 
         if (!$invoice->is_paid) {

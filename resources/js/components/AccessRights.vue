@@ -241,7 +241,7 @@
 
                 <!-- Dynamic Sections -->
                 <div 
-                  v-for="section in ['roles', 'orders', 'products', 'categories', 'warehouses', 'stock', 'shipments', 'invoices', 'accounting', 'reports', 'history', 'settings']" 
+                  v-for="section in ['roles', 'orders', 'products', 'categories', 'warehouses', 'stock', 'shipments', 'invoices', 'seller_invoices', 'product_offers', 'accounting', 'reports', 'history', 'settings']" 
                   :key="section"
                   class="permission-section border border-gray-200 rounded-lg"
                 >
@@ -349,6 +349,8 @@ const collapsedSections = ref({
   stock: false,
   shipments: false,
   invoices: false,
+  seller_invoices: false,
+  product_offers: false,
   accounting: false,
   reports: false,
   history: false,
@@ -512,6 +514,8 @@ const getPermissionsBySection = (section) => {
     'stock': ['view_stock', 'manage_stock', 'view_stock_global', 'manage_stock_global'],
     'shipments': ['view_shipments', 'create_shipments', 'edit_shipments', 'delete_shipments', 'validate_shipments', 'manage_shipments'],
     'invoices': ['view_invoices', 'create_invoices', 'download_invoices', 'view_delivery_notes', 'create_delivery_notes', 'download_delivery_notes', 'view_delivery_invoices', 'create_delivery_invoices', 'download_delivery_invoices'],
+    'seller_invoices': ['view_seller_invoices', 'create_seller_invoices', 'edit_seller_invoices', 'delete_seller_invoices', 'download_seller_invoices', 'approve_seller_invoices', 'reject_seller_invoices', 'mark_seller_invoices_paid', 'generate_seller_invoices', 'manage_seller_invoices'],
+    'product_offers': ['view_product_offers', 'toggle_product_offers', 'manage_product_offers'],
     'accounting': ['view_accounting', 'view_accounting_overview', 'view_incomes', 'create_incomes', 'edit_incomes', 'delete_incomes', 'manage_incomes', 'view_income_categories', 'create_income_categories', 'edit_income_categories', 'delete_income_categories', 'manage_income_categories', 'view_expenses', 'create_expenses', 'edit_expenses', 'delete_expenses', 'manage_expenses', 'view_expense_categories', 'create_expense_categories', 'edit_expense_categories', 'delete_expense_categories', 'manage_expense_categories', 'view_refunds', 'create_refunds', 'edit_refunds', 'delete_refunds', 'manage_refunds', 'view_accounts', 'create_accounts', 'edit_accounts', 'delete_accounts', 'manage_accounts'],
     'reports': ['view_reports', 'generate_reports', 'export_reports', 'manage_reports'],
     'history': ['view_history', 'manage_history'],
@@ -566,6 +570,8 @@ const getSectionIcon = (section) => {
     'stock': '📋',
     'shipments': '🚚',
     'invoices': '🧾',
+    'seller_invoices': '💼',
+    'product_offers': '🎯',
     'accounting': '💰',
     'reports': '📈',
     'support': '🎧',
@@ -587,6 +593,8 @@ const getSectionBadgeClass = (section) => {
     'stock': 'bg-teal-100 text-teal-800',
     'shipments': 'bg-red-100 text-red-800',
     'invoices': 'bg-cyan-100 text-cyan-800',
+    'seller_invoices': 'bg-amber-100 text-amber-800',
+    'product_offers': 'bg-purple-100 text-purple-800',
     'accounting': 'bg-emerald-100 text-emerald-800',
     'reports': 'bg-violet-100 text-violet-800',
     'support': 'bg-rose-100 text-rose-800',

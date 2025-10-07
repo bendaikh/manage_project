@@ -115,7 +115,7 @@
                 <DocumentTextIcon class="h-4 w-4" />
                 <span>Invoices</span>
               </button>
-              <button type="button" @click="handleShowSellerInvoices" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
+              <button v-if="hasSellerInvoicesPermission" type="button" @click="handleShowSellerInvoices" class="w-full flex items-center space-x-3 px-4 py-2 text-left text-blue-200 rounded-lg hover:bg-blue-800 hover:text-white">
                 <DocumentTextIcon class="h-4 w-4" />
                 <span>Sellers Invoices</span>
               </button>
@@ -170,8 +170,8 @@
             </div>
           </div>
 
-          <!-- Product Offers (not for sellers) -->
-          <div v-if="!isSeller">
+          <!-- Product Offers -->
+          <div v-if="hasProductOffersPermission">
             <button type="button" @click="handleShowProductOffers" class="w-full flex items-center space-x-3 px-4 py-3 text-white rounded-lg hover:bg-blue-800">
               <ListIcon class="h-5 w-5 text-white" />
               <span>Product Offers</span>
@@ -995,6 +995,9 @@ const hasProductsPermission = computed(() => hasPermission('view_products'))
 const hasCreateProductsPermission = computed(() => hasPermission('create_products'))
 const hasEditProductsPermission = computed(() => hasPermission('edit_products'))
 const hasDeleteProductsPermission = computed(() => hasPermission('delete_products'))
+
+// Product Offers permissions
+const hasProductOffersPermission = computed(() => hasPermission('view_product_offers'))
 const hasViewProductDetailsPermission = computed(() => hasPermission('view_product_details'))
 const hasViewProductCatalogPermission = computed(() => hasPermission('view_product_catalog'))
 const hasManageProductsPermission = computed(() => hasPermission('manage_products'))
@@ -1016,6 +1019,18 @@ const hasDownloadDeliveryNotesPermission = computed(() => hasPermission('downloa
 const hasDeliveryInvoicesPermission = computed(() => hasPermission('view_delivery_invoices'))
 const hasCreateDeliveryInvoicesPermission = computed(() => hasPermission('create_delivery_invoices'))
 const hasDownloadDeliveryInvoicesPermission = computed(() => hasPermission('download_delivery_invoices'))
+
+// Seller Invoice permissions
+const hasSellerInvoicesPermission = computed(() => hasPermission('view_seller_invoices'))
+const hasCreateSellerInvoicesPermission = computed(() => hasPermission('create_seller_invoices'))
+const hasEditSellerInvoicesPermission = computed(() => hasPermission('edit_seller_invoices'))
+const hasDeleteSellerInvoicesPermission = computed(() => hasPermission('delete_seller_invoices'))
+const hasDownloadSellerInvoicesPermission = computed(() => hasPermission('download_seller_invoices'))
+const hasApproveSellerInvoicesPermission = computed(() => hasPermission('approve_seller_invoices'))
+const hasRejectSellerInvoicesPermission = computed(() => hasPermission('reject_seller_invoices'))
+const hasMarkSellerInvoicesPaidPermission = computed(() => hasPermission('mark_seller_invoices_paid'))
+const hasGenerateSellerInvoicesPermission = computed(() => hasPermission('generate_seller_invoices'))
+const hasManageSellerInvoicesPermission = computed(() => hasPermission('manage_seller_invoices'))
 
 // Accounting permissions (granular)
 const hasAccountingPermission = computed(() => hasPermission('view_accounting'))

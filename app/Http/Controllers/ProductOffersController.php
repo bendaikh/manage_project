@@ -10,8 +10,8 @@ class ProductOffersController extends Controller
 {
     public function index(Request $request)
     {
-        if (!auth()->user()->hasAnyRole(['admin','manager','superadmin'])) {
-            abort(403);
+        if (!auth()->user()->hasPermissionTo('view_product_offers')) {
+            abort(403, 'You do not have permission to view product offers.');
         }
 
         // Only show products that have corresponding validated shipments
@@ -61,8 +61,8 @@ class ProductOffersController extends Controller
 
     public function toggle(Request $request, $productId)
     {
-        if (!auth()->user()->hasAnyRole(['admin','manager','superadmin'])) {
-            abort(403);
+        if (!auth()->user()->hasPermissionTo('toggle_product_offers')) {
+            abort(403, 'You do not have permission to toggle product offers.');
         }
 
         $product = Product::findOrFail($productId);

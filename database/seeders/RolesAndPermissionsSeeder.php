@@ -188,6 +188,23 @@ class RolesAndPermissionsSeeder extends Seeder
             // History permissions
             ['name' => 'view_history', 'description' => 'Can view action history'],
             ['name' => 'manage_history', 'description' => 'Can manage history (full access)'],
+            
+            // Seller Invoice permissions
+            ['name' => 'view_seller_invoices', 'description' => 'Can view seller invoices list'],
+            ['name' => 'create_seller_invoices', 'description' => 'Can create seller invoices'],
+            ['name' => 'edit_seller_invoices', 'description' => 'Can edit seller invoices'],
+            ['name' => 'delete_seller_invoices', 'description' => 'Can delete seller invoices'],
+            ['name' => 'download_seller_invoices', 'description' => 'Can download seller invoices'],
+            ['name' => 'approve_seller_invoices', 'description' => 'Can approve seller invoices'],
+            ['name' => 'reject_seller_invoices', 'description' => 'Can reject seller invoices'],
+            ['name' => 'mark_seller_invoices_paid', 'description' => 'Can mark seller invoices as paid'],
+            ['name' => 'generate_seller_invoices', 'description' => 'Can generate seller invoices'],
+            ['name' => 'manage_seller_invoices', 'description' => 'Can manage seller invoices (full access)'],
+            
+            // Product Offers permissions
+            ['name' => 'view_product_offers', 'description' => 'Can view product offers list'],
+            ['name' => 'toggle_product_offers', 'description' => 'Can activate/deactivate product offers'],
+            ['name' => 'manage_product_offers', 'description' => 'Can manage product offers (full access)'],
         ];
 
         foreach ($permissions as $permission) {
@@ -220,6 +237,10 @@ class RolesAndPermissionsSeeder extends Seeder
                 'name' => 'sales_agent',
                 'description' => 'Sales agent with order and product permissions',
             ],
+            [
+                'name' => 'seller',
+                'description' => 'Seller with limited access to their own invoices',
+            ],
         ];
 
         foreach ($roles as $role) {
@@ -233,6 +254,7 @@ class RolesAndPermissionsSeeder extends Seeder
         $agentRole = Role::where('name', 'agent')->first();
         $accountantRole = Role::where('name', 'accountant')->first();
         $salesAgentRole = Role::where('name', 'sales_agent')->first();
+        $sellerRole = Role::where('name', 'seller')->first();
 
         // Superadmin gets all permissions
         $superadminRole->permissions()->syncWithoutDetaching(Permission::all());
@@ -290,6 +312,9 @@ class RolesAndPermissionsSeeder extends Seeder
                 // Stock Global (for sourcing functionality)
                 'view_stock_global', 'manage_stock_global',
                 
+                // Product Offers (full access)
+                'view_product_offers', 'toggle_product_offers', 'manage_product_offers',
+                
                 // Reports
                 'view_reports', 'generate_reports', 'export_reports',
                 
@@ -327,6 +352,9 @@ class RolesAndPermissionsSeeder extends Seeder
                 
                 // Warehouses (view only)
                 'view_warehouses', 'view_warehouse_details',
+                
+                // Product Offers (view only)
+                'view_product_offers',
                 
             ])->get()
         );
@@ -395,6 +423,24 @@ class RolesAndPermissionsSeeder extends Seeder
                 
                 // Stock Global (for sourcing functionality)
                 'view_stock_global',
+                
+                // Product Offers (full access)
+                'view_product_offers', 'toggle_product_offers', 'manage_product_offers',
+                
+                // Basic accounting (view only)
+                'view_accounting', 'view_incomes', 'view_expenses',
+                
+            ])->get()
+        );
+
+        // Seller gets limited permissions for their own invoices
+        $sellerRole->permissions()->syncWithoutDetaching(
+            Permission::whereIn('name', [
+                // Dashboard
+                'view_dashboard', 'view_dashboard_overview',
+                
+                // Seller Invoices (limited - only their own)
+                'view_seller_invoices', 'download_seller_invoices',
                 
                 // Basic accounting (view only)
                 'view_accounting', 'view_incomes', 'view_expenses',

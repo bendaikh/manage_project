@@ -8,8 +8,28 @@
     </div>
     <!-- Filter Orders -->
     <div class="bg-white rounded-lg shadow p-4 mb-6">
-      <div class="flex flex-wrap gap-2 mb-4">
-        <button v-for="range in dateRanges" :key="range" @click="setDateRange(range)" class="px-2 lg:px-3 py-1 border rounded text-xs lg:text-sm" :class="{ 'bg-gray-200': filters.dateRange === range }">{{ range }}</button>
+      <!-- Date Range Filter -->
+      <div class="mb-6">
+        <h3 class="font-semibold text-lg mb-4">Date Range Filter</h3>
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+          <div class="md:col-span-5">
+            <label class="block text-sm font-medium mb-1">Start Date</label>
+            <input v-model="startDate" type="date" class="w-full border rounded px-3 py-2" />
+          </div>
+          <div class="md:col-span-5">
+            <label class="block text-sm font-medium mb-1">End Date</label>
+            <input v-model="endDate" type="date" class="w-full border rounded px-3 py-2" />
+          </div>
+          <div class="md:col-span-2 flex gap-2">
+            <button @click="applyDateFilter" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Apply Filter</button>
+            <button @click="resetDateFilter" class="flex-1 px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">Reset</button>
+          </div>
+        </div>
+        <div class="flex flex-wrap gap-2 mt-4">
+          <button v-for="opt in quickRanges" :key="opt.label" @click="setQuickRange(opt)" class="px-3 py-1 text-sm rounded border hover:bg-gray-100" :class="{ 'bg-blue-50 text-blue-600': activeRange === opt.label }">
+            {{ opt.label }}
+          </button>
+        </div>
       </div>
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
         <input v-model="filters.search" @keyup.enter="fetchOrders" type="text" placeholder="Search by Order ID, Product, Client, Phone..." class="w-full border rounded px-3 py-2 text-sm lg:text-base" />
@@ -688,10 +708,22 @@ const allowedStatuses = computed(() => {
   if (props.delivery) return statusConfig.delivery
   return statusConfig.all
 })
-const agents = ref(['Mme'])
+const agents = ref([])
 const zones = ref([])
-const dateRanges = ['Today', 'Yesterday', 'This Month', 'Last Month', 'Custom Date']
-const filters = ref({ search: '', seller: '', status: '', agent: '', zone: '', dateRange: '' })
+const filters = ref({ search: '', seller: '', status: '', agent: '', zone: '' })
+
+// Date range filter variables
+const startDate = ref('')
+const endDate = ref('')
+const activeRange = ref('')
+const quickRanges = [
+  { label: 'Today', days: 0 },
+  { label: 'Yesterday', days: 1 },
+  { label: 'Last 7 days', days: 7 },
+  { label: 'Last 30 days', days: 30 },
+  { label: 'This Month', days: null },
+  { label: 'Last Month', days: null }
+]
 const showDetails = ref(false)
 const selectedOrder = ref(null)
 const showEdit = ref(false)
@@ -810,7 +842,10 @@ const fetchOrders = async () => {
   }
   if (filters.value.agent) url += `&agent=${encodeURIComponent(filters.value.agent)}`
   if (filters.value.zone) url += `&zone=${encodeURIComponent(filters.value.zone)}`
-  if (filters.value.dateRange) url += `&dateRange=${encodeURIComponent(filters.value.dateRange)}`
+  if (startDate.value && endDate.value) {
+    url += `&start_date=${encodeURIComponent(startDate.value)}`
+    url += `&end_date=${encodeURIComponent(endDate.value)}`
+  }
   if (props.confirmation) {
     // Show confirmation section orders
     url += `&belongs_to=confirmation&assigned_only=1`
@@ -882,6 +917,21 @@ const fetchAvailableAgents = async () => {
   }
 }
 
+const fetchAgents = async () => {
+  try {
+    // Only fetch agents for non-sellers
+    if (!isSeller.value) {
+      const response = await fetch('/api/dashboard/agents')
+      if (response.ok) {
+        const agentsData = await response.json()
+        agents.value = agentsData.map(agent => agent.name)
+      }
+    }
+  } catch (error) {
+    console.error('Failed to fetch agents:', error)
+  }
+}
+
 const openAssignmentModal = async () => {
   if (selectedIds.value.size === 0) {
     toastType.value = 'error'
@@ -947,14 +997,57 @@ const assignOrders = async () => {
 }
 
 const clearFilters = () => {
-  filters.value = { search: '', seller: '', status: '', agent: '', zone: '', dateRange: '' }
+  filters.value = { search: '', seller: '', status: '', agent: '', zone: '' }
   currentPage.value = 1 // Reset to first page
   fetchOrders()
 }
 
-const setDateRange = (range) => {
-  filters.value.dateRange = range
-  currentPage.value = 1 // Reset to first page
+// Date range filter methods
+const applyDateFilter = () => {
+  if (startDate.value && endDate.value) {
+    activeRange.value = '' // Clear active range when using custom dates
+    currentPage.value = 1
+    fetchOrders()
+  }
+}
+
+const resetDateFilter = () => {
+  const today = new Date()
+  const thirtyDaysAgo = new Date()
+  thirtyDaysAgo.setDate(today.getDate() - 30)
+  
+  startDate.value = thirtyDaysAgo.toISOString().substr(0, 10)
+  endDate.value = today.toISOString().substr(0, 10)
+  activeRange.value = 'Last 30 days'
+  currentPage.value = 1
+  fetchOrders()
+}
+
+const setQuickRange = ({ label, days }) => {
+  activeRange.value = label
+  const end = new Date()
+  const start = new Date()
+  
+  if (days !== null) {
+    if (days > 0) {
+      start.setDate(end.getDate() - days)
+    }
+    startDate.value = start.toISOString().substr(0, 10)
+    endDate.value = end.toISOString().substr(0, 10)
+  } else {
+    // Handle special cases for "This Month" and "Last Month"
+    if (label === 'This Month') {
+      start.setDate(1) // First day of current month
+      end.setMonth(end.getMonth() + 1, 0) // Last day of current month
+    } else if (label === 'Last Month') {
+      start.setMonth(start.getMonth() - 1, 1) // First day of last month
+      end.setDate(0) // Last day of last month
+    }
+    startDate.value = start.toISOString().substr(0, 10)
+    endDate.value = end.toISOString().substr(0, 10)
+  }
+  
+  currentPage.value = 1
   fetchOrders()
 }
 
@@ -1386,7 +1479,10 @@ const getStatusColor = (statusName) => {
 
 const applyTodayWorkFilter = () => {
   // Set date range to Today
-  filters.value.dateRange = 'Today'
+  const today = new Date().toISOString().substr(0, 10)
+  startDate.value = today
+  endDate.value = today
+  activeRange.value = 'Today'
   
   // Set specific statuses based on the section
   if (props.confirmation) {
@@ -1401,10 +1497,22 @@ const applyTodayWorkFilter = () => {
 }
 
 onMounted(() => { 
+  // Initialize date range with last 30 days to show more data by default
+  const today = new Date()
+  const thirtyDaysAgo = new Date()
+  thirtyDaysAgo.setDate(today.getDate() - 30)
+  
+  startDate.value = thirtyDaysAgo.toISOString().substr(0, 10)
+  endDate.value = today.toISOString().substr(0, 10)
+  activeRange.value = 'Last 30 days'
+  
   // Check if there's a date filter from navigation
   const storedDateFilter = localStorage.getItem('orderListDateFilter')
   if (storedDateFilter) {
-    filters.value.dateRange = storedDateFilter
+    // Apply the stored date filter to the new date range system
+    if (storedDateFilter === 'Today') {
+      activeRange.value = 'Today'
+    }
     // Clear the stored filter after using it
     localStorage.removeItem('orderListDateFilter')
   }
@@ -1417,7 +1525,8 @@ onMounted(() => {
     localStorage.removeItem('orderListStatusFilter')
   }
   
-  fetchOrders() 
+  fetchOrders()
+  fetchAgents()
 })
 
 // Watch for current page changes to clear goToPage input

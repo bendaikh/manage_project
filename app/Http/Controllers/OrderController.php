@@ -36,32 +36,32 @@ class OrderController extends Controller
                               ->orWhereDate('postponed_date', Carbon::today());
                         });
                     } else {
-                        // Default behavior for other cases
-                        $query->where(function($q) {
-                            $q->whereDate('created_at', Carbon::today())
-                              ->orWhereDate('confirmed_date', Carbon::today())
-                              ->orWhereDate('postponed_date', Carbon::today());
-                        });
+                    // Default behavior for other cases
+                    $query->where(function($q) {
+                        $q->whereDate('orders.created_at', Carbon::today())
+                          ->orWhereDate('orders.confirmed_date', Carbon::today())
+                          ->orWhereDate('orders.postponed_date', Carbon::today());
+                    });
                     }
                 } else {
                     // Default behavior when no specific context
                     $query->where(function($q) {
-                        $q->whereDate('created_at', Carbon::today())
-                          ->orWhereDate('confirmed_date', Carbon::today())
-                          ->orWhereDate('postponed_date', Carbon::today());
+                        $q->whereDate('orders.created_at', Carbon::today())
+                          ->orWhereDate('orders.confirmed_date', Carbon::today())
+                          ->orWhereDate('orders.postponed_date', Carbon::today());
                     });
                 }
                 break;
             case 'Yesterday':
-                $query->whereDate('created_at', Carbon::yesterday());
+                $query->whereDate('orders.created_at', Carbon::yesterday());
                 break;
             case 'This Month':
-                $query->whereMonth('created_at', Carbon::now()->month)
-                      ->whereYear('created_at', Carbon::now()->year);
+                $query->whereMonth('orders.created_at', Carbon::now()->month)
+                      ->whereYear('orders.created_at', Carbon::now()->year);
                 break;
             case 'Last Month':
-                $query->whereMonth('created_at', Carbon::now()->subMonth()->month)
-                      ->whereYear('created_at', Carbon::now()->subMonth()->year);
+                $query->whereMonth('orders.created_at', Carbon::now()->subMonth()->month)
+                      ->whereYear('orders.created_at', Carbon::now()->subMonth()->year);
                 break;
             // Add more date ranges as needed
         }
@@ -186,7 +186,9 @@ class OrderController extends Controller
         }
 
         if ($request->filled('agent')) {
-            $query->where('agent', $request->agent);
+            $query->whereHas('assignment.assignedTo', function($q) use ($request) {
+                $q->where('name', $request->agent);
+            });
         }
 
         if ($request->filled('zone')) {
@@ -196,6 +198,13 @@ class OrderController extends Controller
         // Date range filtering
         if ($request->filled('dateRange')) {
             $this->applyDateRangeFilter($query, $request->dateRange, $request);
+        }
+        
+        // Custom date range filtering
+        if ($request->filled('start_date') && $request->filled('end_date')) {
+            $start = Carbon::parse($request->input('start_date'))->startOfDay();
+            $end = Carbon::parse($request->input('end_date'))->endOfDay();
+            $query->whereBetween('orders.created_at', [$start, $end]);
         }
 
         // Status filtering for specific pages
@@ -214,12 +223,12 @@ class OrderController extends Controller
         }
 
         // Check if user is a seller and should only see their own orders
-        if (auth()->user()->hasRole('seller')) {
+        if (auth()->check() && auth()->user()->hasRole('seller')) {
             $query->where('seller', auth()->user()->name);
         }
 
         // Check if user is an agent and show only assigned orders
-        if (auth()->user()->isAgent()) {
+        if (auth()->check() && auth()->user()->isAgent()) {
             $query->whereHas('assignment', function($q) {
                 $q->where('assigned_to', auth()->id());
             });
@@ -282,17 +291,24 @@ class OrderController extends Controller
             }
         }
         
+        // Apply custom date range filtering to status counts query
+        if ($request->filled('start_date') && $request->filled('end_date')) {
+            $start = Carbon::parse($request->input('start_date'))->startOfDay();
+            $end = Carbon::parse($request->input('end_date'))->endOfDay();
+            $statusCountsQuery->whereBetween('orders.created_at', [$start, $end]);
+        }
+        
         // Apply the same filters as the main query for consistency
         if ($request->filled('belongs_to')) {
             $statusCountsQuery->where('belongs_to', $request->belongs_to);
         }
         
         // Apply user role filters
-        if (auth()->user()->hasRole('seller')) {
+        if (auth()->check() && auth()->user()->hasRole('seller')) {
             $statusCountsQuery->where('seller', auth()->user()->name);
         }
         
-        if (auth()->user()->isAgent()) {
+        if (auth()->check() && auth()->user()->isAgent()) {
             $statusCountsQuery->whereHas('assignment', function($q) {
                 $q->where('assigned_to', auth()->id());
             });
@@ -303,6 +319,13 @@ class OrderController extends Controller
             $statusCountsQuery->whereHas('assignment');
         } elseif ($request->filled('unassigned_only')) {
             $statusCountsQuery->whereDoesntHave('assignment');
+        }
+        
+        // Apply agent filter to status counts query
+        if ($request->filled('agent')) {
+            $statusCountsQuery->whereHas('assignment.assignedTo', function($q) use ($request) {
+                $q->where('name', $request->agent);
+            });
         }
         
         $statusCounts = $statusCountsQuery

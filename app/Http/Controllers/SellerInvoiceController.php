@@ -17,6 +17,11 @@ class SellerInvoiceController extends Controller
      */
     public function index(Request $request)
     {
+        // Check if user has permission to view seller invoices
+        if (!Auth::user()->hasPermission('view_seller_invoices')) {
+            return response()->json(['error' => 'Unauthorized. You do not have permission to view seller invoices.'], 403);
+        }
+
         $perPage = $request->input('per_page', 10);
         $sellerFilter = $request->input('seller');
 
@@ -54,6 +59,11 @@ class SellerInvoiceController extends Controller
      */
     public function download($id)
     {
+        // Check if user has permission to download seller invoices
+        if (!Auth::user()->hasPermission('download_seller_invoices')) {
+            return response()->json(['error' => 'Unauthorized. You do not have permission to download seller invoices.'], 403);
+        }
+
         $invoice = SellerInvoice::findOrFail($id);
 
         if (!Storage::exists($invoice->pdf_path)) {
@@ -142,6 +152,11 @@ class SellerInvoiceController extends Controller
      */
     public function markAsPaid($id)
     {
+        // Check if user has permission to mark seller invoices as paid
+        if (!Auth::user()->hasPermission('mark_seller_invoices_paid')) {
+            return response()->json(['error' => 'Unauthorized. You do not have permission to mark seller invoices as paid.'], 403);
+        }
+
         $invoice = SellerInvoice::findOrFail($id);
 
         if ($invoice->is_paid) {
@@ -171,6 +186,11 @@ class SellerInvoiceController extends Controller
      */
     public function revokePayment($id)
     {
+        // Check if user has permission to mark seller invoices as paid (same permission for revoke)
+        if (!Auth::user()->hasPermission('mark_seller_invoices_paid')) {
+            return response()->json(['error' => 'Unauthorized. You do not have permission to revoke payment status.'], 403);
+        }
+
         $invoice = SellerInvoice::findOrFail($id);
 
         if (!$invoice->is_paid) {
