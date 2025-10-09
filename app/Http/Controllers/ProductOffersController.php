@@ -10,7 +10,7 @@ class ProductOffersController extends Controller
 {
     public function index(Request $request)
     {
-        if (!auth()->user()->hasPermissionTo('view_product_offers')) {
+        if (!auth()->user()->hasPermission('view_product_offers')) {
             abort(403, 'You do not have permission to view product offers.');
         }
 
@@ -61,7 +61,7 @@ class ProductOffersController extends Controller
 
     public function toggle(Request $request, $productId)
     {
-        if (!auth()->user()->hasPermissionTo('toggle_product_offers')) {
+        if (!auth()->user()->hasPermission('toggle_product_offers')) {
             abort(403, 'You do not have permission to toggle product offers.');
         }
 
