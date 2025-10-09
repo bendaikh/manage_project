@@ -82,6 +82,18 @@
               placeholder="Enter application description"
             />
           </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              Default Currency Symbol
+            </label>
+            <input
+              v-model="form.currency"
+              type="text"
+              class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="e.g., FCFA, $, €, £"
+            />
+          </div>
         </div>
       </div>
 
@@ -104,7 +116,7 @@
           
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">
-              Delivery Price (FCFA)
+              Delivery Price
             </label>
             <input
               v-model="form.delivery_price"
@@ -117,7 +129,7 @@
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">
-              Seller Delivery Price (FCFA)
+              Seller Delivery Price
             </label>
             <input
               v-model="form.seller_delivery_price"
@@ -151,6 +163,7 @@ import { ref, onMounted } from 'vue'
 const settings = ref({
   app_logo: null,
   country: '',
+  currency: '',
   delivery_price: 0,
   seller_delivery_price: 0,
   app_name: '',
@@ -161,6 +174,7 @@ const form = ref({
   app_name: '',
   app_description: '',
   country: '',
+  currency: '',
   delivery_price: 0,
   seller_delivery_price: 0
 })
@@ -181,6 +195,7 @@ const fetchSettings = async () => {
         app_name: data.app_name || '',
         app_description: data.app_description || '',
         country: data.country || '',
+        currency: data.currency || '',
         delivery_price: data.delivery_price || 0,
         seller_delivery_price: data.seller_delivery_price || 0
       }
@@ -207,6 +222,7 @@ const saveSettings = async () => {
     formData.append('app_name', form.value.app_name)
     formData.append('app_description', form.value.app_description)
     formData.append('country', form.value.country)
+    formData.append('currency', form.value.currency)
     formData.append('delivery_price', form.value.delivery_price)
     formData.append('seller_delivery_price', form.value.seller_delivery_price)
     

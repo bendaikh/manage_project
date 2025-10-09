@@ -145,8 +145,8 @@
             </div>
           </div>
 
-          <!-- Products (not for sellers) -->
-          <div v-if="hasProductsPermission && !isSeller">
+          <!-- Products (not for sellers) - HIDDEN -->
+          <div v-if="false">
             <button @click="toggleProductsMenu" class="w-full flex items-center justify-between px-4 py-3 text-white rounded-lg hover:bg-blue-800">
               <div class="flex items-center space-x-3">
                 <svg class="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -201,13 +201,13 @@
             </div>
           </div>
 
-          <!-- Marketplace (for sellers only) -->
+          <!-- COD Products (for sellers only) -->
           <div v-if="isSeller">
             <button type="button" @click="handleShowMarketplace" class="w-full flex items-center space-x-3 px-4 py-3 text-white rounded-lg hover:bg-blue-800">
               <svg class="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
               </svg>
-              <span>Marketplace</span>
+              <span>COD Products</span>
             </button>
           </div>
 

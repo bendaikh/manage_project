@@ -231,7 +231,7 @@
                 </svg>
               </button>
             </td>
-            <td class="px-2 lg:px-3 py-2 font-bold text-sm lg:text-base">{{ order.price }} FCFA</td>
+            <td class="px-2 lg:px-3 py-2 font-bold text-sm lg:text-base">{{ formatCurrency(order.price) }}</td>
             <td v-if="props.confirmation" class="px-2 lg:px-3 py-2">
               <div v-if="order.upsells && order.upsells.length > 0" class="space-y-1">
                 <div v-for="upsell in order.upsells" :key="upsell.id" 
@@ -297,10 +297,90 @@
         </tbody>
       </table>
     </div>
+    
+    <!-- Global Actions Bar (Confirmation Section Only) -->
+    <div v-if="props.confirmation && selectedIds.size > 0" class="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-300 rounded-lg shadow-lg p-4 mt-4">
+      <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+        <!-- Selection Info -->
+        <div class="flex items-center gap-3">
+          <div class="bg-blue-600 text-white rounded-full w-10 h-10 flex items-center justify-center font-bold text-lg">
+            {{ selectedIds.size }}
+          </div>
+          <div>
+            <div class="font-semibold text-gray-800 text-lg">
+              {{ selectedIds.size }} Order{{ selectedIds.size > 1 ? 's' : '' }} Selected
+            </div>
+            <div class="text-sm text-gray-600">Choose an action to apply to all selected orders</div>
+          </div>
+        </div>
+        
+        <!-- Bulk Actions -->
+        <div class="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+          <!-- Status Change Dropdown -->
+          <div class="flex items-center gap-2">
+            <label class="text-sm font-medium text-gray-700 whitespace-nowrap">Change Status To:</label>
+            <select 
+              v-model="bulkStatusChange" 
+              class="flex-1 sm:flex-none px-4 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white font-medium"
+            >
+              <option value="">-- Select Status --</option>
+              <option v-for="status in availableStatuses" :key="status" :value="status">
+                {{ status }}
+              </option>
+            </select>
+          </div>
+          
+          <!-- Apply Button -->
+          <button 
+            @click="applyBulkStatusChange" 
+            :disabled="!bulkStatusChange || isBulkUpdating"
+            :class="[
+              'px-6 py-2 rounded-lg font-semibold text-white transition-all duration-200 flex items-center justify-center gap-2',
+              bulkStatusChange && !isBulkUpdating
+                ? 'bg-green-600 hover:bg-green-700 shadow-md hover:shadow-lg transform hover:-translate-y-0.5' 
+                : 'bg-gray-400 cursor-not-allowed'
+            ]"
+          >
+            <svg v-if="!isBulkUpdating" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+            <svg v-else class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            <span>{{ isBulkUpdating ? 'Applying...' : 'Apply to Selected' }}</span>
+          </button>
+          
+          <!-- Clear Selection Button -->
+          <button 
+            @click="clearSelection" 
+            class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-medium transition-colors duration-200"
+          >
+            Clear Selection
+          </button>
+        </div>
+      </div>
+    </div>
     <!-- Pagination -->
-    <nav v-if="totalPages > 1" class="flex flex-col items-center mt-4 space-y-2">
+    <nav v-if="totalPages > 1 || orders.length > 0" class="flex flex-col items-center mt-4 space-y-2">
+      <!-- Items per page selector -->
+      <div class="flex items-center space-x-4 text-sm text-gray-600">
+        <span>Show:</span>
+        <select 
+          v-model="perPage" 
+          @change="changePerPage"
+          class="px-3 py-1 border rounded bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option :value="10">10</option>
+          <option :value="25">25</option>
+          <option :value="50">50</option>
+          <option :value="100">100</option>
+        </select>
+        <span>items per page</span>
+        <span class="ml-4 text-gray-500">Total: {{ orders.length > 0 ? (totalPages * perPage) : 0 }} items</span>
+      </div>
+      
       <!-- Page Navigation -->
-      <ul class="inline-flex">
+      <ul v-if="totalPages > 1" class="inline-flex">
         <li>
           <button
             @click="changePage(currentPage - 1)"
@@ -557,11 +637,11 @@
                 </div>
                 <div>
                   <span class="font-semibold text-gray-700">Purchase Price:</span>
-                  <p class="text-gray-600">{{ selectedProduct.purchase_price ? selectedProduct.purchase_price + ' FCFA' : 'N/A' }}</p>
+                  <p class="text-gray-600">{{ selectedProduct.purchase_price ? selectedProduct.purchase_price + ' ' + getCurrency() : 'N/A' }}</p>
                 </div>
                 <div>
                   <span class="font-semibold text-gray-700">Selling Price:</span>
-                  <p class="text-gray-600">{{ selectedProduct.selling_price ? selectedProduct.selling_price + ' FCFA' : 'N/A' }}</p>
+                  <p class="text-gray-600">{{ selectedProduct.selling_price ? selectedProduct.selling_price + ' ' + getCurrency() : 'N/A' }}</p>
                 </div>
                 <div>
                   <span class="font-semibold text-gray-700">Stock Quantity:</span>
@@ -632,6 +712,9 @@
 import { ref, onMounted, defineProps, computed, watch } from 'vue'
 import OrderDetailsModal from './OrderDetailsModal.vue'
 import OrderEdit from './OrderEdit.vue'
+import { useCurrency } from '../composables/useCurrency'
+
+const { formatCurrency, getCurrency } = useCurrency()
 
 const props = defineProps({
   confirmation: Boolean,
@@ -801,6 +884,10 @@ const selectedProduct = ref(null)
 const deliveryNotesDownloaded = ref(new Set())
 const invoicesDownloaded = ref(new Set())
 
+// Bulk status change refs
+const bulkStatusChange = ref('')
+const isBulkUpdating = ref(false)
+
 // Check if user is superadmin
 const isSuperadmin = computed(() => {
   const roles = window.Laravel?.user?.roles || []
@@ -894,6 +981,12 @@ const fetchOrders = async () => {
 const changePage = (page) => {
   if (page < 1 || page > totalPages.value) return
   currentPage.value = page
+  fetchOrders()
+}
+
+// Change per page size
+const changePerPage = () => {
+  currentPage.value = 1 // Reset to first page when changing page size
   fetchOrders()
 }
 
@@ -1449,14 +1542,6 @@ const deliveryStatusBlocks = computed(() => {
   return statusConfig.delivery.map(name => ({ name, count: statusCounts.value[name] || 0 }))
 })
 
-// Helper function to format currency
-const formatCurrency = (amount) => {
-  if (!amount) return 'N/A'
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD'
-  }).format(amount)
-}
 
 // Function to get status color classes
 const getStatusColor = (statusName) => {
@@ -1557,6 +1642,90 @@ const closeProductModal = () => {
 const handleImageError = (event) => {
   event.target.style.display = 'none'
   event.target.nextElementSibling.style.display = 'flex'
+}
+
+// Bulk status change function
+const applyBulkStatusChange = async () => {
+  if (!bulkStatusChange.value || selectedIds.value.size === 0) {
+    toastType.value = 'error'
+    toastMessage.value = 'Please select a status and at least one order'
+    setTimeout(() => { toastMessage.value = '' }, 3000)
+    return
+  }
+  
+  // Special handling for statuses that require additional data
+  const selectedStatus = bulkStatusChange.value
+  
+  // For now, we'll handle statuses that don't require modals
+  // Statuses like "Confirmed", "Confirmed on Date", and "Postponed" need special handling
+  if (selectedStatus === 'Confirmed' || selectedStatus === 'Confirmed on Date' || selectedStatus === 'Postponed') {
+    toastType.value = 'error'
+    toastMessage.value = `Bulk update not available for "${selectedStatus}". Please update orders individually.`
+    setTimeout(() => { toastMessage.value = '' }, 3000)
+    return
+  }
+  
+  isBulkUpdating.value = true
+  
+  try {
+    const csrf = document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+    let successCount = 0
+    let failCount = 0
+    
+    // Update each selected order
+    for (const orderId of selectedIds.value) {
+      try {
+        const response = await fetch(`/orders/${orderId}/status`, {
+          method: 'PATCH',
+          headers: { 
+            'Content-Type': 'application/json', 
+            'Accept': 'application/json', 
+            'X-CSRF-TOKEN': csrf 
+          },
+          body: JSON.stringify({ status: selectedStatus })
+        })
+        
+        if (response.ok) {
+          successCount++
+        } else {
+          failCount++
+        }
+      } catch (error) {
+        failCount++
+        console.error(`Failed to update order ${orderId}:`, error)
+      }
+    }
+    
+    // Show result message
+    if (successCount > 0) {
+      toastType.value = 'success'
+      toastMessage.value = `Successfully updated ${successCount} order(s) to "${selectedStatus}"${failCount > 0 ? `. ${failCount} failed.` : ''}`
+    } else {
+      toastType.value = 'error'
+      toastMessage.value = `Failed to update orders. Please try again.`
+    }
+    
+    // Clear selection and reset
+    checked.value = []
+    bulkStatusChange.value = ''
+    
+    // Refresh orders to show the updated list
+    await fetchOrders()
+    
+  } catch (error) {
+    console.error('Error during bulk status update:', error)
+    toastType.value = 'error'
+    toastMessage.value = 'An error occurred while updating orders'
+  } finally {
+    isBulkUpdating.value = false
+    setTimeout(() => { toastMessage.value = '' }, 3000)
+  }
+}
+
+// Clear selection function
+const clearSelection = () => {
+  checked.value = []
+  bulkStatusChange.value = ''
 }
 
 </script>

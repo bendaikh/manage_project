@@ -23,6 +23,9 @@
                     'permissions' => auth()->check() ? auth()->user()->roles->flatMap->permissions->pluck('name')->unique() : [],
                     'roles' => auth()->check() ? auth()->user()->roles->pluck('name') : []
                 ],
+                'settings' => [
+                    'currency' => App\Models\Setting::getCurrency(),
+                ],
             ]) !!};
         </script>
         @vite(['resources/css/app.css', 'resources/js/app.js'])

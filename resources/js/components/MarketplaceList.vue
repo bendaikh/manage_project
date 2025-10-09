@@ -153,7 +153,6 @@
                 </div>
                 <div class="ml-4">
                   <div class="text-sm font-medium text-gray-900">{{ product.name }}</div>
-                  <div class="text-sm text-gray-500">{{ product.supplier }}</div>
                 </div>
               </div>
             </td>
@@ -231,6 +230,9 @@
 
 <script setup>
 import { ref, onMounted, watch } from 'vue'
+import { useCurrency } from '../composables/useCurrency'
+
+const { formatCurrency } = useCurrency()
 
 const emit = defineEmits(['view-product'])
 
@@ -309,13 +311,6 @@ const changePage = (page) => {
   }
 }
 
-const formatCurrency = (amount) => {
-  if (!amount) return 'N/A'
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD'
-  }).format(amount)
-}
 
 const getStatusClass = (status) => {
   switch (status) {

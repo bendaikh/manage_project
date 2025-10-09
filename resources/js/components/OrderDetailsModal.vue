@@ -20,7 +20,7 @@
             <div class="font-semibold text-gray-600 mb-1">Order Information</div>
             <div><span class="font-medium">Seller</span>: {{ order.seller }}</div>
             <div><span class="font-medium">Product</span>: {{ order.product ? order.product.name : '' }}</div>
-            <div><span class="font-medium">Price</span>: <span class="font-bold">{{ order.price }} FCFA</span></div>
+            <div><span class="font-medium">Price</span>: <span class="font-bold">{{ order.price }} {{ getCurrency() }}</span></div>
             <div><span class="font-medium">Agent</span>: {{ order.agent || 'Mme' }}</div>
           </div>
           <div>
@@ -58,6 +58,10 @@
 </template>
 
 <script setup>
+import { useCurrency } from '../composables/useCurrency'
+
+const { getCurrency } = useCurrency()
+
 const props = defineProps({ 
   order: Object,
   confirmation: {

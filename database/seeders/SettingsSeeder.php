@@ -29,6 +29,13 @@ class SettingsSeeder extends Seeder
                 'description' => 'Country name for delivery and billing',
             ],
             [
+                'key' => 'currency',
+                'value' => 'FCFA',
+                'type' => 'string',
+                'group' => 'general',
+                'description' => 'Default currency symbol for the application',
+            ],
+            [
                 'key' => 'delivery_price',
                 'value' => '25.00',
                 'type' => 'number',

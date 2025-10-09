@@ -15,7 +15,7 @@
           <tr v-for="invoice in invoices" :key="invoice.id" class="border-b">
             <td class="px-3 py-2">{{ invoice.invoice_date }}</td>
             <td class="px-3 py-2">{{ invoice.order_count }}</td>
-            <td class="px-3 py-2 font-bold">{{ formatAmount(invoice.total_amount) }} FCFA</td>
+            <td class="px-3 py-2 font-bold">{{ formatAmount(invoice.total_amount) }} {{ getCurrency() }}</td>
             <td class="px-3 py-2">
               <button @click="downloadInvoice(invoice)" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm flex items-center gap-2">
                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
@@ -29,8 +29,24 @@
         </tbody>
       </table>
       <!-- Pagination -->
-      <nav v-if="totalPages > 1" class="flex justify-center mt-4">
-        <ul class="inline-flex">
+      <nav v-if="totalPages > 1 || invoices.length > 0" class="flex flex-col items-center mt-4 space-y-2">
+        <!-- Items per page selector -->
+        <div class="flex items-center space-x-4 text-sm text-gray-600">
+          <span>Show:</span>
+          <select 
+            v-model="perPage" 
+            @change="changePerPage"
+            class="px-3 py-1 border rounded bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option :value="10">10</option>
+            <option :value="25">25</option>
+            <option :value="50">50</option>
+            <option :value="100">100</option>
+          </select>
+          <span>items per page</span>
+        </div>
+        
+        <ul v-if="totalPages > 1" class="inline-flex">
           <li>
             <button @click="changePage(currentPage-1)" :disabled="currentPage===1" class="px-3 py-1 border rounded-l" :class="currentPage===1?'bg-gray-200 text-gray-400 cursor-not-allowed':'bg-white hover:bg-gray-100'">&laquo;</button>
           </li>
@@ -48,6 +64,9 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
+import { useCurrency } from '../composables/useCurrency'
+
+const { getCurrency } = useCurrency()
 
 const invoices = ref([])
 
@@ -75,6 +94,11 @@ const fetchInvoices = async () => {
 const changePage = (page) => {
   if (page < 1 || page > totalPages.value) return
   currentPage.value = page
+  fetchInvoices()
+}
+
+const changePerPage = () => {
+  currentPage.value = 1 // Reset to first page when changing page size
   fetchInvoices()
 }
 

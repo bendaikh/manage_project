@@ -51,7 +51,7 @@
           <div>
             <label class="block text-sm font-medium mb-1">Price</label>
             <div class="flex items-center">
-              <span class="text-gray-400 mr-1">FCFA</span>
+              <span class="text-gray-400 mr-1">{{ currency }}</span>
               <input v-model="form.price" @input="onPriceChange" type="number" min="0" step="0.01" class="w-full border rounded px-3 py-2" />
             </div>
           </div>
@@ -93,6 +93,10 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import OrderImportModal from './OrderImportModal.vue'
+import { useCurrency } from '../composables/useCurrency'
+
+const { getCurrency } = useCurrency()
+const currency = getCurrency()
 
 const products = ref([])
 const sellers = ref([])

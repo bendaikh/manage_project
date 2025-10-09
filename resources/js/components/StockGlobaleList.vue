@@ -223,7 +223,7 @@
                           <div class="text-sm font-semibold text-blue-600">{{ warehouse.remaining_quantity }}</div>
                           <div class="text-xs text-gray-400">remaining</div>
                         </div>
-                        <button @click="openWarehouseEditModal(stock, warehouse)" 
+                        <button v-if="!isSeller" @click="openWarehouseEditModal(stock, warehouse)" 
                                 class="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
                                 title="Edit warehouse quantity">
                           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -281,6 +281,15 @@
                           title="Edit Product">
                     <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                    </svg>
+                  </button>
+                  
+                  <!-- Modify Product Link -->
+                  <button v-if="stock.product" @click="openModifyProductLinkModal(stock)" 
+                          class="p-2 text-orange-500 hover:text-orange-700 hover:bg-orange-50 rounded transition-colors" 
+                          title="Modify Product Link">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
                     </svg>
                   </button>
                   
@@ -733,6 +742,70 @@
       </div>
     </div>
 
+    <!-- Modify Product Link Modal -->
+    <div v-if="modifyProductLinkModal.show" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+        <div class="p-6">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-gray-900">Modify Product Link</h3>
+            <button @click="closeModifyProductLinkModal" class="text-gray-400 hover:text-gray-600">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+            </button>
+          </div>
+          
+          <div class="mb-4">
+            <div class="text-sm text-gray-600 mb-2">
+              <strong>Product:</strong> {{ modifyProductLinkModal.product?.name }}
+            </div>
+            <div class="text-sm text-gray-600 mb-2">
+              <strong>SKU:</strong> {{ modifyProductLinkModal.product?.sku }}
+            </div>
+            <div class="text-sm text-gray-600 mb-4">
+              <strong>Current Link:</strong> 
+              <a v-if="modifyProductLinkModal.product?.product_link" 
+                 :href="modifyProductLinkModal.product.product_link" 
+                 target="_blank"
+                 class="text-blue-600 hover:underline">
+                {{ modifyProductLinkModal.product.product_link }}
+              </a>
+              <span v-else class="text-gray-400">No link set</span>
+            </div>
+          </div>
+          
+          <form @submit.prevent="updateProductLink">
+            <div class="mb-4">
+              <label class="block text-sm font-medium text-gray-700 mb-2">
+                Product Link (URL)
+              </label>
+              <input v-model="modifyProductLinkModal.productLink" 
+                     type="url"
+                     placeholder="https://example.com/product"
+                     class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent">
+              <div class="text-xs text-gray-500 mt-1">
+                Enter the product's URL or leave empty to remove the link.
+              </div>
+            </div>
+            
+            <div class="flex gap-3">
+              <button type="button" 
+                      @click="closeModifyProductLinkModal"
+                      class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500">
+                Cancel
+              </button>
+              <button type="submit" 
+                      :disabled="modifyProductLinkModal.loading"
+                      class="flex-1 px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:opacity-50 disabled:cursor-not-allowed">
+                <span v-if="modifyProductLinkModal.loading">Updating...</span>
+                <span v-else>Update Link</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
     <!-- Notification Toast -->
     <div v-if="notification.show" 
          :class="[
@@ -759,6 +832,9 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
+import { useCurrency } from '../composables/useCurrency'
+
+const { formatCurrency } = useCurrency()
 
 // Define emits
 const emit = defineEmits(['edit-product'])
@@ -806,6 +882,14 @@ const modifyUpsellsModal = ref({
   loading: false
 })
 
+// Modify product link modal
+const modifyProductLinkModal = ref({
+  show: false,
+  product: null,
+  productLink: '',
+  loading: false
+})
+
 // Available stocks for transfer
 const availableStocks = ref([])
 
@@ -844,14 +928,6 @@ const storageUrl = (path) => path ? `/storage/${path}` : ''
 const formatDate = (date) => {
   if (!date) return 'N/A'
   return new Date(date).toLocaleDateString('en-CA')
-}
-
-const formatCurrency = (amount) => {
-  if (!amount) return 'N/A'
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD'
-  }).format(amount)
 }
 
 const formatStatus = (status) => {
@@ -1376,6 +1452,69 @@ const deleteUpsell = async (upsellId) => {
 const editProduct = (product) => {
   // Emit event to parent to handle editing
   emit('edit-product', product)
+}
+
+// Modify product link modal methods
+const openModifyProductLinkModal = (stock) => {
+  if (!stock.product) {
+    showNotification('This stock has no linked product', 'error')
+    return
+  }
+  
+  modifyProductLinkModal.value = {
+    show: true,
+    product: stock.product,
+    productLink: stock.product.product_link || '',
+    loading: false
+  }
+}
+
+const closeModifyProductLinkModal = () => {
+  modifyProductLinkModal.value = {
+    show: false,
+    product: null,
+    productLink: '',
+    loading: false
+  }
+}
+
+const updateProductLink = async () => {
+  if (!modifyProductLinkModal.value.product) {
+    return
+  }
+
+  modifyProductLinkModal.value.loading = true
+
+  try {
+    const response = await fetch(`/products/${modifyProductLinkModal.value.product.id}/update-product-link`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+      },
+      credentials: 'same-origin',
+      body: JSON.stringify({
+        product_link: modifyProductLinkModal.value.productLink
+      })
+    })
+
+    if (response.ok) {
+      const data = await response.json()
+      showNotification('Product link updated successfully!', 'success')
+      closeModifyProductLinkModal()
+      // Refresh the stocks data
+      fetchStocks(pagination.value.page)
+    } else {
+      const errorData = await response.json()
+      showNotification(errorData.message || 'Failed to update product link', 'error')
+    }
+  } catch (error) {
+    console.error('Error updating product link:', error)
+    showNotification('An error occurred while updating product link', 'error')
+  } finally {
+    modifyProductLinkModal.value.loading = false
+  }
 }
 
 // Listen for shipment validation events to refresh stock data

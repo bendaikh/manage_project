@@ -111,14 +111,14 @@
           <div>
             <label class="block text-sm font-medium mb-1">Purchase Price *</label>
             <div class="flex items-center">
-              <span class="text-gray-400 mr-1">FCFA</span>
+              <span class="text-gray-400 mr-1">{{ currency }}</span>
               <input v-model.number="form.purchase_price" type="number" min="0" step="0.01" required class="w-full border rounded px-3 py-2 focus:outline-none focus:ring focus:border-blue-300" />
             </div>
           </div>
           <div>
             <label class="block text-sm font-medium mb-1">Selling Price *</label>
             <div class="flex items-center">
-              <span class="text-gray-400 mr-1">FCFA</span>
+              <span class="text-gray-400 mr-1">{{ currency }}</span>
               <input v-model.number="form.selling_price" type="number" min="0" step="0.01" required class="w-full border rounded px-3 py-2 focus:outline-none focus:ring focus:border-blue-300" />
             </div>
           </div>
@@ -168,6 +168,10 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useCurrency } from '../composables/useCurrency'
+
+const { getCurrency } = useCurrency()
+const currency = getCurrency()
 
 const props = defineProps({
   productId: {

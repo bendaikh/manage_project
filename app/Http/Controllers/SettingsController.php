@@ -24,6 +24,7 @@ class SettingsController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'country' => 'required|string|max:255',
+            'currency' => 'required|string|max:10',
             'delivery_price' => 'required|numeric|min:0',
             'seller_delivery_price' => 'required|numeric|min:0',
             'app_name' => 'required|string|max:255',
@@ -41,6 +42,7 @@ class SettingsController extends Controller
         try {
             // Update text settings
             Setting::setValue('country', $request->country, 'string', 'delivery', 'Country name for delivery and billing');
+            Setting::setValue('currency', $request->currency, 'string', 'general', 'Default currency symbol for the application');
             Setting::setValue('delivery_price', $request->delivery_price, 'number', 'delivery', 'Standard delivery price in local currency');
             Setting::setValue('seller_delivery_price', $request->seller_delivery_price, 'number', 'delivery', 'Seller-specific delivery price');
             Setting::setValue('app_name', $request->app_name, 'string', 'general', 'Application name');
@@ -81,6 +83,7 @@ class SettingsController extends Controller
         $settings = [
             'app_logo' => Setting::getLogoUrl(),
             'country' => Setting::getCountry(),
+            'currency' => Setting::getCurrency(),
             'delivery_price' => Setting::getDeliveryPrice(),
             'seller_delivery_price' => Setting::getSellerDeliveryPrice(),
             'app_name' => Setting::getValue('app_name', 'Laravel App'),

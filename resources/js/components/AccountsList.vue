@@ -286,6 +286,9 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useCurrency } from '../composables/useCurrency'
+
+const { formatCurrency } = useCurrency()
 
 const accounts = ref([])
 const pagination = ref(null)
@@ -483,12 +486,6 @@ const deleteAccount = async (account) => {
   }
 }
 
-const formatCurrency = (amount) => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD'
-  }).format(amount)
-}
 
 const formatDate = (dateString) => {
   return new Date(dateString).toLocaleDateString()

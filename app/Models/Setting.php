@@ -118,4 +118,12 @@ class Setting extends Model
     {
         return self::getValue('country', 'Default Country');
     }
+
+    /**
+     * Get currency symbol
+     */
+    public static function getCurrency()
+    {
+        return self::getValue('currency', 'FCFA');
+    }
 }

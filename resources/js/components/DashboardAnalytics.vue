@@ -80,6 +80,9 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useCurrency } from '../composables/useCurrency'
+
+const { formatCurrency } = useCurrency()
 
 const stats = ref({
   revenue: 0,
@@ -103,13 +106,6 @@ const isSeller = computed(() => {
   const roles = window.Laravel?.user?.roles || []
   return roles.includes('seller') || roles.some(r => typeof r === 'object' && r.name === 'seller')
 })
-
-const formatCurrency = (amount) => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD'
-  }).format(amount)
-}
 
 const fetchStats = async () => {
   try {

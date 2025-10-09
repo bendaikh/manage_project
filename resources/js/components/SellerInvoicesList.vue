@@ -39,7 +39,7 @@
             <td class="px-3 py-2">{{ invoice.seller }}</td>
             <td class="px-3 py-2">{{ invoice.invoice_date }}</td>
             <td class="px-3 py-2">{{ invoice.order_count }}</td>
-            <td class="px-3 py-2 font-bold">{{ formatAmount(invoice.total_amount) }} FCFA</td>
+            <td class="px-3 py-2 font-bold">{{ formatAmount(invoice.total_amount) }} {{ getCurrency() }}</td>
             <td class="px-3 py-2">
               <span :class="invoice.is_paid ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'" class="px-2 py-1 rounded-full text-xs font-medium">
                 {{ invoice.is_paid ? 'Paid' : 'Unpaid' }}
@@ -51,11 +51,11 @@
                   <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                   Download/View
                 </button>
-                <button v-if="!invoice.is_paid" @click="markAsPaid(invoice, 'daily')" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm flex items-center gap-2">
+                <button v-if="canMarkAsPaid && !invoice.is_paid" @click="markAsPaid(invoice, 'daily')" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm flex items-center gap-2">
                   <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                   Mark as Paid
                 </button>
-                <button v-if="invoice.is_paid" @click="revokePayment(invoice, 'daily')" class="px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 text-sm flex items-center gap-2">
+                <button v-if="canMarkAsPaid && invoice.is_paid" @click="revokePayment(invoice, 'daily')" class="px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 text-sm flex items-center gap-2">
                   <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                   Revoke Payment
                 </button>
@@ -94,7 +94,7 @@
       <div class="flex justify-between items-center mb-4">
         <h3 class="text-lg font-semibold">Weekly Invoices</h3>
         <div class="flex gap-2">
-          <select v-model="weeklySellerFilter" @change="fetchWeeklyInvoices" class="px-3 py-2 border rounded-md text-sm">
+          <select v-if="!isSeller" v-model="weeklySellerFilter" @change="fetchWeeklyInvoices" class="px-3 py-2 border rounded-md text-sm">
             <option value="">All Sellers</option>
             <option v-for="seller in weeklySellers" :key="seller" :value="seller">{{ seller }}</option>
           </select>
@@ -121,7 +121,7 @@
             <td class="px-3 py-2">{{ invoice.seller }}</td>
             <td class="px-3 py-2">{{ invoice.week_period }}</td>
             <td class="px-3 py-2">{{ invoice.order_count }}</td>
-            <td class="px-3 py-2 font-bold">{{ formatAmount(invoice.total_amount) }} FCFA</td>
+            <td class="px-3 py-2 font-bold">{{ formatAmount(invoice.total_amount) }} {{ getCurrency() }}</td>
             <td class="px-3 py-2">
               <span :class="getStatusClass(invoice.status)" class="px-2 py-1 rounded-full text-xs font-medium">
                 {{ invoice.status }}
@@ -152,13 +152,13 @@
                   </svg>
                   Download PDF
                 </button>
-                <button v-if="invoice.status === 'approved' && !invoice.is_paid" @click="markAsPaid(invoice, 'weekly')" class="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-xs flex items-center gap-1">
+                <button v-if="canMarkAsPaid && invoice.status === 'approved' && !invoice.is_paid" @click="markAsPaid(invoice, 'weekly')" class="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-xs flex items-center gap-1">
                   <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                   </svg>
                   Mark as Paid
                 </button>
-                <button v-if="invoice.status === 'approved' && invoice.is_paid" @click="revokePayment(invoice, 'weekly')" class="px-3 py-1 bg-orange-600 text-white rounded hover:bg-orange-700 text-xs flex items-center gap-1">
+                <button v-if="canMarkAsPaid && invoice.status === 'approved' && invoice.is_paid" @click="revokePayment(invoice, 'weekly')" class="px-3 py-1 bg-orange-600 text-white rounded hover:bg-orange-700 text-xs flex items-center gap-1">
                   <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                   </svg>
@@ -222,6 +222,9 @@
 
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
+import { useCurrency } from '../composables/useCurrency'
+
+const { getCurrency } = useCurrency()
 
 // State
 const activeTab = ref('daily')
@@ -236,6 +239,13 @@ const isSeller = computed(() => {
 const isSuperadmin = computed(() => {
   const roles = window.Laravel?.user?.roles || []
   return roles.includes('superadmin') || roles.some(r => typeof r === 'object' && r.name === 'superadmin')
+})
+
+// Check if current user has permission to mark invoices as paid
+const canMarkAsPaid = computed(() => {
+  const permissions = window.Laravel?.user?.permissions || []
+  return permissions.includes('mark_seller_invoices_paid') || 
+         permissions.some(p => typeof p === 'object' && p.name === 'mark_seller_invoices_paid')
 })
 const dailyInvoices = ref([])
 const weeklyInvoices = ref([])

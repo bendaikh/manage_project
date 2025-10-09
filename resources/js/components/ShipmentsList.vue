@@ -193,8 +193,24 @@
     </div>
 
     <!-- Pagination -->
-    <nav v-if="pagination.total_pages > 1" class="flex justify-center mt-6">
-      <ul class="inline-flex">
+    <nav v-if="pagination.total_pages > 1 || shipments.length > 0" class="flex flex-col items-center mt-6 space-y-2">
+      <!-- Items per page selector -->
+      <div class="flex items-center space-x-4 text-sm text-gray-600">
+        <span>Show:</span>
+        <select 
+          v-model="perPage" 
+          @change="changePerPage"
+          class="px-3 py-1 border rounded bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option :value="10">10</option>
+          <option :value="25">25</option>
+          <option :value="50">50</option>
+          <option :value="100">100</option>
+        </select>
+        <span>items per page</span>
+      </div>
+      
+      <ul v-if="pagination.total_pages > 1" class="inline-flex">
         <li>
           <button class="px-3 py-2 border rounded-l hover:bg-gray-50" 
                   :disabled="pagination.page === 1" 
@@ -370,12 +386,16 @@
 
 <script setup>
 import { ref, onMounted, watch } from 'vue'
+import { useCurrency } from '../composables/useCurrency'
+
+const { formatCurrency } = useCurrency()
 
 // Reactive data
 const shipments = ref([])
 const stocks = ref([])
 const sellers = ref([])
 const pagination = ref({ page: 1, total_pages: 1 })
+const perPage = ref(10)
 const showModal = ref(false)
 const showPhotoModal = ref(false)
 const editMode = ref(false)
@@ -451,12 +471,6 @@ const formatDate = (date) => {
   return d.toLocaleDateString('en-CA') // Use YYYY-MM-DD format
 }
 
-const formatCurrency = (amount) => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD'
-  }).format(amount)
-}
 
 const getPageNumbers = () => {
   const pages = []
@@ -471,7 +485,7 @@ const getPageNumbers = () => {
 
 // API calls
 const fetchShipments = async (page = 1) => {
-  const params = new URLSearchParams({ page })
+  const params = new URLSearchParams({ page, per_page: perPage.value })
   
   // Add filters
   Object.entries(filters.value).forEach(([key, value]) => {
@@ -567,6 +581,11 @@ const clearFilters = () => {
 const changePage = (p) => {
   if (p < 1 || p > pagination.value.total_pages) return
   fetchShipments(p)
+}
+
+const changePerPage = () => {
+  pagination.value.page = 1 // Reset to first page when changing page size
+  fetchShipments(1)
 }
 
 const openCreate = () => {

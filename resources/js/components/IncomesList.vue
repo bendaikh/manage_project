@@ -220,6 +220,7 @@
                 v-model="createForm.date"
                 type="date"
                 id="date"
+                :min="new Date().toISOString().split('T')[0]"
                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
               />
@@ -372,6 +373,9 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useCurrency } from '../composables/useCurrency'
+
+const { formatCurrency } = useCurrency()
 
 const incomes = ref([])
 const categories = ref([])
@@ -650,12 +654,6 @@ const deleteIncome = async (income) => {
   }
 }
 
-const formatCurrency = (amount) => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD'
-  }).format(amount)
-}
 
 const formatDate = (dateString) => {
   return new Date(dateString).toLocaleDateString()

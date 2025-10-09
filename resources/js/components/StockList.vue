@@ -439,6 +439,9 @@
 
 <script setup>
 import { ref, onMounted, watch } from 'vue'
+import { useCurrency } from '../composables/useCurrency'
+
+const { formatCurrency } = useCurrency()
 
 // Reactive data
 const stocks = ref([])
@@ -515,13 +518,6 @@ const formatDate = (date) => {
   return new Date(date).toLocaleDateString('en-CA')
 }
 
-const formatCurrency = (amount) => {
-  if (!amount) return 'N/A'
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD'
-  }).format(amount)
-}
 
 const formatStatus = (status) => {
   const statusMap = {

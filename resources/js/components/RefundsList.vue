@@ -254,6 +254,9 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useCurrency } from '../composables/useCurrency'
+
+const { formatCurrency } = useCurrency()
 
 const refunds = ref([])
 const accounts = ref([])
@@ -516,12 +519,6 @@ const deleteRefund = async (refund) => {
   }
 }
 
-const formatCurrency = (amount) => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD'
-  }).format(amount)
-}
 
 const formatDate = (dateString) => {
   return new Date(dateString).toLocaleDateString()

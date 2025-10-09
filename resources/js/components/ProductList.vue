@@ -198,8 +198,8 @@
             {{ product.stock_quantity }} units
           </div>
         </div>
-        <div class="text-lg font-bold text-gray-800 mb-1">Price<br><span class="text-black">FCFA{{ product.selling_price }}</span></div>
-        <div class="text-xs text-gray-400">Cost: FCFA{{ product.purchase_price }}</div>
+        <div class="text-lg font-bold text-gray-800 mb-1">Price<br><span class="text-black">{{ product.selling_price }} {{ getCurrency() }}</span></div>
+        <div class="text-xs text-gray-400">Cost: {{ product.purchase_price }} {{ getCurrency() }}</div>
         <div class="flex space-x-2 mt-2">
           <button @click="viewProduct(product)" class="text-blue-500 hover:text-blue-700" title="View Details">
             <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -288,8 +288,8 @@
                 </div>
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
-                <div class="text-sm font-medium text-gray-900">FCFA{{ product.selling_price }}</div>
-                <div class="text-xs text-gray-500">Cost: FCFA{{ product.purchase_price }}</div>
+                <div class="text-sm font-medium text-gray-900">{{ product.selling_price }} {{ getCurrency() }}</div>
+                <div class="text-xs text-gray-500">Cost: {{ product.purchase_price }} {{ getCurrency() }}</div>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                 <div class="flex space-x-2">
@@ -379,11 +379,11 @@
                 <div class="mt-3 grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
                   <div>
                     <span class="text-gray-500">Selling Price:</span>
-                    <span class="ml-1 font-bold text-lg text-gray-900">FCFA{{ product.selling_price }}</span>
+                    <span class="ml-1 font-bold text-lg text-gray-900">{{ product.selling_price }} {{ getCurrency() }}</span>
                   </div>
                   <div>
                     <span class="text-gray-500">Purchase Price:</span>
-                    <span class="ml-1 font-medium">FCFA{{ product.purchase_price }}</span>
+                    <span class="ml-1 font-medium">{{ product.purchase_price }} {{ getCurrency() }}</span>
                   </div>
                   <div>
                     <span class="text-gray-500">Warehouse:</span>
@@ -451,6 +451,9 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { useCurrency } from '../composables/useCurrency'
+
+const { getCurrency } = useCurrency()
 
 const emit = defineEmits(['add-product', 'edit-product'])
 
@@ -524,8 +527,8 @@ Product Details:
 • Category: ${product.category || 'General'}
 • Supplier: ${product.supplier || 'N/A'}
 • Warehouse: ${product.warehouse ? `${product.warehouse.name} - ${product.warehouse.location}` : 'N/A'}
-• Purchase Price: FCFA${product.purchase_price}
-• Selling Price: FCFA${product.selling_price}
+• Purchase Price: ${product.purchase_price} ${getCurrency()}
+• Selling Price: ${product.selling_price} ${getCurrency()}
 • Stock Quantity: ${product.stock_quantity} units
 • Status: ${product.status}
 • Description: ${product.description || 'No description available'}

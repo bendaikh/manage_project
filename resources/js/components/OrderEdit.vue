@@ -37,7 +37,7 @@
       <div>
         <label class="block text-sm font-medium mb-1">Price</label>
         <div class="flex items-center">
-          <span class="text-gray-400 mr-1">$</span>
+          <span class="text-gray-400 mr-1">{{ currency }}</span>
           <input 
             v-model="form.price" 
             type="number" 
@@ -172,6 +172,11 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
+import { useCurrency } from '../composables/useCurrency'
+
+const { getCurrency } = useCurrency()
+const currency = getCurrency()
+
 const props = defineProps({ 
   order: Object, 
   products: Array, 
