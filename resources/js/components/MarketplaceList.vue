@@ -125,8 +125,169 @@
       </div>
     </div>
 
-    <!-- Products Table -->
-    <div class="overflow-x-auto">
+    <!-- View Type Selector -->
+    <div class="flex items-center justify-between mb-4">
+      <div class="text-gray-600">Showing {{ products.data?.length || 0 }} products</div>
+      <div class="flex items-center space-x-2">
+        <span class="text-sm text-gray-500 mr-2">View:</span>
+        <div class="flex bg-gray-100 rounded-lg p-1">
+          <button 
+            @click="viewType = 'card'" 
+            :class="[
+              'px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-1.5',
+              viewType === 'card' 
+                ? 'bg-white text-blue-600 shadow-sm' 
+                : 'text-gray-500 hover:text-gray-700'
+            ]"
+            title="Card View"
+          >
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+            </svg>
+            <span class="hidden sm:inline">Cards</span>
+          </button>
+          <button 
+            @click="viewType = 'table'" 
+            :class="[
+              'px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-1.5',
+              viewType === 'table' 
+                ? 'bg-white text-blue-600 shadow-sm' 
+                : 'text-gray-500 hover:text-gray-700'
+            ]"
+            title="Table View"
+          >
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0V4a1 1 0 011-1h16a1 1 0 011 1v16a1 1 0 01-1 1H4a1 1 0 01-1-1z"/>
+            </svg>
+            <span class="hidden sm:inline">Table</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card View -->
+    <div v-if="viewType === 'card'" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-6">
+      <div v-for="product in products.data" :key="product.id" class="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden group">
+        <!-- Large Product Image -->
+        <div class="relative overflow-hidden cursor-pointer aspect-square" @click="viewProduct(product)">
+          <img v-if="product.image_url" :src="product.image_url" :alt="product.name" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+          <div v-else class="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+            <svg class="h-20 w-20 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+            </svg>
+          </div>
+          <!-- Hover overlay with zoom icon -->
+          <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-black/0 opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center">
+            <div class="transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
+              <svg class="h-12 w-12 text-white drop-shadow-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+              </svg>
+            </div>
+          </div>
+          <!-- Status Badge -->
+          <div class="absolute top-3 right-3">
+            <span :class="getStatusClass(product.status)" class="text-white text-xs font-semibold px-3 py-1.5 rounded-full shadow-lg">
+              {{ product.status }}
+            </span>
+          </div>
+          <!-- Category Badge -->
+          <div class="absolute top-3 left-3">
+            <span class="bg-blue-600 text-white text-xs font-semibold px-3 py-1.5 rounded-full shadow-lg">{{ product.category || 'General' }}</span>
+          </div>
+        </div>
+
+        <!-- Card Content -->
+        <div class="p-5">
+          <!-- Product Name -->
+          <h3 class="text-lg font-bold text-gray-900 mb-2 line-clamp-2 min-h-[3.5rem]" :title="product.name">{{ product.name }}</h3>
+          
+          <!-- SKU -->
+          <div class="flex items-center text-xs text-gray-500 mb-3">
+            <svg class="h-3.5 w-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"/>
+            </svg>
+            <span>{{ product.sku }}</span>
+          </div>
+
+          <!-- Stock Information -->
+          <div class="mb-4 pb-4 border-b border-gray-100">
+            <div v-if="product.warehouses && product.warehouses.length > 0" class="space-y-2">
+              <div v-for="warehouse in product.warehouses.slice(0, 2)" :key="warehouse.id" class="flex items-center justify-between text-sm">
+                <span class="flex items-center text-gray-600">
+                  <svg class="h-4 w-4 mr-1.5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                  </svg>
+                  {{ warehouse.name }}
+                </span>
+                <span class="font-semibold text-gray-900">{{ warehouse.pivot.quantity }}</span>
+              </div>
+              <div v-if="product.warehouses.length > 2" class="text-xs text-gray-400 text-center">
+                +{{ product.warehouses.length - 2 }} more
+              </div>
+              <div class="pt-2 border-t border-gray-100">
+                <div class="flex items-center justify-between font-semibold text-gray-900">
+                  <span>Total Stock:</span>
+                  <span class="text-blue-600">{{ product.stock_quantity }} units</span>
+                </div>
+              </div>
+              <div v-if="product.stock_quantity <= 10" class="mt-2">
+                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                  ⚠️ Low Stock
+                </span>
+              </div>
+            </div>
+            <div v-else-if="product.warehouse" class="space-y-2">
+              <div class="flex items-center justify-between text-sm">
+                <span class="flex items-center text-gray-600">
+                  <svg class="h-4 w-4 mr-1.5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                  </svg>
+                  {{ product.warehouse.name }}
+                </span>
+                <span class="font-semibold text-blue-600">{{ product.stock_quantity }} units</span>
+              </div>
+              <div v-if="product.stock_quantity <= 10">
+                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                  ⚠️ Low Stock
+                </span>
+              </div>
+            </div>
+            <div v-else class="space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="text-gray-600 text-sm">Stock:</span>
+                <span class="font-semibold text-blue-600">{{ product.stock_quantity }} units</span>
+              </div>
+              <div v-if="product.stock_quantity <= 10">
+                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                  ⚠️ Low Stock
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pricing -->
+          <div class="mb-4">
+            <div class="flex items-baseline justify-between">
+              <span class="text-sm text-gray-500">Selling Price</span>
+              <span class="text-2xl font-bold text-gray-900">{{ formatCurrency(product.selling_price) }}</span>
+            </div>
+          </div>
+
+          <!-- Action Button -->
+          <button @click="viewProduct(product)" class="w-full bg-blue-600 text-white hover:bg-blue-700 px-4 py-2.5 rounded-lg font-medium text-sm transition-colors duration-200 flex items-center justify-center gap-2">
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+            </svg>
+            View Details
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Table View -->
+    <div v-if="viewType === 'table'" class="overflow-x-auto bg-white rounded-lg shadow">
       <table class="min-w-full divide-y divide-gray-200">
         <thead class="bg-gray-50">
           <tr>
@@ -187,7 +348,16 @@
               </div>
             </td>
             <td class="px-6 py-4 whitespace-nowrap">
-              <span :class="getStatusClass(product.status)" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium">
+              <span v-if="product.status === 'In Stock'" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                {{ product.status }}
+              </span>
+              <span v-else-if="product.status === 'Low Stock'" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                {{ product.status }}
+              </span>
+              <span v-else-if="product.status === 'Out of Stock'" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                {{ product.status }}
+              </span>
+              <span v-else class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
                 {{ product.status }}
               </span>
             </td>
@@ -247,6 +417,7 @@ const stats = ref({
 })
 const loading = ref(false)
 const currentPage = ref(1)
+const viewType = ref(localStorage.getItem('marketplaceViewType') || 'card') // Default to card view, with persistence
 
 const filters = ref({
   search: '',
@@ -315,13 +486,15 @@ const changePage = (page) => {
 const getStatusClass = (status) => {
   switch (status) {
     case 'In Stock':
-      return 'bg-green-100 text-green-800'
+      return 'bg-green-500'
+    case 'Low Stock':
+      return 'bg-yellow-500'
     case 'Out of Stock':
-      return 'bg-red-100 text-red-800'
+      return 'bg-red-500'
     case 'Discontinued':
-      return 'bg-gray-100 text-gray-800'
+      return 'bg-gray-500'
     default:
-      return 'bg-gray-100 text-gray-800'
+      return 'bg-gray-500'
   }
 }
 
@@ -335,6 +508,11 @@ watch(filters, () => {
   currentPage.value = 1
   fetchData()
 }, { deep: true })
+
+// Watch for viewType changes and save to localStorage
+watch(viewType, (newViewType) => {
+  localStorage.setItem('marketplaceViewType', newViewType)
+})
 
 onMounted(() => {
   fetchData()
