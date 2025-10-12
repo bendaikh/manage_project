@@ -270,7 +270,7 @@
           <div class="mb-4">
             <div class="flex items-baseline justify-between">
               <span class="text-sm text-gray-500">Selling Price</span>
-              <span class="text-2xl font-bold text-gray-900">{{ formatCurrency(product.selling_price) }}</span>
+              <span class="text-2xl font-bold text-gray-900">{{ product.selling_price }} <span class="text-sm font-normal text-gray-500">{{ getCurrency() }}</span></span>
             </div>
           </div>
 
@@ -319,7 +319,7 @@
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ product.sku }}</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ product.category || 'N/A' }}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ formatCurrency(product.selling_price) }}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ product.selling_price }} {{ getCurrency() }}</td>
             <td class="px-6 py-4 whitespace-nowrap">
               <div v-if="product.warehouses && product.warehouses.length > 0" class="space-y-1">
                 <div v-for="warehouse in product.warehouses" :key="warehouse.id" class="flex items-center justify-between">
@@ -402,7 +402,7 @@
 import { ref, onMounted, watch } from 'vue'
 import { useCurrency } from '../composables/useCurrency'
 
-const { formatCurrency } = useCurrency()
+const { formatCurrency, getCurrency } = useCurrency()
 
 const emit = defineEmits(['view-product'])
 

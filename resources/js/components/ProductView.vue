@@ -86,7 +86,7 @@
           <div class="grid grid-cols-2 gap-4">
             <div>
               <label class="text-sm font-medium text-gray-600">Selling Price</label>
-              <p class="text-lg font-semibold text-green-600">{{ formatCurrency(product.selling_price) }}</p>
+              <p class="text-lg font-semibold text-green-600">{{ product.selling_price }} {{ getCurrency() }}</p>
             </div>
             
             <div>
@@ -138,6 +138,7 @@
 
 <script setup>
 import { ref } from 'vue'
+import { useCurrency } from '../composables/useCurrency'
 
 const props = defineProps({
   product: {
@@ -148,13 +149,7 @@ const props = defineProps({
 
 const emit = defineEmits(['back'])
 
-const formatCurrency = (amount) => {
-  if (!amount) return 'N/A'
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD'
-  }).format(amount)
-}
+const { getCurrency } = useCurrency()
 
 const formatDate = (dateString) => {
   if (!dateString) return 'N/A'
