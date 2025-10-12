@@ -16,6 +16,8 @@ class WeeklySellerInvoice extends Model
         'week_end_date',
         'order_count',
         'total_amount',
+        'advance_amount',
+        'advance_note',
         'pdf_path',
         'status',
         'notes',
@@ -32,6 +34,7 @@ class WeeklySellerInvoice extends Model
         'approved_at' => 'datetime',
         'is_paid' => 'boolean',
         'paid_at' => 'datetime',
+        'advance_amount' => 'decimal:2',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
@@ -132,5 +135,45 @@ class WeeklySellerInvoice extends Model
     public function isPaid()
     {
         return $this->is_paid;
+    }
+
+    /**
+     * Get all advances for this invoice
+     */
+    public function advances()
+    {
+        return $this->hasMany(WeeklyInvoiceAdvance::class);
+    }
+
+    /**
+     * Get the total of all advances
+     */
+    public function getTotalAdvancesAttribute()
+    {
+        return $this->advances()->sum('amount');
+    }
+
+    /**
+     * Get the adjusted total amount (total - total advances)
+     */
+    public function getAdjustedTotalAttribute()
+    {
+        return $this->total_amount - $this->total_advances;
+    }
+
+    /**
+     * Check if the invoice has advance charges
+     */
+    public function hasAdvanceCharge()
+    {
+        return $this->advances()->count() > 0;
+    }
+
+    /**
+     * Get the count of advances
+     */
+    public function getAdvancesCountAttribute()
+    {
+        return $this->advances()->count();
     }
 }

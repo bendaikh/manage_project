@@ -121,7 +121,31 @@
             <td class="px-3 py-2">{{ invoice.seller }}</td>
             <td class="px-3 py-2">{{ invoice.week_period }}</td>
             <td class="px-3 py-2">{{ invoice.order_count }}</td>
-            <td class="px-3 py-2 font-bold">{{ formatAmount(invoice.total_amount) }} {{ getCurrency() }}</td>
+            <td class="px-3 py-2">
+              <div class="font-bold">{{ formatAmount(invoice.total_amount) }} {{ getCurrency() }}</div>
+              <div v-if="invoice.advances && invoice.advances.length > 0" class="text-sm text-gray-600 mt-1">
+                <!-- Show single advance directly -->
+                <div v-if="invoice.advances.length === 1">
+                  <div class="text-red-600">- Advance: {{ formatAmount(invoice.advances[0].amount) }} {{ getCurrency() }}</div>
+                  <div class="font-semibold text-blue-600">Adjusted: {{ formatAmount(getTotalAfterAdvances(invoice)) }} {{ getCurrency() }}</div>
+                </div>
+                <!-- Show eye icon for multiple advances -->
+                <div v-else class="flex items-center gap-2">
+                  <span class="text-red-600">- Advances: {{ formatAmount(getTotalAdvances(invoice)) }} {{ getCurrency() }}</span>
+                  <button 
+                    @click="openAdvancesModal(invoice)" 
+                    class="p-1 hover:bg-gray-200 rounded transition-colors"
+                    title="View all advances"
+                  >
+                    <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                    </svg>
+                  </button>
+                  <div class="font-semibold text-blue-600">Adjusted: {{ formatAmount(getTotalAfterAdvances(invoice)) }} {{ getCurrency() }}</div>
+                </div>
+              </div>
+            </td>
             <td class="px-3 py-2">
               <span :class="getStatusClass(invoice.status)" class="px-2 py-1 rounded-full text-xs font-medium">
                 {{ invoice.status }}
@@ -163,6 +187,12 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                   </svg>
                   Revoke Payment
+                </button>
+                <button v-if="canMarkAsPaid && invoice.status === 'approved'" @click="openChargeAdvanceModal(invoice)" class="px-3 py-1 bg-purple-600 text-white rounded hover:bg-purple-700 text-xs flex items-center gap-1" title="Charge Advance">
+                  <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                  </svg>
+                  Charge Advance
                 </button>
                 <button v-if="isSuperadmin" @click="deleteInvoice(invoice, 'weekly')" class="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-xs flex items-center gap-1" title="Delete Invoice">
                   <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -218,6 +248,163 @@
       </div>
     </div>
   </div>
+
+  <!-- Charge Advance Modal -->
+  <div v-if="showChargeAdvanceModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" @click.self="closeChargeAdvanceModal">
+    <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-semibold">Charge Advance</h3>
+        <button @click="closeChargeAdvanceModal" class="text-gray-400 hover:text-gray-600">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      
+      <div v-if="selectedInvoiceForAdvance" class="mb-4 p-3 bg-gray-50 rounded">
+        <p class="text-sm text-gray-600">
+          <strong>Seller:</strong> {{ selectedInvoiceForAdvance.seller }}<br>
+          <strong>Week:</strong> {{ selectedInvoiceForAdvance.week_period }}<br>
+          <strong>Total Amount:</strong> {{ formatAmount(selectedInvoiceForAdvance.total_amount) }} {{ getCurrency() }}<br>
+          <span v-if="getTotalAdvances(selectedInvoiceForAdvance) > 0">
+            <strong>Existing Advances:</strong> <span class="text-red-600">{{ formatAmount(getTotalAdvances(selectedInvoiceForAdvance)) }} {{ getCurrency() }}</span><br>
+            <strong>Remaining Available:</strong> <span class="text-blue-600">{{ formatAmount(getTotalAfterAdvances(selectedInvoiceForAdvance)) }} {{ getCurrency() }}</span>
+          </span>
+        </p>
+      </div>
+
+      <form @submit.prevent="submitChargeAdvance">
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-2">Advance Amount *</label>
+          <div class="relative">
+            <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">{{ getCurrency() }}</span>
+            <input 
+              v-model="chargeAdvanceForm.advance_amount" 
+              type="number" 
+              step="0.01" 
+              min="0.01" 
+              :max="getTotalAfterAdvances(selectedInvoiceForAdvance)"
+              required 
+              class="w-full pl-12 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="0.00"
+            />
+          </div>
+          <p class="text-xs text-gray-500 mt-1">
+            Maximum available: {{ formatAmount(getTotalAfterAdvances(selectedInvoiceForAdvance)) }} {{ getCurrency() }}
+          </p>
+        </div>
+
+        <div class="mb-6">
+          <label class="block text-sm font-medium text-gray-700 mb-2">Note (Optional)</label>
+          <textarea 
+            v-model="chargeAdvanceForm.advance_note" 
+            rows="3" 
+            maxlength="500"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            placeholder="Enter a note for this advance charge..."
+          ></textarea>
+          <p class="text-xs text-gray-500 mt-1">{{ chargeAdvanceForm.advance_note?.length || 0 }}/500 characters</p>
+        </div>
+
+        <div class="flex justify-end gap-3">
+          <button 
+            type="button" 
+            @click="closeChargeAdvanceModal" 
+            class="px-4 py-2 text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+          >
+            Cancel
+          </button>
+          <button 
+            type="submit" 
+            :disabled="isSubmittingChargeAdvance"
+            class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+          >
+            <svg v-if="isSubmittingChargeAdvance" class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            {{ isSubmittingChargeAdvance ? 'Applying...' : 'Apply Advance' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- View Advances Modal -->
+  <div v-if="showAdvancesModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" @click.self="closeAdvancesModal">
+    <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-2xl">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-semibold">Advance Charges</h3>
+        <button @click="closeAdvancesModal" class="text-gray-400 hover:text-gray-600">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      
+      <div v-if="selectedInvoiceForAdvances" class="mb-4 p-3 bg-gray-50 rounded">
+        <p class="text-sm text-gray-600">
+          <strong>Seller:</strong> {{ selectedInvoiceForAdvances.seller }}<br>
+          <strong>Week:</strong> {{ selectedInvoiceForAdvances.week_period }}<br>
+          <strong>Total Amount:</strong> {{ formatAmount(selectedInvoiceForAdvances.total_amount) }} {{ getCurrency() }}
+        </p>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="min-w-full bg-white border border-gray-200">
+          <thead class="bg-gray-100">
+            <tr>
+              <th class="px-4 py-2 text-left text-xs font-bold">#</th>
+              <th class="px-4 py-2 text-left text-xs font-bold">Amount</th>
+              <th class="px-4 py-2 text-left text-xs font-bold">Date</th>
+              <th class="px-4 py-2 text-left text-xs font-bold">Note</th>
+              <th class="px-4 py-2 text-left text-xs font-bold">Created By</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(advance, index) in selectedInvoiceForAdvances?.advances || []" :key="advance.id" class="border-b hover:bg-gray-50">
+              <td class="px-4 py-2 text-sm">{{ index + 1 }}</td>
+              <td class="px-4 py-2 text-sm font-semibold text-red-600">
+                {{ formatAmount(advance.amount) }} {{ getCurrency() }}
+              </td>
+              <td class="px-4 py-2 text-sm text-gray-600">
+                {{ formatDate(advance.created_at) }}
+              </td>
+              <td class="px-4 py-2 text-sm text-gray-700">
+                {{ advance.note || '-' }}
+              </td>
+              <td class="px-4 py-2 text-sm text-gray-600">
+                {{ advance.creator?.name || 'N/A' }}
+              </td>
+            </tr>
+          </tbody>
+          <tfoot class="bg-gray-50 font-bold">
+            <tr>
+              <td colspan="1" class="px-4 py-3 text-right text-sm">Total Advances:</td>
+              <td colspan="4" class="px-4 py-3 text-sm text-red-600">
+                {{ formatAmount(getTotalAdvances(selectedInvoiceForAdvances)) }} {{ getCurrency() }}
+              </td>
+            </tr>
+            <tr>
+              <td colspan="1" class="px-4 py-3 text-right text-sm">Final Amount Due:</td>
+              <td colspan="4" class="px-4 py-3 text-sm text-blue-600">
+                {{ formatAmount(getTotalAfterAdvances(selectedInvoiceForAdvances)) }} {{ getCurrency() }}
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <div class="flex justify-end mt-6">
+        <button 
+          @click="closeAdvancesModal" 
+          class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup>
@@ -258,6 +445,19 @@ const generateForm = ref({
   weekStart: '',
   weekEnd: ''
 })
+
+// Charge Advance Modal
+const showChargeAdvanceModal = ref(false)
+const selectedInvoiceForAdvance = ref(null)
+const isSubmittingChargeAdvance = ref(false)
+const chargeAdvanceForm = ref({
+  advance_amount: '',
+  advance_note: ''
+})
+
+// View Advances Modal
+const showAdvancesModal = ref(false)
+const selectedInvoiceForAdvances = ref(null)
 
 // Daily invoices pagination
 const dailyCurrentPage = ref(1)
@@ -323,6 +523,26 @@ const changeWeeklyPage = (page) => {
 }
 
 const formatAmount = (n) => Number(n).toLocaleString()
+
+const formatDate = (dateString) => {
+  const date = new Date(dateString)
+  return date.toLocaleDateString('en-GB', { 
+    day: '2-digit', 
+    month: '2-digit', 
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
+const getTotalAdvances = (invoice) => {
+  if (!invoice.advances || invoice.advances.length === 0) return 0
+  return invoice.advances.reduce((sum, advance) => sum + parseFloat(advance.amount), 0)
+}
+
+const getTotalAfterAdvances = (invoice) => {
+  return invoice.total_amount - getTotalAdvances(invoice)
+}
 
 const fetchDailySellers = async () => {
   const res = await fetch('/seller-invoices/sellers')
@@ -558,6 +778,71 @@ const deleteInvoice = async (invoice, type) => {
   } catch (error) {
     console.error('Delete error:', error)
     alert(`Failed to delete ${invoiceType}`)
+  }
+}
+
+// View Advances Modal Functions
+const openAdvancesModal = (invoice) => {
+  selectedInvoiceForAdvances.value = invoice
+  showAdvancesModal.value = true
+}
+
+const closeAdvancesModal = () => {
+  showAdvancesModal.value = false
+  selectedInvoiceForAdvances.value = null
+}
+
+// Charge Advance Functions
+const openChargeAdvanceModal = (invoice) => {
+  selectedInvoiceForAdvance.value = invoice
+  chargeAdvanceForm.value = {
+    advance_amount: '',
+    advance_note: ''
+  }
+  showChargeAdvanceModal.value = true
+}
+
+const closeChargeAdvanceModal = () => {
+  showChargeAdvanceModal.value = false
+  selectedInvoiceForAdvance.value = null
+  chargeAdvanceForm.value = {
+    advance_amount: '',
+    advance_note: ''
+  }
+}
+
+const submitChargeAdvance = async () => {
+  if (!selectedInvoiceForAdvance.value) return
+
+  isSubmittingChargeAdvance.value = true
+
+  try {
+    const response = await fetch(`/weekly-seller-invoices/${selectedInvoiceForAdvance.value.id}/charge-advance`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+      },
+      body: JSON.stringify({
+        advance_amount: parseFloat(chargeAdvanceForm.value.advance_amount),
+        advance_note: chargeAdvanceForm.value.advance_note
+      })
+    })
+
+    if (response.ok) {
+      const data = await response.json()
+      alert('Charge advance applied successfully!')
+      closeChargeAdvanceModal()
+      fetchWeeklyInvoices() // Refresh the invoices list
+    } else {
+      const errorData = await response.json()
+      alert(`Error: ${errorData.error || 'Failed to apply charge advance'}`)
+    }
+  } catch (error) {
+    console.error('Charge advance error:', error)
+    alert('Failed to apply charge advance')
+  } finally {
+    isSubmittingChargeAdvance.value = false
   }
 }
 

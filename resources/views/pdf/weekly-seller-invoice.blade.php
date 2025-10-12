@@ -91,6 +91,27 @@
         @endif
         <div>Total Delivery Cost: -{{ number_format($deliveryCostTotal, 0, ',', ' ') }} FCFA</div>
         <div class="total-amount">Net Total Amount: {{ number_format($totalAmount, 0, ',', ' ') }} FCFA</div>
+        
+        @if(isset($invoice->advances) && $invoice->advances->count() > 0)
+        <div style="margin-top: 15px; padding: 10px; background-color: #f8f9fa; border-left: 4px solid #dc3545;">
+            <strong>Advance Charges:</strong><br>
+            @foreach($invoice->advances as $advance)
+            <div style="margin-top: 5px;">
+                <span style="color: #dc3545; font-weight: bold;">- {{ number_format($advance->amount, 0, ',', ' ') }} FCFA</span>
+                <span style="font-size: 9px; color: #666;">({{ $advance->created_at->format('d/m/Y H:i') }})</span>
+                @if($advance->note)
+                <div style="margin-left: 15px; font-style: italic; font-size: 9px;">{{ $advance->note }}</div>
+                @endif
+            </div>
+            @endforeach
+            <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #ccc;">
+                <strong>Total Advances:</strong> <span style="color: #dc3545;">- {{ number_format($invoice->total_advances, 0, ',', ' ') }} FCFA</span>
+            </div>
+            <div style="margin-top: 10px; font-size: 14px; font-weight: bold; color: #007bff;">
+                Final Amount Due: {{ number_format($totalAmount - $invoice->total_advances, 0, ',', ' ') }} FCFA
+            </div>
+        </div>
+        @endif
     </div>
 
     @if($invoice->notes)

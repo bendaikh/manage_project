@@ -28,7 +28,7 @@ class WeeklySellerInvoiceController extends Controller
         $perPage = $request->input('per_page', 10);
         $sellerFilter = $request->input('seller');
 
-        $query = WeeklySellerInvoice::with('approver')->orderByDesc('week_start_date');
+        $query = WeeklySellerInvoice::with(['approver', 'advances.creator'])->orderByDesc('week_start_date');
 
         // If the authenticated user has role 'seller', limit to their approved invoices only
         if (Auth::check() && Auth::user()->hasRole('seller')) {
@@ -234,6 +234,54 @@ class WeeklySellerInvoiceController extends Controller
     }
 
     /**
+     * Apply charge advance to a weekly invoice
+     */
+    public function chargeAdvance(Request $request, $id)
+    {
+        // Check if user has permission to modify seller invoices
+        if (!Auth::user()->hasPermission('approve_seller_invoices')) {
+            return response()->json(['error' => 'Unauthorized. You do not have permission to charge advance.'], 403);
+        }
+
+        $request->validate([
+            'advance_amount' => 'required|numeric|min:0.01|max:999999.99',
+            'advance_note' => 'nullable|string|max:500'
+        ]);
+
+        $invoice = WeeklySellerInvoice::findOrFail($id);
+        
+        if ($invoice->status !== 'approved') {
+            return response()->json(['error' => 'Can only charge advance on approved invoices'], 400);
+        }
+
+        // Calculate total advances including the new one
+        $totalAdvances = $invoice->total_advances + $request->advance_amount;
+        
+        if ($totalAdvances > $invoice->total_amount) {
+            return response()->json(['error' => 'Total advances cannot exceed the total invoice amount'], 400);
+        }
+
+        // Create new advance record
+        $advance = \App\Models\WeeklyInvoiceAdvance::create([
+            'weekly_seller_invoice_id' => $invoice->id,
+            'amount' => $request->advance_amount,
+            'note' => $request->advance_note,
+            'created_by' => Auth::id(),
+        ]);
+
+        // Reload invoice with advances
+        $invoice = $invoice->fresh(['advances.creator']);
+
+        return response()->json([
+            'message' => 'Charge advance applied successfully',
+            'invoice' => $invoice,
+            'advance' => $advance,
+            'total_advances' => $invoice->total_advances,
+            'adjusted_total' => $invoice->adjusted_total
+        ]);
+    }
+
+    /**
      * Download a weekly invoice PDF
      */
     public function download($id)
@@ -243,35 +291,23 @@ class WeeklySellerInvoiceController extends Controller
             return response()->json(['error' => 'Unauthorized. You do not have permission to download seller invoices.'], 403);
         }
 
-        $invoice = WeeklySellerInvoice::findOrFail($id);
+        $invoice = WeeklySellerInvoice::with('advances')->findOrFail($id);
 
         // Allow download for approved invoices or for preview (pending invoices)
         if (!$invoice->isApproved() && !$invoice->isPending()) {
             return response()->json(['error' => 'Invoice must be approved or pending before download'], 403);
         }
 
-        // For pending invoices, generate PDF on-the-fly for preview
-        if ($invoice->isPending()) {
-            try {
-                $this->generatePdf($invoice);
-            } catch (\Exception $e) {
-                Log::error('Failed to generate weekly invoice PDF for preview: ' . $e->getMessage());
-                return response()->json([
-                    'error' => 'Failed to generate invoice preview.',
-                    'message' => 'Please try again or contact support.'
-                ], 500);
-            }
-        } elseif (!Storage::exists($invoice->pdf_path)) {
-            // For approved invoices, attempt to regenerate if missing
-            try {
-                $this->generatePdf($invoice);
-            } catch (\Exception $e) {
-                Log::error('Failed to regenerate weekly invoice PDF: ' . $e->getMessage());
-                return response()->json([
-                    'error' => 'Invoice file is missing and could not be regenerated.',
-                    'message' => 'Please contact support.'
-                ], 404);
-            }
+        // Always regenerate PDF to ensure it includes latest advances
+        // This prevents issues with cached PDFs that don't reflect current state
+        try {
+            $this->generatePdf($invoice);
+        } catch (\Exception $e) {
+            Log::error('Failed to generate weekly invoice PDF: ' . $e->getMessage());
+            return response()->json([
+                'error' => 'Failed to generate invoice.',
+                'message' => 'Please try again or contact support.'
+            ], 500);
         }
 
         return response()->download(Storage::path($invoice->pdf_path));
@@ -385,6 +421,14 @@ class WeeklySellerInvoiceController extends Controller
      */
     private function generatePdf(WeeklySellerInvoice $invoice)
     {
+        // Load advances relationship if not already loaded
+        if (!$invoice->relationLoaded('advances')) {
+            $invoice->load('advances');
+        }
+        
+        // Log advances for debugging
+        Log::info("Generating PDF for invoice #{$invoice->id} ({$invoice->seller}), Advances: {$invoice->advances->count()}, Total: {$invoice->total_amount} FCFA");
+        
         // Get daily invoices for this seller in this week period
         $dailyInvoices = \App\Models\SellerInvoice::where('seller', $invoice->seller)
             ->whereBetween('invoice_date', [$invoice->week_start_date, $invoice->week_end_date])
