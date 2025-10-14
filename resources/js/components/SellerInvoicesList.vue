@@ -124,13 +124,8 @@
             <td class="px-3 py-2">
               <div class="font-bold">{{ formatAmount(invoice.total_amount) }} {{ getCurrency() }}</div>
               <div v-if="invoice.advances && invoice.advances.length > 0" class="text-sm text-gray-600 mt-1">
-                <!-- Show single advance directly -->
-                <div v-if="invoice.advances.length === 1">
-                  <div class="text-red-600">- Advance: {{ formatAmount(invoice.advances[0].amount) }} {{ getCurrency() }}</div>
-                  <div class="font-semibold text-blue-600">Adjusted: {{ formatAmount(getTotalAfterAdvances(invoice)) }} {{ getCurrency() }}</div>
-                </div>
-                <!-- Show eye icon for multiple advances -->
-                <div v-else class="flex items-center gap-2">
+                <!-- Show eye icon for all advances (1 or more) -->
+                <div class="flex items-center gap-2">
                   <span class="text-red-600">- Advances: {{ formatAmount(getTotalAdvances(invoice)) }} {{ getCurrency() }}</span>
                   <button 
                     @click="openAdvancesModal(invoice)" 
@@ -157,48 +152,46 @@
               </span>
             </td>
             <td class="px-3 py-2">
-              <div class="flex gap-2">
-                <button v-if="invoice.status === 'pending'" @click="downloadInvoice(invoice, 'weekly')" class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-xs flex items-center gap-1">
-                  <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div class="flex gap-1">
+                <button v-if="invoice.status === 'pending'" @click="downloadInvoice(invoice, 'weekly')" class="p-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors" title="Preview PDF">
+                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                   </svg>
-                  Preview PDF
                 </button>
-                <button v-if="invoice.status === 'pending'" @click="approveInvoice(invoice)" class="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-xs">
-                  Approve
+                <button v-if="invoice.status === 'pending'" @click="approveInvoice(invoice)" class="p-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors" title="Approve">
+                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
                 </button>
-                <button v-if="invoice.status === 'pending'" @click="rejectInvoice(invoice)" class="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-xs">
-                  Reject
+                <button v-if="invoice.status === 'pending'" @click="rejectInvoice(invoice)" class="p-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors" title="Reject">
+                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
                 </button>
-                <button v-if="invoice.status === 'approved'" @click="downloadInvoice(invoice, 'weekly')" class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-xs flex items-center gap-1">
-                  <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <button v-if="invoice.status === 'approved'" @click="downloadInvoice(invoice, 'weekly')" class="p-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors" title="Download PDF">
+                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                   </svg>
-                  Download PDF
                 </button>
-                <button v-if="canMarkAsPaid && invoice.status === 'approved' && !invoice.is_paid" @click="markAsPaid(invoice, 'weekly')" class="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-xs flex items-center gap-1">
-                  <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <button v-if="canMarkAsPaid && invoice.status === 'approved' && !invoice.is_paid" @click="markAsPaid(invoice, 'weekly')" class="p-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors" title="Mark as Paid">
+                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                   </svg>
-                  Mark as Paid
                 </button>
-                <button v-if="canMarkAsPaid && invoice.status === 'approved' && invoice.is_paid" @click="revokePayment(invoice, 'weekly')" class="px-3 py-1 bg-orange-600 text-white rounded hover:bg-orange-700 text-xs flex items-center gap-1">
-                  <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <button v-if="canMarkAsPaid && invoice.status === 'approved' && invoice.is_paid" @click="revokePayment(invoice, 'weekly')" class="p-2 bg-orange-600 text-white rounded hover:bg-orange-700 transition-colors" title="Revoke Payment">
+                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                   </svg>
-                  Revoke Payment
                 </button>
-                <button v-if="canMarkAsPaid && invoice.status === 'approved'" @click="openChargeAdvanceModal(invoice)" class="px-3 py-1 bg-purple-600 text-white rounded hover:bg-purple-700 text-xs flex items-center gap-1" title="Charge Advance">
-                  <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <button v-if="canMarkAsPaid && invoice.status === 'approved'" @click="openChargeAdvanceModal(invoice)" class="p-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors" title="Charge Advance">
+                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
                   </svg>
-                  Charge Advance
                 </button>
-                <button v-if="isSuperadmin" @click="deleteInvoice(invoice, 'weekly')" class="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-xs flex items-center gap-1" title="Delete Invoice">
-                  <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <button v-if="isSuperadmin" @click="deleteInvoice(invoice, 'weekly')" class="p-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors" title="Delete Invoice">
+                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                   </svg>
-                  Delete
                 </button>
               </div>
             </td>
@@ -359,6 +352,7 @@
               <th class="px-4 py-2 text-left text-xs font-bold">Date</th>
               <th class="px-4 py-2 text-left text-xs font-bold">Note</th>
               <th class="px-4 py-2 text-left text-xs font-bold">Created By</th>
+              <th v-if="canMarkAsPaid" class="px-4 py-2 text-left text-xs font-bold">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -376,18 +370,42 @@
               <td class="px-4 py-2 text-sm text-gray-600">
                 {{ advance.creator?.name || 'N/A' }}
               </td>
+              <td v-if="canMarkAsPaid" class="px-4 py-2 text-sm">
+                <div class="flex gap-2">
+                  <button 
+                    @click="openEditAdvanceModal(advance)"
+                    class="px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-xs flex items-center gap-1"
+                    title="Modify Advance"
+                  >
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                    </svg>
+                    Edit
+                  </button>
+                  <button 
+                    @click="confirmDeleteAdvance(advance)"
+                    class="px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-xs flex items-center gap-1"
+                    title="Delete Advance"
+                  >
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                    Delete
+                  </button>
+                </div>
+              </td>
             </tr>
           </tbody>
           <tfoot class="bg-gray-50 font-bold">
             <tr>
               <td colspan="1" class="px-4 py-3 text-right text-sm">Total Advances:</td>
-              <td colspan="4" class="px-4 py-3 text-sm text-red-600">
+              <td :colspan="canMarkAsPaid ? 5 : 4" class="px-4 py-3 text-sm text-red-600">
                 {{ formatAmount(getTotalAdvances(selectedInvoiceForAdvances)) }} {{ getCurrency() }}
               </td>
             </tr>
             <tr>
               <td colspan="1" class="px-4 py-3 text-right text-sm">Final Amount Due:</td>
-              <td colspan="4" class="px-4 py-3 text-sm text-blue-600">
+              <td :colspan="canMarkAsPaid ? 5 : 4" class="px-4 py-3 text-sm text-blue-600">
                 {{ formatAmount(getTotalAfterAdvances(selectedInvoiceForAdvances)) }} {{ getCurrency() }}
               </td>
             </tr>
@@ -403,6 +421,87 @@
           Close
         </button>
       </div>
+    </div>
+  </div>
+
+  <!-- Edit Advance Modal -->
+  <div v-if="showEditAdvanceModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" @click.self="closeEditAdvanceModal">
+    <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-semibold">Edit Advance</h3>
+        <button @click="closeEditAdvanceModal" class="text-gray-400 hover:text-gray-600">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      
+      <div v-if="selectedInvoiceForAdvances" class="mb-4 p-3 bg-gray-50 rounded">
+        <p class="text-sm text-gray-600">
+          <strong>Seller:</strong> {{ selectedInvoiceForAdvances.seller }}<br>
+          <strong>Week:</strong> {{ selectedInvoiceForAdvances.week_period }}<br>
+          <strong>Total Amount:</strong> {{ formatAmount(selectedInvoiceForAdvances.total_amount) }} {{ getCurrency() }}<br>
+          <span v-if="editAdvanceForm.advance_id && getTotalAdvancesExcluding(selectedInvoiceForAdvances, editAdvanceForm.advance_id) > 0">
+            <strong>Other Advances:</strong> <span class="text-red-600">{{ formatAmount(getTotalAdvancesExcluding(selectedInvoiceForAdvances, editAdvanceForm.advance_id)) }} {{ getCurrency() }}</span><br>
+            <strong>Maximum Available:</strong> <span class="text-blue-600">{{ formatAmount(getMaxAvailableForEdit(selectedInvoiceForAdvances, editAdvanceForm.advance_id)) }} {{ getCurrency() }}</span>
+          </span>
+        </p>
+      </div>
+
+      <form @submit.prevent="submitEditAdvance">
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-2">Advance Amount *</label>
+          <div class="relative">
+            <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">{{ getCurrency() }}</span>
+            <input 
+              v-model="editAdvanceForm.advance_amount" 
+              type="number" 
+              step="0.01" 
+              min="0.01" 
+              :max="getMaxAvailableForEdit(selectedInvoiceForAdvances, editAdvanceForm.advance_id)"
+              required 
+              class="w-full pl-12 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="0.00"
+            />
+          </div>
+          <p class="text-xs text-gray-500 mt-1">
+            Maximum available: {{ formatAmount(getMaxAvailableForEdit(selectedInvoiceForAdvances, editAdvanceForm.advance_id)) }} {{ getCurrency() }}
+          </p>
+        </div>
+
+        <div class="mb-6">
+          <label class="block text-sm font-medium text-gray-700 mb-2">Note (Optional)</label>
+          <textarea 
+            v-model="editAdvanceForm.advance_note" 
+            rows="3" 
+            maxlength="500"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            placeholder="Enter a note for this advance..."
+          ></textarea>
+          <p class="text-xs text-gray-500 mt-1">{{ editAdvanceForm.advance_note?.length || 0 }}/500 characters</p>
+        </div>
+
+        <div class="flex justify-end gap-3">
+          <button 
+            type="button" 
+            @click="closeEditAdvanceModal" 
+            class="px-4 py-2 text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+          >
+            Cancel
+          </button>
+          <button 
+            type="submit" 
+            :disabled="isSubmittingEditAdvance"
+            class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+          >
+            <svg v-if="isSubmittingEditAdvance" class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            {{ isSubmittingEditAdvance ? 'Updating...' : 'Update Advance' }}
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 </template>
@@ -458,6 +557,15 @@ const chargeAdvanceForm = ref({
 // View Advances Modal
 const showAdvancesModal = ref(false)
 const selectedInvoiceForAdvances = ref(null)
+
+// Edit Advance Modal
+const showEditAdvanceModal = ref(false)
+const isSubmittingEditAdvance = ref(false)
+const editAdvanceForm = ref({
+  advance_id: null,
+  advance_amount: '',
+  advance_note: ''
+})
 
 // Daily invoices pagination
 const dailyCurrentPage = ref(1)
@@ -542,6 +650,19 @@ const getTotalAdvances = (invoice) => {
 
 const getTotalAfterAdvances = (invoice) => {
   return invoice.total_amount - getTotalAdvances(invoice)
+}
+
+const getTotalAdvancesExcluding = (invoice, advanceId) => {
+  if (!invoice.advances || invoice.advances.length === 0) return 0
+  return invoice.advances
+    .filter(advance => advance.id !== advanceId)
+    .reduce((sum, advance) => sum + parseFloat(advance.amount), 0)
+}
+
+const getMaxAvailableForEdit = (invoice, advanceId) => {
+  if (!invoice) return 0
+  const otherAdvancesTotal = getTotalAdvancesExcluding(invoice, advanceId)
+  return invoice.total_amount - otherAdvancesTotal
 }
 
 const fetchDailySellers = async () => {
@@ -843,6 +964,108 @@ const submitChargeAdvance = async () => {
     alert('Failed to apply charge advance')
   } finally {
     isSubmittingChargeAdvance.value = false
+  }
+}
+
+// Edit Advance Functions
+const openEditAdvanceModal = (advance) => {
+  editAdvanceForm.value = {
+    advance_id: advance.id,
+    advance_amount: advance.amount,
+    advance_note: advance.note || ''
+  }
+  showEditAdvanceModal.value = true
+}
+
+const closeEditAdvanceModal = () => {
+  showEditAdvanceModal.value = false
+  editAdvanceForm.value = {
+    advance_id: null,
+    advance_amount: '',
+    advance_note: ''
+  }
+}
+
+const submitEditAdvance = async () => {
+  if (!selectedInvoiceForAdvances.value || !editAdvanceForm.value.advance_id) return
+
+  isSubmittingEditAdvance.value = true
+
+  try {
+    const response = await fetch(
+      `/weekly-seller-invoices/${selectedInvoiceForAdvances.value.id}/advances/${editAdvanceForm.value.advance_id}`,
+      {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        },
+        body: JSON.stringify({
+          advance_amount: parseFloat(editAdvanceForm.value.advance_amount),
+          advance_note: editAdvanceForm.value.advance_note
+        })
+      }
+    )
+
+    if (response.ok) {
+      const data = await response.json()
+      alert('Advance updated successfully!')
+      
+      // Update the local invoice data
+      selectedInvoiceForAdvances.value = data.invoice
+      
+      closeEditAdvanceModal()
+      fetchWeeklyInvoices() // Refresh the invoices list
+    } else {
+      const errorData = await response.json()
+      alert(`Error: ${errorData.error || 'Failed to update advance'}`)
+    }
+  } catch (error) {
+    console.error('Update advance error:', error)
+    alert('Failed to update advance')
+  } finally {
+    isSubmittingEditAdvance.value = false
+  }
+}
+
+// Delete Advance Function
+const confirmDeleteAdvance = async (advance) => {
+  if (!confirm(`Are you sure you want to delete this advance of ${formatAmount(advance.amount)} ${getCurrency()}? This action cannot be undone.`)) {
+    return
+  }
+
+  try {
+    const response = await fetch(
+      `/weekly-seller-invoices/${selectedInvoiceForAdvances.value.id}/advances/${advance.id}`,
+      {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        }
+      }
+    )
+
+    if (response.ok) {
+      const data = await response.json()
+      alert('Advance deleted successfully!')
+      
+      // Update the local invoice data
+      selectedInvoiceForAdvances.value = data.invoice
+      
+      // Close the modal if no more advances
+      if (data.invoice.advances.length === 0) {
+        closeAdvancesModal()
+      }
+      
+      fetchWeeklyInvoices() // Refresh the invoices list
+    } else {
+      const errorData = await response.json()
+      alert(`Error: ${errorData.error || 'Failed to delete advance'}`)
+    }
+  } catch (error) {
+    console.error('Delete advance error:', error)
+    alert('Failed to delete advance')
   }
 }
 

@@ -282,6 +282,92 @@ class WeeklySellerInvoiceController extends Controller
     }
 
     /**
+     * Update an existing advance
+     */
+    public function updateAdvance(Request $request, $invoiceId, $advanceId)
+    {
+        // Check if user has permission to modify seller invoices
+        if (!Auth::user()->hasPermission('approve_seller_invoices')) {
+            return response()->json(['error' => 'Unauthorized. You do not have permission to modify advances.'], 403);
+        }
+
+        $request->validate([
+            'advance_amount' => 'required|numeric|min:0.01|max:999999.99',
+            'advance_note' => 'nullable|string|max:500'
+        ]);
+
+        $invoice = WeeklySellerInvoice::findOrFail($invoiceId);
+        $advance = \App\Models\WeeklyInvoiceAdvance::where('id', $advanceId)
+            ->where('weekly_seller_invoice_id', $invoiceId)
+            ->firstOrFail();
+        
+        if ($invoice->status !== 'approved') {
+            return response()->json(['error' => 'Can only modify advances on approved invoices'], 400);
+        }
+
+        // Calculate total advances excluding the current one being updated
+        $totalOtherAdvances = $invoice->advances()
+            ->where('id', '!=', $advanceId)
+            ->sum('amount');
+        
+        $newTotalAdvances = $totalOtherAdvances + $request->advance_amount;
+        
+        if ($newTotalAdvances > $invoice->total_amount) {
+            return response()->json(['error' => 'Total advances cannot exceed the total invoice amount'], 400);
+        }
+
+        // Update the advance
+        $advance->update([
+            'amount' => $request->advance_amount,
+            'note' => $request->advance_note,
+        ]);
+
+        // Reload invoice with advances
+        $invoice = $invoice->fresh(['advances.creator']);
+
+        return response()->json([
+            'message' => 'Advance updated successfully',
+            'invoice' => $invoice,
+            'advance' => $advance,
+            'total_advances' => $invoice->total_advances,
+            'adjusted_total' => $invoice->adjusted_total
+        ]);
+    }
+
+    /**
+     * Delete an advance
+     */
+    public function deleteAdvance($invoiceId, $advanceId)
+    {
+        // Check if user has permission to modify seller invoices
+        if (!Auth::user()->hasPermission('approve_seller_invoices')) {
+            return response()->json(['error' => 'Unauthorized. You do not have permission to delete advances.'], 403);
+        }
+
+        $invoice = WeeklySellerInvoice::findOrFail($invoiceId);
+        $advance = \App\Models\WeeklyInvoiceAdvance::where('id', $advanceId)
+            ->where('weekly_seller_invoice_id', $invoiceId)
+            ->firstOrFail();
+        
+        if ($invoice->status !== 'approved') {
+            return response()->json(['error' => 'Can only delete advances from approved invoices'], 400);
+        }
+
+        // Delete the advance
+        $advance->delete();
+
+        // Reload invoice with advances
+        $invoice = $invoice->fresh(['advances.creator']);
+
+        return response()->json([
+            'message' => 'Advance deleted successfully',
+            'invoice' => $invoice,
+            'total_advances' => $invoice->total_advances,
+            'adjusted_total' => $invoice->adjusted_total
+        ]);
+    }
+
+    /**
      * Download a weekly invoice PDF
      */
     public function download($id)

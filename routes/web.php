@@ -106,6 +106,8 @@ Route::post('/weekly-seller-invoices/generate', [App\Http\Controllers\WeeklySell
 Route::post('/weekly-seller-invoices/{id}/approve', [App\Http\Controllers\WeeklySellerInvoiceController::class, 'approve']);
 Route::post('/weekly-seller-invoices/{id}/reject', [App\Http\Controllers\WeeklySellerInvoiceController::class, 'reject']);
 Route::post('/weekly-seller-invoices/{id}/charge-advance', [App\Http\Controllers\WeeklySellerInvoiceController::class, 'chargeAdvance']);
+Route::put('/weekly-seller-invoices/{invoiceId}/advances/{advanceId}', [App\Http\Controllers\WeeklySellerInvoiceController::class, 'updateAdvance']);
+Route::delete('/weekly-seller-invoices/{invoiceId}/advances/{advanceId}', [App\Http\Controllers\WeeklySellerInvoiceController::class, 'deleteAdvance']);
 Route::post('/weekly-seller-invoices/{id}/mark-paid', [App\Http\Controllers\WeeklySellerInvoiceController::class, 'markAsPaid']);
 Route::post('/weekly-seller-invoices/{id}/revoke-payment', [App\Http\Controllers\WeeklySellerInvoiceController::class, 'revokePayment']);
 Route::delete('/weekly-seller-invoices/{id}', [App\Http\Controllers\WeeklySellerInvoiceController::class, 'destroy'])->middleware('role:superadmin');

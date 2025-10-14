@@ -19,7 +19,7 @@
     </div>
 
     <!-- Stats Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
       <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
         <div class="flex items-center">
           <div class="flex-shrink-0">
@@ -30,34 +30,6 @@
           <div class="ml-4">
             <p class="text-sm font-medium text-blue-600">Total Products</p>
             <p class="text-2xl font-bold text-blue-900">{{ stats.total_products }}</p>
-          </div>
-        </div>
-      </div>
-
-      <div class="bg-green-50 border border-green-200 rounded-lg p-6">
-        <div class="flex items-center">
-          <div class="flex-shrink-0">
-            <svg class="h-8 w-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
-          <div class="ml-4">
-            <p class="text-sm font-medium text-green-600">In Stock</p>
-            <p class="text-2xl font-bold text-green-900">{{ stats.in_stock_products }}</p>
-          </div>
-        </div>
-      </div>
-
-      <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
-        <div class="flex items-center">
-          <div class="flex-shrink-0">
-            <svg class="h-8 w-8 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-            </svg>
-          </div>
-          <div class="ml-4">
-            <p class="text-sm font-medium text-yellow-600">Low Stock</p>
-            <p class="text-2xl font-bold text-yellow-900">{{ stats.low_stock_products }}</p>
           </div>
         </div>
       </div>
@@ -115,8 +87,6 @@
             <option value="name_desc">Name (Z-A)</option>
             <option value="price_asc">Price (Low to High)</option>
             <option value="price_desc">Price (High to Low)</option>
-            <option value="stock_asc">Stock (Low to High)</option>
-            <option value="stock_desc">Stock (High to Low)</option>
           </select>
         </div>
       </div>
@@ -204,73 +174,15 @@
           
           <!-- SKU -->
           <div class="flex items-center text-xs text-gray-500 mb-3">
-            <svg class="h-3.5 w-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"/>
-            </svg>
+            <span class="font-semibold mr-1">Ref:</span>
             <span>{{ product.sku }}</span>
-          </div>
-
-          <!-- Stock Information -->
-          <div class="mb-4 pb-4 border-b border-gray-100">
-            <div v-if="product.warehouses && product.warehouses.length > 0" class="space-y-2">
-              <div v-for="warehouse in product.warehouses.slice(0, 2)" :key="warehouse.id" class="flex items-center justify-between text-sm">
-                <span class="flex items-center text-gray-600">
-                  <svg class="h-4 w-4 mr-1.5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                  </svg>
-                  {{ warehouse.name }}
-                </span>
-                <span class="font-semibold text-gray-900">{{ warehouse.pivot.quantity }}</span>
-              </div>
-              <div v-if="product.warehouses.length > 2" class="text-xs text-gray-400 text-center">
-                +{{ product.warehouses.length - 2 }} more
-              </div>
-              <div class="pt-2 border-t border-gray-100">
-                <div class="flex items-center justify-between font-semibold text-gray-900">
-                  <span>Total Stock:</span>
-                  <span class="text-blue-600">{{ product.stock_quantity }} units</span>
-                </div>
-              </div>
-              <div v-if="product.stock_quantity <= 10" class="mt-2">
-                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                  ⚠️ Low Stock
-                </span>
-              </div>
-            </div>
-            <div v-else-if="product.warehouse" class="space-y-2">
-              <div class="flex items-center justify-between text-sm">
-                <span class="flex items-center text-gray-600">
-                  <svg class="h-4 w-4 mr-1.5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                  </svg>
-                  {{ product.warehouse.name }}
-                </span>
-                <span class="font-semibold text-blue-600">{{ product.stock_quantity }} units</span>
-              </div>
-              <div v-if="product.stock_quantity <= 10">
-                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                  ⚠️ Low Stock
-                </span>
-              </div>
-            </div>
-            <div v-else class="space-y-2">
-              <div class="flex items-center justify-between">
-                <span class="text-gray-600 text-sm">Stock:</span>
-                <span class="font-semibold text-blue-600">{{ product.stock_quantity }} units</span>
-              </div>
-              <div v-if="product.stock_quantity <= 10">
-                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                  ⚠️ Low Stock
-                </span>
-              </div>
-            </div>
           </div>
 
           <!-- Pricing -->
           <div class="mb-4">
             <div class="flex items-baseline justify-between">
               <span class="text-sm text-gray-500">Selling Price</span>
-              <span class="text-2xl font-bold text-gray-900">{{ product.selling_price }} <span class="text-sm font-normal text-gray-500">{{ getCurrency() }}</span></span>
+              <span class="text-2xl font-bold text-gray-900">{{ formatPrice(product.selling_price) }} <span class="text-sm font-normal text-gray-500">{{ getCurrency() }}</span></span>
             </div>
           </div>
 
@@ -292,10 +204,9 @@
         <thead class="bg-gray-50">
           <tr>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SKU</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ref</th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock</th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
           </tr>
@@ -319,34 +230,7 @@
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ product.sku }}</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ product.category || 'N/A' }}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ product.selling_price }} {{ getCurrency() }}</td>
-            <td class="px-6 py-4 whitespace-nowrap">
-              <div v-if="product.warehouses && product.warehouses.length > 0" class="space-y-1">
-                <div v-for="warehouse in product.warehouses" :key="warehouse.id" class="flex items-center justify-between">
-                  <span class="bg-blue-100 text-blue-600 px-1 py-0.5 rounded text-xs">🏢 {{ warehouse.name }}</span>
-                  <span class="font-medium text-sm">{{ warehouse.pivot.quantity }}</span>
-                </div>
-                <div class="text-center pt-1 border-t border-gray-200">
-                  <span class="font-semibold text-gray-700 text-sm">Total: {{ product.stock_quantity }}</span>
-                </div>
-                <span v-if="product.stock_quantity <= 10" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                  Low Stock
-                </span>
-              </div>
-              <div v-else-if="product.warehouse" class="flex items-center justify-between">
-                <span class="bg-purple-100 text-purple-600 px-1 py-0.5 rounded text-xs">🏢 {{ product.warehouse.name }}</span>
-                <span class="font-medium text-sm">{{ product.stock_quantity }}</span>
-                <span v-if="product.stock_quantity <= 10" class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                  Low Stock
-                </span>
-              </div>
-              <div v-else>
-                <span class="text-sm text-gray-900">{{ product.stock_quantity }}</span>
-                <span v-if="product.stock_quantity <= 10" class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                  Low Stock
-                </span>
-              </div>
-            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ formatPrice(product.selling_price) }} {{ getCurrency() }}</td>
             <td class="px-6 py-4 whitespace-nowrap">
               <span v-if="product.status === 'In Stock'" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                 {{ product.status }}
@@ -501,6 +385,12 @@ const getStatusClass = (status) => {
 const viewProduct = (product) => {
   // Emit event to parent to show product details
   emit('view-product', product)
+}
+
+const formatPrice = (price) => {
+  // Remove .00 from whole numbers
+  const num = parseFloat(price)
+  return num % 1 === 0 ? Math.floor(num) : num
 }
 
 // Watch for filter changes
