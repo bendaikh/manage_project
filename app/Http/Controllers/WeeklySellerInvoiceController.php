@@ -244,7 +244,7 @@ class WeeklySellerInvoiceController extends Controller
         }
 
         $request->validate([
-            'advance_amount' => 'required|numeric|min:0.01|max:999999.99',
+            'advance_amount' => 'required|numeric|min:0.01',
             'advance_note' => 'nullable|string|max:500'
         ]);
 
@@ -252,13 +252,6 @@ class WeeklySellerInvoiceController extends Controller
         
         if ($invoice->status !== 'approved') {
             return response()->json(['error' => 'Can only charge advance on approved invoices'], 400);
-        }
-
-        // Calculate total advances including the new one
-        $totalAdvances = $invoice->total_advances + $request->advance_amount;
-        
-        if ($totalAdvances > $invoice->total_amount) {
-            return response()->json(['error' => 'Total advances cannot exceed the total invoice amount'], 400);
         }
 
         // Create new advance record
@@ -292,7 +285,7 @@ class WeeklySellerInvoiceController extends Controller
         }
 
         $request->validate([
-            'advance_amount' => 'required|numeric|min:0.01|max:999999.99',
+            'advance_amount' => 'required|numeric|min:0.01',
             'advance_note' => 'nullable|string|max:500'
         ]);
 
@@ -303,17 +296,6 @@ class WeeklySellerInvoiceController extends Controller
         
         if ($invoice->status !== 'approved') {
             return response()->json(['error' => 'Can only modify advances on approved invoices'], 400);
-        }
-
-        // Calculate total advances excluding the current one being updated
-        $totalOtherAdvances = $invoice->advances()
-            ->where('id', '!=', $advanceId)
-            ->sum('amount');
-        
-        $newTotalAdvances = $totalOtherAdvances + $request->advance_amount;
-        
-        if ($newTotalAdvances > $invoice->total_amount) {
-            return response()->json(['error' => 'Total advances cannot exceed the total invoice amount'], 400);
         }
 
         // Update the advance

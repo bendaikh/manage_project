@@ -276,14 +276,13 @@
               type="number" 
               step="0.01" 
               min="0.01" 
-              :max="getTotalAfterAdvances(selectedInvoiceForAdvance)"
               required 
               class="w-full pl-12 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="0.00"
             />
           </div>
           <p class="text-xs text-gray-500 mt-1">
-            Maximum available: {{ formatAmount(getTotalAfterAdvances(selectedInvoiceForAdvance)) }} {{ getCurrency() }}
+            Enter the advance amount you want to charge
           </p>
         </div>
 
@@ -458,14 +457,13 @@
               type="number" 
               step="0.01" 
               min="0.01" 
-              :max="getMaxAvailableForEdit(selectedInvoiceForAdvances, editAdvanceForm.advance_id)"
               required 
               class="w-full pl-12 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="0.00"
             />
           </div>
           <p class="text-xs text-gray-500 mt-1">
-            Maximum available: {{ formatAmount(getMaxAvailableForEdit(selectedInvoiceForAdvances, editAdvanceForm.advance_id)) }} {{ getCurrency() }}
+            Enter the advance amount you want to charge
           </p>
         </div>
 
